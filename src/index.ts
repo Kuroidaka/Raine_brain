@@ -1,15 +1,18 @@
-import express, { Request, Response } from 'express'
+import 'reflect-metadata';
+import express, { NextFunction, Request, Response } from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import morgan from 'morgan'
 import chalk from 'chalk'
-import { ForbiddenException } from './common/error'
-import { errorHandler, routeNotFoundHandler } from './middleware'
+
+import { errorHandler, routeNotFoundHandler, validateDto } from '~/api/middlewares'
+import apiRoutes from '~/api/routes';
+
 
 const app = express()
 const PORT = 3000
-const API_PREFIX = '/api/v1' // Adjust as necessary
+const API_PREFIX = '/api/v2' // Adjust as necessary
 
 export const start = async (): Promise<void> => {
     // Middlewares
@@ -29,13 +32,28 @@ export const start = async (): Promise<void> => {
 
     // Routes
     // app.use(API_PREFIX, routes(dependencies))
+    app.use(API_PREFIX, apiRoutes);
+    // app.get('/test', validateDto(TestDto), async (req: Request, res: Response, next: NextFunction) => {
+    //     // Throw an error directly
+    //     try {
+    //         const user_input = req.body.user_input
     
-    app.get('/sync-error', (req: Request, res: Response) => {
-        // Throw an error directly
-        if (1 === 1) throw new ForbiddenException('bad reqdawuest')
-        
-        return res.status(200).json({data: "123"})
-    })
+    //         const pipeline = traceable(async (user_input) => {
+    //             const result = await groqClient.chat.completions.create({
+    //                 messages: [{ role: "user", content: user_input }],
+    //                 model: "gpt-3.5-turbo",
+    //             });
+    //             return result.choices[0].message.content;
+    //             });
+                
+    //         await pipeline(user_input);
+    
+    //         return res.status(200).json({data: "123"})
+    //     } catch (error) {
+    //         console.log(error)
+    //         next(error)
+    //     }
+    // })
 
     app.use(errorHandler)
     app.use(routeNotFoundHandler)

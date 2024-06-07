@@ -10,7 +10,14 @@
     "esModuleInterop": true,
     "strict": true /* Enable all strict type-checking options. */,
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
-    "baseUrl": ".", // Đường dẫn base cho các import
+    "baseUrl": "./", // Đường dẫn base cho các import
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "strictPropertyInitialization": false,
+    "lib": ["es6", "dom"],
+    "resolveJsonModule": true,
+    "sourceMap": true,
+    "noImplicitAny": true,
     "paths": {
       "~/*": ["src/*"] // Đường dẫn tương đối cho các import (alias)
     }
@@ -20,5 +27,5 @@
   },
   "files": ["src/type.d.ts"], // Các file dùng để defined global type cho dự án
   "include": ["src/**/*"], // Đường dẫn include cho các file cần build
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "**/*.spec.ts"]
 }
