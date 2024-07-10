@@ -5,13 +5,16 @@ import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import morgan from 'morgan'
 import chalk from 'chalk'
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 import { errorHandler, routeNotFoundHandler, validateDto } from '~/api/middlewares'
 import apiRoutes from '~/api/routes';
 
 
 const app = express()
-const PORT = 3000
+const PORT = process.env.SERVER_PORT
 const API_PREFIX = '/api/v2' // Adjust as necessary
 
 export const start = async (): Promise<void> => {

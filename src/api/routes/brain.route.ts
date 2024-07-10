@@ -8,7 +8,7 @@ import { ChatDto } from '~/dto/chat.dto';
 
 const router = Router();
 
-router.get('/chat', validateDto(ChatDto), BrainController.chat);
+router.post('/chat', validateDto(ChatDto), BrainController.chat);
 
 
 export default router;
