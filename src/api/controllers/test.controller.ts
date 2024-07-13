@@ -18,10 +18,8 @@ export class TestController {
   }
   static async do(req: Request, res: Response, next:NextFunction) {
     try {
-      const data = req.body.prompt
-    
-      const inputText = "what is your boss name"
-      const outputText = "your boss name is Canh"
+      const inputText = req.body.prompt
+      const outputText = req.body.outputText
       
       const memo = new MemoStore()
 
@@ -44,6 +42,20 @@ export class TestController {
       const result = await memo.get_related_memos(inputText)
 
       return res.status(200).json({ data: result });
+    } catch (error) {
+      console.log(error);
+      // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  }
+  static async do2(req: Request, res: Response, next:NextFunction) {
+    try {
+      const inputText = req.body.prompt
+        
+      const memo = new MemoStore()
+
+      const result = await memo.resetDb()
+      return res.status(200).json({ data: "done" }); 
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware

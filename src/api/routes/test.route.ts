@@ -10,4 +10,5 @@ const router = Router();
 router.get('/ping', TestController.ping);
 router.get('/do', TestController.do);
 router.get('/do1', TestController.do1);
+router.get('/do2', TestController.do2);
 export default router;

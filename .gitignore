@@ -126,3 +126,6 @@ $RECYCLE.BIN/
 # img assert file
 src/assets/img
 
+chroma.log
+
+src/assets/tmp/*
