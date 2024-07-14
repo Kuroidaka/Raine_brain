@@ -6,6 +6,7 @@ import { JSONLoader } from "langchain/document_loaders/fs/json";
 import { ChromaClient } from 'chromadb';
 import { assert } from '~/utils';
 import { NotImplementedException } from '~/common/error';
+import chalk from 'chalk';
 
 type Memo = [string, string];
 
@@ -14,27 +15,25 @@ const chromaClient = new ChromaClient({
   });
 
 export class MemoStore {
-    private uidTextDict: { [key: string]: Memo };
-    private path_to_db_object: string;
+    public uidTextDict: { [key: string]: Memo };
+    private path_to_user_db_object: string;
+    private path_to_bot_db_object: string;
     private recall_threshold: number;
+    private debug: number;
     constructor(
         reset=false,
         memo_path: string = path.join('src', 'assets', 'tmp', 'memos'),
-        recall_threshold=.5
+        recall_threshold=.5,
+        debug:number
     ) {
-
+        this.debug = debug
         this.uidTextDict = {};
-        this.path_to_db_object = path.join(memo_path, 'data.json')
-        this.ensureDirectoryExistence(this.path_to_db_object);
-        this.recall_threshold = recall_threshold
+        this.path_to_user_db_object = path.join(memo_path, 'user_memo.json')
+        this.path_to_bot_db_object = path.join(memo_path, 'bot_memo.json')
+        this.ensureDirectoryExistence(this.path_to_user_db_object);
+        this.ensureDirectoryExistence(this.path_to_bot_db_object);
 
-        if (!reset && fs.existsSync(this.path_to_db_object)) {
-            console.log('\nLOADING MEMORY FROM DISK', 'light_green');
-            this.uidTextDict = this.loadData() || {};
-            // if (this.verbosity >= 3) {
-            //     this.listMemos();
-            // }
-        }
+        this.recall_threshold = recall_threshold
 
         // Clear the DB if requested.
         if (reset) {
@@ -53,13 +52,21 @@ export class MemoStore {
     }
 
     // Load data from JSON file
-    private loadData(): { [key: string]: Memo } | null {
-        if (!fs.existsSync(this.path_to_db_object)) {
+    private async loadData(path: string): Promise<{ [key: string]: Memo } | null> {
+        try {
+            await fs.promises.access(path); // Check if the file exists
+        } catch {
             console.log('No data file found.');
             return null;
         }
-        const rawData = fs.readFileSync(this.path_to_db_object, 'utf-8');
-        return JSON.parse(rawData) as { [key: string]: Memo };
+
+        try {
+            const rawData = await fs.promises.readFile(path, 'utf-8'); // Read the file contents asynchronously
+            return JSON.parse(rawData) as { [key: string]: Memo };
+        } catch (error) {
+            console.error('Error reading or parsing data file:', error);
+            return null;
+        }
     }
 
     // Add a new input-output pair
@@ -79,9 +86,7 @@ export class MemoStore {
             await vectorStore.similaritySearchWithScore(inputText, 10);
             
             this.uidTextDict[id] = [inputText, outputText];
-
-            console.log("after save this.uidTextDict", this.uidTextDict)
-            // this.saveData();
+            // this.saveData(botRelate);
 
         } catch (error) {
             console.log(error)
@@ -90,14 +95,15 @@ export class MemoStore {
        
     }
 
-    // Retrieve the stored pairs
-    public getInputOutputPairs(): { [key: string]: Memo } {
-        return this.uidTextDict;
-    }
-
     // Retrieve data based on input
-    public async get_related_memos(inputText: string, n_results = 10):Promise<{ input_text:string, output_text:string }[]> {
+    public async get_related_memos(inputText: string, n_results = 10, botRelate=false):Promise<{ input_text:string, output_text:string }[]> {
         try {
+            const memo_path = botRelate ? this.path_to_bot_db_object : this.path_to_user_db_object
+            // load memory
+            if (fs.existsSync(memo_path)) {
+                console.log(chalk.green(`\nLOADING MEMORY FROM ${botRelate? "BOT": "USER"} DISK`));
+                this.uidTextDict = await this.loadData(memo_path) || {};
+            }
 
             const uidTextDictLength = Object.keys(this.uidTextDict).length;
             if (n_results > uidTextDictLength) {
@@ -119,7 +125,7 @@ export class MemoStore {
                 const input_text = results[i][0].pageContent
                 const distance = results[i][1]
 
-                if(distance < this.recall_threshold) {
+                if(distance < this.recall_threshold && this.uidTextDict[uid]?.length > 0) {
                     const input_text2 = this.uidTextDict[uid][0]
                     const output_text = this.uidTextDict[uid][1]
                     assert(input_text == input_text2) 
@@ -145,7 +151,8 @@ export class MemoStore {
             await chromaClient.deleteCollection({name: "memos"});
             await chromaClient.createCollection({name: "memos"});
             this.uidTextDict = {}
-            this.saveData()
+            this.saveData(true) //save empty data for bot memo
+            this.saveData(false)//save empty data for user memo
         } catch (error) {
             console.log(error)
             throw new NotImplementedException('>>MemoStore>>resetDb' + error)
@@ -153,10 +160,10 @@ export class MemoStore {
     }
 
     // Save data to JSON file
-    public saveData(): void {
-
-        console.log("prepare to save this.uidTextDict", this.uidTextDict)
-        fs.writeFileSync(this.path_to_db_object, JSON.stringify(this.uidTextDict, null, 2), 'utf-8');
+    public saveData(botRelate:boolean): void {
+        const path = botRelate ? this.path_to_bot_db_object : this.path_to_user_db_object
+        this.debug && console.log("Long-term Memo:", this.uidTextDict)
+        fs.writeFileSync(path, JSON.stringify(this.uidTextDict, null, 2), 'utf-8');
         console.log('Data saved successfully.');
     }
 }

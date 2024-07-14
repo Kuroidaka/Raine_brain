@@ -1,10 +1,16 @@
 import { ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions'
 
-export const conversation = {
-    process: (prompt:string, isEnableLTMemo:boolean):ChatCompletionMessageParam[] => {
+export class STMemoStore {
+    private recall_threshold: number;
+    constructor(
+        reset=false,
+        recall_threshold=.5
+    ) {}
+    
+    public process(prompt:string, isEnableLTMemo:boolean):ChatCompletionMessageParam[] {
 
         const messages:ChatCompletionMessageParam[] = [
-           
+
             { role: "user", content: prompt }
         ]
         

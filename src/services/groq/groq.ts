@@ -55,15 +55,13 @@ export const GroqService = {
       throw error;
     }
   },
-  analyzer: async(textToAnalyze:string, analysisInstructions:string): Promise<analyzeOutputInter>=> {
+  analyzer: async(textToAnalyze:string, analysisInstructions:string, debug?:number): Promise<analyzeOutputInter>=> {
     try {
 
       const text_to_analyze = "# TEXT\n" + textToAnalyze + "\n"
       const analysis_instructions = "# INSTRUCTIONS\n" + analysisInstructions + "\n"
 
       const msgText = [analysis_instructions, text_to_analyze, analysis_instructions].join("\n");
-
-      console.log(msgText)
       const data:ChatCompletionMessageParam[] = [
         { role: "system", content: analyzeSystem},
         { role: "user", content: msgText }
@@ -73,7 +71,15 @@ export const GroqService = {
         messages: data,
         model: "llama3-70b-8192",
       });
-      console.log("response: ", choices[0].message.content)
+
+      const content = "# RESULT\n" + choices[0].message.content + "\n"
+
+      if(debug && debug === 1) {
+        console.log(analysis_instructions)
+        console.log(text_to_analyze)
+        console.log(content)
+      }
+
       return {
         content: choices[0].message.content
       }

@@ -66,7 +66,7 @@ export class TestController {
     try {
       const prompt = req.body.prompt
       
-      const techableAgent = new TeachableService()
+      const techableAgent = new TeachableService(0)
       await techableAgent.considerMemoStorage(prompt)
       
 
@@ -82,7 +82,7 @@ export class TestController {
     try {
       const prompt = req.body.prompt
       
-      const techableAgent = new TeachableService()
+      const techableAgent = new TeachableService(0)
       const newprompt = await techableAgent.considerMemoRetrieval(prompt)
       
 

@@ -5,7 +5,7 @@ import { GroqService } from '../../services/groq/groq';
 import { json } from 'body-parser';
 import { ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions';
 import { TeachableService } from '~/services/techable';
-import { conversation } from '~/services/conversation';
+import { STMemoStore } from '~/services/STMemo';
 
 
 export const BrainController = {
@@ -17,13 +17,14 @@ export const BrainController = {
     try {
       
       // Long term memory process
-      const techableAgent = new TeachableService()
-      const promptWithRelatedMemory = isEnableLTMemo ? await techableAgent.preprocess(prompt) : prompt
+      const teachableAgent = new TeachableService(0)
+      const promptWithRelatedMemory = isEnableLTMemo ? await teachableAgent.preprocess(prompt) : prompt
       
       // Short term memory process
 
       // Process Conversation Data
-      const messages:ChatCompletionMessageParam[] = conversation.process(promptWithRelatedMemory, isEnableLTMemo)
+      const STMemo = new STMemoStore()
+      const messages:ChatCompletionMessageParam[] = STMemo.process(promptWithRelatedMemory, isEnableLTMemo)
       
       // Asking
       const output = await GroqService.chat(messages, isEnableStream)
