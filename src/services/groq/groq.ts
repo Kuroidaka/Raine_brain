@@ -73,6 +73,7 @@ export const GroqService = {
         messages: data,
         model: "llama3-70b-8192",
       });
+      console.log("response: ", choices[0].message.content)
       return {
         content: choices[0].message.content
       }

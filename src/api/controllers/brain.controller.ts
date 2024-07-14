@@ -17,7 +17,8 @@ export const BrainController = {
     try {
       
       // Long term memory process
-      const promptWithRelatedMemory = isEnableLTMemo ? await TeachableService.preprocess(prompt) : prompt
+      const techableAgent = new TeachableService()
+      const promptWithRelatedMemory = isEnableLTMemo ? await techableAgent.preprocess(prompt) : prompt
       
       // Short term memory process
 

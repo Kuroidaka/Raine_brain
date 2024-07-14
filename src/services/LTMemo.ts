@@ -14,13 +14,32 @@ const chromaClient = new ChromaClient({
   });
 
 export class MemoStore {
-    private filePath: string;
     private uidTextDict: { [key: string]: Memo };
+    private path_to_db_object: string;
+    private recall_threshold: number;
+    constructor(
+        reset=false,
+        memo_path: string = path.join('src', 'assets', 'tmp', 'memos'),
+        recall_threshold=.5
+    ) {
 
-    constructor(filePath: string = path.join('src', 'assets', 'tmp', 'data.json')) {
-        this.filePath = filePath;
-        this.uidTextDict = this.loadData() || {};
-        this.ensureDirectoryExistence(this.filePath);
+        this.uidTextDict = {};
+        this.path_to_db_object = path.join(memo_path, 'data.json')
+        this.ensureDirectoryExistence(this.path_to_db_object);
+        this.recall_threshold = recall_threshold
+
+        if (!reset && fs.existsSync(this.path_to_db_object)) {
+            console.log('\nLOADING MEMORY FROM DISK', 'light_green');
+            this.uidTextDict = this.loadData() || {};
+            // if (this.verbosity >= 3) {
+            //     this.listMemos();
+            // }
+        }
+
+        // Clear the DB if requested.
+        if (reset) {
+            this.resetDb();
+        }
     }
 
     // Ensure the directory exists
@@ -33,24 +52,18 @@ export class MemoStore {
         fs.mkdirSync(dirname);
     }
 
-    // Save data to JSON file
-    private saveData(): void {
-        fs.writeFileSync(this.filePath, JSON.stringify(this.uidTextDict, null, 2), 'utf-8');
-        console.log('Data saved successfully.');
-    }
-
     // Load data from JSON file
     private loadData(): { [key: string]: Memo } | null {
-        if (!fs.existsSync(this.filePath)) {
+        if (!fs.existsSync(this.path_to_db_object)) {
             console.log('No data file found.');
             return null;
         }
-        const rawData = fs.readFileSync(this.filePath, 'utf-8');
+        const rawData = fs.readFileSync(this.path_to_db_object, 'utf-8');
         return JSON.parse(rawData) as { [key: string]: Memo };
     }
 
     // Add a new input-output pair
-    public async addInputOutputPair(inputText: string, outputText: string): Promise<any> {
+    public async addInputOutputPair(inputText: string, outputText: string): Promise<void> {
         try {
             const id = Math.random().toString();
             const vectorStore = await Chroma.fromTexts(
@@ -63,13 +76,13 @@ export class MemoStore {
                 }
             );
     
-            const resultOne = await vectorStore.similaritySearchWithScore(inputText, 10);
+            await vectorStore.similaritySearchWithScore(inputText, 10);
             
             this.uidTextDict[id] = [inputText, outputText];
-            this.saveData();
 
+            console.log("after save this.uidTextDict", this.uidTextDict)
+            // this.saveData();
 
-            return resultOne;
         } catch (error) {
             console.log(error)
             throw error
@@ -83,7 +96,7 @@ export class MemoStore {
     }
 
     // Retrieve data based on input
-    public async get_related_memos(inputText: string, n_results = 10) {
+    public async get_related_memos(inputText: string, n_results = 10):Promise<{ input_text:string, output_text:string }[]> {
         try {
 
             const uidTextDictLength = Object.keys(this.uidTextDict).length;
@@ -106,7 +119,7 @@ export class MemoStore {
                 const input_text = results[i][0].pageContent
                 const distance = results[i][1]
 
-                if(distance < .3) {
+                if(distance < this.recall_threshold) {
                     const input_text2 = this.uidTextDict[uid][0]
                     const output_text = this.uidTextDict[uid][1]
                     assert(input_text == input_text2) 
@@ -137,5 +150,13 @@ export class MemoStore {
             console.log(error)
             throw new NotImplementedException('>>MemoStore>>resetDb' + error)
         }
+    }
+
+    // Save data to JSON file
+    public saveData(): void {
+
+        console.log("prepare to save this.uidTextDict", this.uidTextDict)
+        fs.writeFileSync(this.path_to_db_object, JSON.stringify(this.uidTextDict, null, 2), 'utf-8');
+        console.log('Data saved successfully.');
     }
 }

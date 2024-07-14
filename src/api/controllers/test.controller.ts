@@ -16,7 +16,7 @@ export class TestController {
       next(error);
     }
   }
-  static async do(req: Request, res: Response, next:NextFunction) {
+  static async testCreateMemo(req: Request, res: Response, next:NextFunction) {
     try {
       const inputText = req.body.prompt
       const outputText = req.body.outputText
@@ -32,8 +32,7 @@ export class TestController {
       next(error);
     }
   }
-
-  static async do1(req: Request, res: Response, next:NextFunction) {
+  static async testGetListMemo(req: Request, res: Response, next:NextFunction) {
     try {
       const inputText = req.body.prompt
         
@@ -48,7 +47,7 @@ export class TestController {
       next(error);
     }
   }
-  static async do2(req: Request, res: Response, next:NextFunction) {
+  static async resetMemo(req: Request, res: Response, next:NextFunction) {
     try {
       const inputText = req.body.prompt
         
@@ -56,6 +55,38 @@ export class TestController {
 
       const result = await memo.resetDb()
       return res.status(200).json({ data: "done" }); 
+    } catch (error) {
+      console.log(error);
+      // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  }
+
+  static async considerMemo(req: Request, res: Response, next:NextFunction) {
+    try {
+      const prompt = req.body.prompt
+      
+      const techableAgent = new TeachableService()
+      await techableAgent.considerMemoStorage(prompt)
+      
+
+      return res.status(200).json({ data: "done" });
+    } catch (error) {
+      console.log(error);
+      // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  }
+
+  static async considerMemoRetrieval(req: Request, res: Response, next:NextFunction) {
+    try {
+      const prompt = req.body.prompt
+      
+      const techableAgent = new TeachableService()
+      const newprompt = await techableAgent.considerMemoRetrieval(prompt)
+      
+
+      return res.status(200).json({ data: newprompt });
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware
