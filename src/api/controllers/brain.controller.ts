@@ -6,32 +6,47 @@ import { json } from 'body-parser';
 import { ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions';
 import { TeachableService } from '~/services/techable';
 import { STMemoStore } from '~/services/STMemo';
+import { messagesInter } from '~/services/groq/groq.interface';
+import path from 'path';
 
 
 export const BrainController = {
   chat: async (req: Request, res: Response, next:NextFunction) => {
     // preprocess data params
+    console.clear()
     const { prompt } = req.body;
-    const isEnableStream = req.query?.isStream === "true";
-    const isEnableLTMemo = req.query?.isLTMemo === "true"; // LT: Long term memo
+    const { isStream = "false", isLTMemo = "false" } = req.query;
+    const isEnableStream = isStream === "true";
+    const isEnableLTMemo = isLTMemo === "true"; // Enable Long term memory
     try {
       
+      const userId = "NdwkapHWAlkwa"
       // Long term memory process
-      const teachableAgent = new TeachableService(0)
-      const promptWithRelatedMemory = isEnableLTMemo ? await teachableAgent.preprocess(prompt) : prompt
+      const pathMemo = path.join('src', 'assets', 'tmp', 'memos', userId)
+      const teachableAgent = new TeachableService(0, pathMemo)
+      const promptWithRelatedMemory = isEnableLTMemo ? await teachableAgent.considerMemoRetrieval(prompt) : prompt
       
       // Short term memory process
+      const STMemo = new STMemoStore(userId)
+      const messages:(ChatCompletionMessageParam[]| messagesInter[]) = await STMemo.process(promptWithRelatedMemory, isEnableLTMemo)
 
-      // Process Conversation Data
-      const STMemo = new STMemoStore()
-      const messages:ChatCompletionMessageParam[] = STMemo.process(promptWithRelatedMemory, isEnableLTMemo)
+      // const messages:ChatCompletionMessageParam[] = [
+      //   { role: "user", content: promptWithRelatedMemory }
+      // ]
+    
+      // if(isEnableLTMemo) {
+      //     messages.unshift({ role: "system", content: "You've been given the special ability to remember user teachings from prior conversations." },)
+      // }
       
       // Asking
       const output = await GroqService.chat(messages, isEnableStream)
 
       // Storage new conversation
 
-      return res.status(200).json({ data: output.content });
+      res.status(200).json({ data: output.content });
+
+      isEnableLTMemo && teachableAgent.considerMemoStorage(prompt)
+
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware

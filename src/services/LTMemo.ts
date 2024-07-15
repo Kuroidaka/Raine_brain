@@ -4,7 +4,7 @@ import { Chroma } from "@langchain/community/vectorstores/chroma";
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { JSONLoader } from "langchain/document_loaders/fs/json";
 import { ChromaClient } from 'chromadb';
-import { assert } from '~/utils';
+import { assert, deleteFilesInDirectory, deleteFolderRecursive } from '~/utils';
 import { NotImplementedException } from '~/common/error';
 import chalk from 'chalk';
 
@@ -19,15 +19,17 @@ export class MemoStore {
     private path_to_user_db_object: string;
     private path_to_bot_db_object: string;
     private recall_threshold: number;
+    private memo_path:string
     private debug: number;
     constructor(
+        debug:number,
         reset=false,
         memo_path: string = path.join('src', 'assets', 'tmp', 'memos'),
         recall_threshold=.5,
-        debug:number
     ) {
         this.debug = debug
         this.uidTextDict = {};
+        this.memo_path = memo_path;
         this.path_to_user_db_object = path.join(memo_path, 'user_memo.json')
         this.path_to_bot_db_object = path.join(memo_path, 'bot_memo.json')
         this.ensureDirectoryExistence(this.path_to_user_db_object);
@@ -146,13 +148,19 @@ export class MemoStore {
         }
     }
 
-    public async resetDb() {
+    public async resetDb(id?:string) {
         try {
             await chromaClient.deleteCollection({name: "memos"});
             await chromaClient.createCollection({name: "memos"});
             this.uidTextDict = {}
-            this.saveData(true) //save empty data for bot memo
-            this.saveData(false)//save empty data for user memo
+            if(id) {
+                this.saveData(true, id) //save empty data for bot memo
+                this.saveData(false, id)//save empty data for user memo
+            }
+            else {
+                deleteFolderRecursive(this.memo_path)
+            }
+
         } catch (error) {
             console.log(error)
             throw new NotImplementedException('>>MemoStore>>resetDb' + error)
@@ -160,8 +168,14 @@ export class MemoStore {
     }
 
     // Save data to JSON file
-    public saveData(botRelate:boolean): void {
-        const path = botRelate ? this.path_to_bot_db_object : this.path_to_user_db_object
+    public saveData(botRelate:boolean, id?:string): void {
+        let path = botRelate ? this.path_to_bot_db_object : this.path_to_user_db_object
+        if(id) {
+            const pathParts = path.split('/');
+            const fileName = pathParts.pop();
+            path = `${pathParts.join('/')}/${id}/${fileName}`;
+        }
+        
         this.debug && console.log("Long-term Memo:", this.uidTextDict)
         fs.writeFileSync(path, JSON.stringify(this.uidTextDict, null, 2), 'utf-8');
         console.log('Data saved successfully.');

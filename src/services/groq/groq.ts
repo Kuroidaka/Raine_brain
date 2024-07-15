@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { traceable } from "langsmith/traceable";
 import { analyzeOutputInter, messagesInter, outputInter } from "./groq.interface";
 import { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
+import { NotImplementedException } from "~/common/error";
 
 const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
@@ -10,27 +11,29 @@ The user will give you analysis INSTRUCTIONS copied twice, at both the beginning
 You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested.`
 
 export const GroqService = {
-  chat: async (messages: ChatCompletionMessageParam[] | string, isEnableStream = false):Promise<outputInter> => {
+  chat: async (messages: ChatCompletionMessageParam[] | messagesInter[] | string, isEnableStream = false):Promise<outputInter> => {
 
     // This way allow us to send message as a string or and array object
-    const data: ChatCompletionMessageParam[] = (typeof messages === 'string') 
+    const data: (ChatCompletionMessageParam[] | messagesInter[]) = (typeof messages === 'string') 
       ? [{ role: "user", content: JSON.stringify(messages) }]
       : messages;
   
     // Return to Stream feature
-    if (isEnableStream) return GroqService.stream(data);
+    // if (isEnableStream) return GroqService.stream(data);
   
     try {
       const { choices } = await groqClient.chat.completions.create({
-        messages: data,
-        model: "llama3-8b-8192",
+        messages: data as ChatCompletionMessageParam[],
+        model: "llama3-70b-8192",
       });
       return {
         content: choices[0].message.content
       }
     } catch (error) {
       console.error(error);
-      throw error;
+      return {
+        content: "Give me a quick breather; I'll be back in a few minutes, fresher than ever!"
+      }
     }
   },  
   stream: async(messages: ChatCompletionMessageParam[]) => {

@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Task {
+  id        String   @id
+  title     String   @db.LongText
+  time      DateTime
+  repeat    Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  interval  Int?
+}
+
+model File {
+  id        String   @id
+  name      String   @unique
+  path      String
+  extension String
+  size      Int
+  url       String   @db.LongText
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Role {
+  id             String           @id @default(uuid())
+  name           String           @unique
+  created_at     DateTime         @default(now())
+  updated_at     DateTime         @default(now())
+  User           User[]
+}
+
+model User {
+  id           String   @id @default(uuid())
+  display_name String?
+  username     String   @unique
+  password     String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now())
+  role_id      String?
+  Role         Role?    @relation(fields: [role_id], references: [id])
+
+  @@index([role_id], map: "Role_role_id_fkey")
+}
+
+model Conversation {
+  id            String    @id @default(uuid())
+  name          String
+  from          String
+  lastMessage   String    @db.LongText
+  lastMessageAt DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  messages      Message[]
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  text           String       @db.LongText
+  sender         String
+  senderID       String
+  functionList   String?      @db.LongText
+  conversationId String
+  imgList        ImageFile[]
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId], map: "Message_conversationId_fkey")
+}
+
+model ImageFile {
+  id        String   @id
+  url       String   @db.LongText
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id])
+
+  @@index([messageId], map: "ImageFile_messageId_fkey")
+}

@@ -21,7 +21,7 @@ export class TestController {
       const inputText = req.body.prompt
       const outputText = req.body.outputText
       
-      const memo = new MemoStore()
+      const memo = new MemoStore(0)
 
       const result = await memo.addInputOutputPair(inputText, outputText)
 
@@ -36,7 +36,7 @@ export class TestController {
     try {
       const inputText = req.body.prompt
         
-      const memo = new MemoStore()
+      const memo = new MemoStore(0)
 
       const result = await memo.get_related_memos(inputText)
 
@@ -51,9 +51,9 @@ export class TestController {
     try {
       const inputText = req.body.prompt
         
-      const memo = new MemoStore()
+      const memo = new MemoStore(0)
 
-      const result = await memo.resetDb()
+      await memo.resetDb()
       return res.status(200).json({ data: "done" }); 
     } catch (error) {
       console.log(error);

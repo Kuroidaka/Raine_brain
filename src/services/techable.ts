@@ -7,24 +7,19 @@ import chalk from "chalk";
 
 export class TeachableService {
 
-  private reset_db: boolean;
-  private recall_threshold: number;
   private max_num_retrievals: number;
   public  memo_store: MemoStore;
-  private path_to_db_dir=path.join('src', 'assets', 'tmp', 'memos');
   private debug: number;
   constructor(
     debug:number,
+    path_to_db_dir=path.join('src', 'assets', 'tmp', 'memos'),
     reset_db=false,
-    recall_threshold=.5,
+    recall_threshold=.65,
     max_num_retrievals=10,
   ) {
-    this.reset_db = reset_db
-    this.recall_threshold = recall_threshold
     this.max_num_retrievals = max_num_retrievals
-    this.debug=debug
-    this.memo_store = new MemoStore(this.reset_db, this.path_to_db_dir, this.recall_threshold, this.debug)
-
+    this.debug = debug
+    this.memo_store = new MemoStore(this.debug, reset_db, path_to_db_dir, recall_threshold)
   } 
  
   public async preprocess(prompt: string) {
@@ -32,9 +27,8 @@ export class TeachableService {
         let expandedText = prompt
         expandedText = await this.considerMemoRetrieval(prompt)
 
-        console.log("this.memo_store", this.memo_store.uidTextDict)
         await this.considerMemoStorage(prompt)
-
+        
         return expandedText
     } catch (error) {
         console.error(">>TeachableService>>preprocess");
@@ -45,7 +39,8 @@ export class TeachableService {
   public async considerMemoStorage(prompt:string) {
     try {
       let memoAdded = false
-      let botRelate = false
+      let botRelate = (await GroqService.analyzer(prompt, "Consider whether this task is related to you or not. Answer with just one word, yes or no.", this.debug) as analyzeOutputInter).content?.toLowerCase().includes("yes") || false
+
       // Check for a problem-solution pair.
       let analyze:analyzeOutputInter = await GroqService.analyzer(
         prompt, 
@@ -59,18 +54,15 @@ export class TeachableService {
           this.debug
         )
         if (advice.content && !advice.content.toLowerCase().includes("none")) {
-        const [taskResult, isRelateResult] = await Promise.all([
-          GroqService.analyzer(prompt, "Briefly copy just the task from the TEXT, then stop. Don't solve it, and don't include any advice.", this.debug),
-          GroqService.analyzer(prompt, "Consider whether this task is related to you or not. Answer with just one word, yes or no.", this.debug)
-        ]);
-  
-        const task = (taskResult as analyzeOutputInter).content;
-        botRelate = (isRelateResult as analyzeOutputInter).content?.toLowerCase().includes("yes") || false;
-  
+          const { content : task }:analyzeOutputInter = await GroqService.analyzer(
+            prompt, 
+            "Briefly copy just the task from the TEXT, then stop. Don't solve it, and don't include any advice.", this.debug
+          );
+    
           if (task) {
             const { content: generalTask }: analyzeOutputInter = await GroqService.analyzer(
                 task,
-                "Summarize very briefly, in general terms, the type of task described in the TEXT. Leave out details that might not appear in a similar problem.",
+                `Summarize very briefly, in general terms, the type of task described in the TEXT. Leave out details that might not appear in a similar problem. The person mentioned in your response refers to ${!botRelate ? "the user" : "you"}.`,
                 this.debug
             );
     
@@ -91,21 +83,20 @@ export class TeachableService {
       )
       if (analyze.content?.toLowerCase().includes("yes")) {
 
-        const [question, answer, isRelateResult] = await Promise.all([
-          GroqService.analyzer(prompt, "Imagine that the user forgot this information in the TEXT. How would they ask you for this information? Include no other text in your response.", this.debug),
-          GroqService.analyzer(prompt, "Copy the information from the TEXT that should be committed to memory. Add no explanation.", this.debug),
-          GroqService.analyzer(prompt, "Consider whether this task is related to you or not. Answer with just one word, yes or no.", this.debug)
+        const [question, answer] = await Promise.all([
+          GroqService.analyzer(prompt, `Imagine that the user forgot this information in the TEXT. How would they ask you for this information? Use the third person to refer to the person in your response, as it refers to ${!botRelate ? "the user (don't mention gender)" : "you"}. Include no other text in your response.`, this.debug),
+          GroqService.analyzer(prompt, `Copy the information from the TEXT that should be committed to memory. Add no explanation. The person mentioned in your response refers to ${!botRelate ? "the user (don't mention gender)" : "you"}.`, this.debug)
         ]);
         
-        botRelate = (isRelateResult as analyzeOutputInter).content?.toLowerCase().includes("yes") || false;
-
         if(question.content && answer.content){
           await this.memo_store.addInputOutputPair(question.content, answer.content);
           memoAdded = true
         }
       }
-      this.debug && console.log(chalk.green("memoAdded"), memoAdded)
-      this.debug && console.log(chalk.green("Current Memory"), this.memo_store.uidTextDict)
+      if(this.debug === 0) {
+        console.log(chalk.green("memoAdded"), memoAdded)
+      } 
+      
       memoAdded && this.memo_store.saveData(botRelate)
 
     } catch (error) {
@@ -141,8 +132,9 @@ export class TeachableService {
       }
 
       memoList = [...new Set(memoList)];
+      
+      this.debug === 0 && console.log("Related memory list", memoList)
 
-      this.debug && console.log("Related memory", memoList)
       return prompt + this.concatenateMemoTexts(memoList)
     } catch (error) {
         console.error(">>TeachableService>>considerMemoRetrieval");
