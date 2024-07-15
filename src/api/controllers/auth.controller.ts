@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 const SALT_ROUNDS = 10;
-const SECRET_KEY = 'your-secret-key'
+const SECRET_KEY = process.env.JWT_SECRET
 
 const userService = UserService.getInstance();
 export const AuthController = {
