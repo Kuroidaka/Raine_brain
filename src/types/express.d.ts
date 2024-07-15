@@ -1,7 +1,8 @@
-import { JwtPayload } from 'jsonwebtoken';
+import { JwtPayload } from "~/api/middlewares/validate_token";
+
 
 declare module 'express-serve-static-core' {
     interface Request {
-        user?: JwtPayload | string; // You can adjust the type based on your JWT payload structure
+        user: JwtPayload; // You can adjust the type based on your JWT payload structure
     }
 }

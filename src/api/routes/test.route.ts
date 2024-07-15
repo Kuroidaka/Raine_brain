@@ -10,7 +10,7 @@ const router = Router();
 router.get('/ping', TestController.ping);
 router.post('/do', TestController.testCreateMemo);
 router.get('/do1', TestController.testGetListMemo);
-router.delete('/do2', TestController.resetMemo);
+router.delete('/reset_memory', TestController.resetMemo);
 router.post('/consider_memo', TestController.considerMemo);
 router.get('/consider_get_relevant', TestController.considerMemoRetrieval);
 

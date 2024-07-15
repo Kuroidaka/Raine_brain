@@ -49,11 +49,11 @@ export class TestController {
   }
   static async resetMemo(req: Request, res: Response, next:NextFunction) {
     try {
-      const inputText = req.body.prompt
+      const { q } = req.body
         
       const memo = new MemoStore(0)
 
-      await memo.resetDb()
+      await memo.resetDb(q)
       return res.status(200).json({ data: "done" }); 
     } catch (error) {
       console.log(error);

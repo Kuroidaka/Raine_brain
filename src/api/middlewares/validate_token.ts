@@ -4,7 +4,7 @@ import { ForbiddenException, UnauthorizedException } from '~/common/error';
 
 const SECRET_KEY:string = process.env.JWT_SECRET || "";
 
-interface JwtPayload {
+export interface JwtPayload {
     id: string;
     username: string;
     // Add other properties as needed
