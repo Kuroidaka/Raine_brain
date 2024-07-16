@@ -8,7 +8,7 @@ import { TestController } from '../controllers/test.controller'
 const router = Router();
 
 router.get('/ping', TestController.ping);
-router.post('/do', TestController.testCreateMemo);
+router.post('/do', TestController.do);
 router.get('/do1', TestController.testGetListMemo);
 router.delete('/reset_memory', TestController.resetMemo);
 router.post('/consider_memo', TestController.considerMemo);

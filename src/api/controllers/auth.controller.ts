@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '~/common/error';
-import { UserService } from '~/services/database/user';
+import { UserService } from '~/database/user/user';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 

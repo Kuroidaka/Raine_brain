@@ -1,23 +1,43 @@
 import { ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions'
 import { messagesInter } from './groq/groq.interface'
+import { ConversationService } from '~/database/conversation/conversation';
+import { Message } from '@prisma/client';
 
+const conversationService = ConversationService.getInstance()
 export class STMemoStore {
 
-    sessionId: string;
-
+    userId: string;
+    conversation_id: string | undefined;
     // Simulate a real database layer. Stores serialized objects.
     fakeDatabase:{};
 
-    constructor(sessionId:string) {
-        this.sessionId = sessionId;
+    constructor(userId:string, conversation_id?:string) {
+        this.userId = userId;
+        this.conversation_id = conversation_id || undefined
     }
 
-    async getMessages(): Promise<messagesInter[]> {
-        // const messages = this.fakeDatabase[this.sessionId] ?? [];
-        return [];
+    async convertMessagesFormat(messages: Message[]): Promise<messagesInter[]> {
+        return messages.map(message => ({
+            role: message.isBot ? 'assistant' : 'user',
+            content: message.text,
+        }));
+    };
+
+    async getMessages(conversationId:string): Promise<messagesInter[]> {
+        const msgList = await conversationService.getMsg(conversationId)
+
+        const newMsgList = await this.convertMessagesFormat(msgList)
+
+        return newMsgList;
     }
 
-    async addMessage(message:string): Promise<void> {
+    async addMessage(message:string, isBot:boolean, conversationId:string): Promise<void> {
+        await conversationService.addMsg({
+            text: message,
+            isBot: isBot,
+            userID: this.userId,
+            conversationId: conversationId  
+        })
     }
 
     async addMessages(messages:[]): Promise<void> {
@@ -26,22 +46,39 @@ export class STMemoStore {
     async clear(): Promise<void> {
     }
 
-    get_system_prompt(history:messagesInter[], isEnableLTMemo:boolean):messagesInter[] {
-
+    get_system_prompt(isEnableLTMemo:boolean):messagesInter[] {
+        const list = []
         if(isEnableLTMemo) {
-            history.unshift({ role: "system", content: "You've been given the special ability to remember user teachings from prior conversations." },)
+            list.unshift({ role: "system", content: "You've been given the special ability to remember user teachings from prior conversations." },)
         }
-        return history
+        return list
     }
 
-    public async process(prompt:string, isEnableLTMemo:boolean):Promise<ChatCompletionMessageParam[] | messagesInter[]> {
+    public async process(
+        originalPrompt:string , 
+        promptWithRelatedMemory:string, 
+        isEnableLTMemo:boolean
+    ):Promise<ChatCompletionMessageParam[] | messagesInter[]> {
+        let conversation = this.conversation_id
+        ? await conversationService.getConversation(this.conversation_id)
+        : null;
+        
+        if (!conversation) {
+            conversation = await conversationService.addNewConversation({ lastMessage: originalPrompt });
+        }
+        this.conversation_id = conversation.id
 
-        await this.addMessage(prompt)
+        this.addMessage(originalPrompt, false, this.conversation_id)
+        
 
-        const history = await this.getMessages()
+        let history = await this.getMessages(this.conversation_id)
 
-        return this.get_system_prompt(history, isEnableLTMemo).concat(history)
+        history.push({
+            "role": "user",
+            "content": promptWithRelatedMemory
+        })
 
+        return this.get_system_prompt(isEnableLTMemo).concat(history)
     }
 }
 

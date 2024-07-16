@@ -51,8 +51,8 @@ model User {
 
 model Conversation {
   id            String    @id @default(uuid())
-  name          String
-  from          String
+  name          String    @default("New Chat")
+  from          String?
   lastMessage   String    @db.LongText
   lastMessageAt DateTime  @default(now())
   createdAt     DateTime  @default(now())
@@ -65,8 +65,8 @@ model Message {
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   text           String       @db.LongText
-  sender         String
-  senderID       String
+  isBot          Boolean
+  userID         String
   functionList   String?      @db.LongText
   conversationId String
   imgList        ImageFile[]

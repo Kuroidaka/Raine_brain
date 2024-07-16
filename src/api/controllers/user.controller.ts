@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { UserService } from '~/services/database/user';
+import { UserService } from '~/database/user/user';
 
 const userService = UserService.getInstance();
 export const UserController = {

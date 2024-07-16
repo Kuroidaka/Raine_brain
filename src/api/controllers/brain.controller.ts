@@ -14,7 +14,7 @@ export const BrainController = {
   chat: async (req: Request, res: Response, next:NextFunction) => {
     // preprocess data params
     console.clear()
-    const { prompt } = req.body;
+    const { prompt, conversationID } = req.body;
     const { username }  = req.user;
     const { isStream = "false", isLTMemo = "false" } = req.query;
     const isEnableStream = isStream === "true";
@@ -28,24 +28,16 @@ export const BrainController = {
       const promptWithRelatedMemory = isEnableLTMemo ? await teachableAgent.considerMemoRetrieval(prompt) : prompt
       
       // Short term memory process
-      // const STMemo = new STMemoStore(userId)
-      // const messages:(ChatCompletionMessageParam[]| messagesInter[]) = await STMemo.process(promptWithRelatedMemory, isEnableLTMemo)
+      const STMemo = new STMemoStore(userId, conversationID)
+      const messages:(ChatCompletionMessageParam[]| messagesInter[]) = await STMemo.process(
+        prompt, promptWithRelatedMemory, isEnableLTMemo
+      )
 
-      const messages:ChatCompletionMessageParam[] = [
-        { role: "user", content: promptWithRelatedMemory }
-      ]
-    
-      if(isEnableLTMemo) {
-          messages.unshift({ role: "system", content: "You've been given the special ability to remember user teachings from prior conversations." },)
-      }
-      
       // Asking
       const output = await GroqService.chat(messages, isEnableStream)
 
-      // Storage new conversation
-
       res.status(200).json({ data: output.content });
-
+      output.content && STMemo.conversation_id && STMemo.addMessage(output.content, true, STMemo.conversation_id)
       isEnableLTMemo && teachableAgent.considerMemoStorage(prompt)
 
     } catch (error) {
