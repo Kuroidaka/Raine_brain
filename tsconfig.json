@@ -18,6 +18,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "noImplicitAny": true,
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "paths": {
       "~/*": ["src/*"] // Đường dẫn tương đối cho các import (alias)
     }
