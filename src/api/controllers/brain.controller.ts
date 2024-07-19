@@ -19,6 +19,12 @@ export const BrainController = {
     const { isStream = "false", isLTMemo = "false" } = req.query;
     const isEnableStream = isStream === "true";
     const isEnableLTMemo = isLTMemo === "true"; // Enable Long term memory
+
+    if(isEnableStream) {
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Transfer-Encoding', 'chunked');
+    }
+
     try {
       
       const userId = username
@@ -36,9 +42,12 @@ export const BrainController = {
       // Asking
       const output = await GroqService.chat(messages, isEnableStream)
 
-      res.status(200).json({ data: output.content });
+      isEnableStream 
+      ? res.end()
+      : res.status(200).json({ data: output.content });
+
       output.content && STMemo.conversation_id && STMemo.addMessage(output.content, true, STMemo.conversation_id)
-      isEnableLTMemo && teachableAgent.considerMemoStorage(prompt)
+      isEnableLTMemo && await teachableAgent.considerMemoStorage(prompt)
 
     } catch (error) {
       console.log(error);
