@@ -40,7 +40,7 @@ export const BrainController = {
       )
 
       // Asking
-      const output = await GroqService.chat(messages, isEnableStream)
+      const output = await GroqService.chat(messages, isEnableStream, res, next)
 
       isEnableStream 
       ? res.end()

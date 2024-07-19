@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { traceable } from "langsmith/traceable";
 import { analyzeOutputInter, messagesInter, outputInter } from "./groq.interface";
 import { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
-import { NotImplementedException } from "~/common/error";
+import { NotFoundException } from "~/common/error";
 
 const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
@@ -11,7 +11,12 @@ The user will give you analysis INSTRUCTIONS copied twice, at both the beginning
 You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested.`
 
 export const GroqService = {
-  chat: async (messages: ChatCompletionMessageParam[] | messagesInter[] | string, isEnableStream = false):Promise<outputInter> => {
+  chat: async (
+    messages: ChatCompletionMessageParam[] | messagesInter[] | string,
+    isEnableStream = false,
+    res?: Response,
+    next?: NextFunction
+  ):Promise<outputInter> => {
 
     // This way allow us to send message as a string or and array object
     const data: (ChatCompletionMessageParam[] | messagesInter[]) = (typeof messages === 'string') 
@@ -19,7 +24,7 @@ export const GroqService = {
       : messages;
   
     // Return to Stream feature
-    // if (isEnableStream) return GroqService.stream(data);
+    if (isEnableStream && res && next) return GroqService.stream(res, data, next);
   
     try {
       const { choices } = await groqClient.chat.completions.create({
@@ -36,26 +41,31 @@ export const GroqService = {
       }
     }
   },  
-  stream: async(messages: ChatCompletionMessageParam[]) => {
+  stream: async(res: Response, messages: (ChatCompletionMessageParam[] | messagesInter[]), next:NextFunction) => {
+    let content = ""
+    const errorMsg = "Someone call Canh, there are some Bug with my program"
     try {
       const stream = await groqClient.chat.completions.create({
-        messages: messages,
+        messages: messages as ChatCompletionMessageParam[],
         model: "llama3-8b-8192",
         stream: true,
       });
-     
+
       for await (const chunk of stream) {
         // Print the completion returned by the LLM.
-        const text = chunk.choices[0]?.delta?.content || "" 
+        const text = chunk.choices[0]?.delta?.content || "";
+        content += text;
         console.log(text);
+        res.write(JSON.stringify({ text }) + '\n');
       }
 
-      return {
-        content: ""
-      }
+      return { content };
     } catch (error) {
       console.log(error);
-      throw error;
+      res.write(JSON.stringify({ text: " " + errorMsg }) + '\n');
+      content += errorMsg
+
+      return { content }
     }
   },
   analyzer: async(textToAnalyze:string, analysisInstructions:string, debug?:number): Promise<analyzeOutputInter>=> {
