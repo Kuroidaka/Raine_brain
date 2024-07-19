@@ -14,7 +14,7 @@ export class TeachableService {
     debug:number,
     path_to_db_dir=path.join('src', 'assets', 'tmp', 'memos'),
     reset_db=false,
-    recall_threshold=.65,
+    recall_threshold=1.5,
     max_num_retrievals=10,
   ) {
     this.max_num_retrievals = max_num_retrievals

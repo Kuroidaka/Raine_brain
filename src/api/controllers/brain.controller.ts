@@ -34,11 +34,11 @@ export const BrainController = {
       )
 
       // Asking
-      const output = await GroqService.chat(messages, isEnableStream)
+      const output = await GroqService.chat(messages, isEnableStream, res, next)
 
       res.status(200).json({ data: output.content });
-      output.content && STMemo.conversation_id && STMemo.addMessage(output.content, true, STMemo.conversation_id)
-      isEnableLTMemo && teachableAgent.considerMemoStorage(prompt)
+      output.content && STMemo.conversation_id && await STMemo.addMessage(output.content, true, STMemo.conversation_id)
+      isEnableLTMemo && await teachableAgent.considerMemoStorage(prompt)
 
     } catch (error) {
       console.log(error);
