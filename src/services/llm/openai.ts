@@ -1,9 +1,8 @@
-import { NotImplementedException } from './../../common/error';
+import { NotImplementedException } from '../../common/error';
 import { NextFunction, Request, Response } from "express";
 import { traceable } from "langsmith/traceable";
-import { analyzeOutputInter, messagesInter, outputInter } from "./openai.interface";
 import { openAIClient } from '../../config/openai';
-import { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import { MsgListParams, outputInter } from './llm.interface';
 
 const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
@@ -13,19 +12,24 @@ You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results 
 
 const MODEL = "gpt-4o-mini-2024-07-18"
 export const OpenaiService = {
-  chat: async (messages: ChatCompletionMessageParam[] | messagesInter[] | string, isEnableStream = false):Promise<outputInter> => {
+  chat: async (
+    messages: MsgListParams[],
+    isEnableStream = false,
+    res?: Response,
+    next?: NextFunction
+  ):Promise<outputInter> => {
 
     // This way allow us to send message as a string or and array object
-    const data: (ChatCompletionMessageParam[] | messagesInter[]) = (typeof messages === 'string') 
-      ? [{ role: "user", content: JSON.stringify(messages) }]
+    const data: (MsgListParams[]) = (typeof messages === 'string') 
+      ? [{ role: "user", content: messages }]
       : messages;
   
     // Return to Stream feature
-    // if (isEnableStream) return OpenaiService.stream(data);
+    if (isEnableStream && res && next) return OpenaiService.stream(res, data, next);
   
     try {
       const { choices } = await openAIClient.chat.completions.create({
-        messages: data as ChatCompletionMessageParam[],
+        messages: data as MsgListParams[],
         model: MODEL,
       });
       return {
@@ -38,26 +42,31 @@ export const OpenaiService = {
       }
     }
   },  
-  stream: async(messages: ChatCompletionMessageParam[]) => {
+  stream: async(res: Response, messages: (MsgListParams[]), next:NextFunction) => {
+    let content = ""
+    const errorMsg = "Someone call Canh, there are some Bug with my program"
     try {
       const stream = await openAIClient.chat.completions.create({
-        messages: messages,
+        messages: messages as MsgListParams[],
         model: MODEL,
         stream: true,
       });
-     
+
       for await (const chunk of stream) {
         // Print the completion returned by the LLM.
-        const text = chunk.choices[0]?.delta?.content || "" 
+        const text = chunk.choices[0]?.delta?.content || "";
+        content += text;
         console.log(text);
+        res.write(JSON.stringify({ text }) + '\n');
       }
 
-      return {
-        content: ""
-      }
+      return { content };
     } catch (error) {
       console.log(error);
-      throw error;
+      res.write(JSON.stringify({ text: " " + errorMsg }) + '\n');
+      content += errorMsg
+
+      return { content }
     }
   },
   // analyzer: async(textToAnalyze:string, analysisInstructions:string, debug?:number): Promise<analyzeOutputInter>=> {

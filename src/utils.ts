@@ -1,6 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+export function isObject(value: any): boolean {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 export function assert(condition: boolean, message="while assert inputText should be equal to inputText2") {
     if (!condition) {
         throw new Error(message);

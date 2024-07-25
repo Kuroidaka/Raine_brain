@@ -8,6 +8,7 @@ import validateToken from '../middlewares/validate_token';
 const router = Router();
 
 router.post('/chat', validateToken, validateDto(ChatDto), BrainController.chat);
+router.post('/test', BrainController.test);
 
 
 export default router;

@@ -8,4 +8,8 @@ export class ChatDto {
   @IsOptional()
   conversationID: string;
 
+  @IsString()
+  @IsOptional()
+  imgURL: string;
+  
 }

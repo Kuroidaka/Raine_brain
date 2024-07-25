@@ -2,12 +2,12 @@ import { groqClient } from '~/config/groq';
 import { NextFunction, Request, Response } from 'express';
 import { traceable } from 'langsmith/traceable';
 import { TeachableService } from '~/services/techable';
-import { GroqService } from '~/services/groq/groq';
+import { GroqService } from '~/services/llm/groq';
 import { MemoStore } from '~/services/LTMemo';
 import { ConversationService } from '~/database/conversation/conversation';
 import { STMemoStore } from '~/services/STMemo';
 import { ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions';
-import { messagesInter } from '~/services/groq/groq.interface';
+import { messagesInter } from '~/services/llm/llm.interface';
 
 
 export class TestController {

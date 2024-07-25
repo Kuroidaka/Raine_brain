@@ -1,6 +1,6 @@
 import path from "path";
-import { GroqService } from "./groq/groq"
-import { analyzeOutputInter } from "./groq/groq.interface"
+import { GroqService } from "./llm/groq"
+import { analyzeOutputInter } from "./llm/llm.interface"
 import { MemoStore } from "./LTMemo";
 import chalk from "chalk";
 

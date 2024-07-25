@@ -1,8 +1,7 @@
 import { groqClient } from "~/config/groq";
 import { NextFunction, Request, Response } from "express";
 import { traceable } from "langsmith/traceable";
-import { analyzeOutputInter, messagesInter, outputInter } from "./groq.interface";
-import { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
+import { analyzeOutputInter, messagesInter, MsgListParams, outputInter } from "./llm.interface";
 import { NotFoundException } from "~/common/error";
 
 const analyzeSystem = `You are an expert in text analysis.
@@ -12,14 +11,14 @@ You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results 
 
 export const GroqService = {
   chat: async (
-    messages: ChatCompletionMessageParam[] | messagesInter[] | string,
+    messages: MsgListParams[] | string,
     isEnableStream = false,
     res?: Response,
     next?: NextFunction
   ):Promise<outputInter> => {
 
     // This way allow us to send message as a string or and array object
-    const data: (ChatCompletionMessageParam[] | messagesInter[]) = (typeof messages === 'string') 
+    const data: (MsgListParams[]) = (typeof messages === 'string') 
       ? [{ role: "user", content: JSON.stringify(messages) }]
       : messages;
   
@@ -28,7 +27,7 @@ export const GroqService = {
   
     try {
       const { choices } = await groqClient.chat.completions.create({
-        messages: data as ChatCompletionMessageParam[],
+        messages: data as MsgListParams[],
         model: "llama3-70b-8192",
       });
       return {
@@ -41,12 +40,12 @@ export const GroqService = {
       }
     }
   },  
-  stream: async(res: Response, messages: (ChatCompletionMessageParam[] | messagesInter[]), next:NextFunction) => {
+  stream: async(res: Response, messages: (MsgListParams[]), next:NextFunction) => {
     let content = ""
     const errorMsg = "Someone call Canh, there are some Bug with my program"
     try {
       const stream = await groqClient.chat.completions.create({
-        messages: messages as ChatCompletionMessageParam[],
+        messages: messages as MsgListParams[],
         model: "llama3-8b-8192",
         stream: true,
       });
@@ -75,7 +74,7 @@ export const GroqService = {
       const analysis_instructions = "# INSTRUCTIONS\n" + analysisInstructions + "\n"
 
       const msgText = [analysis_instructions, text_to_analyze, analysis_instructions].join("\n");
-      const data:ChatCompletionMessageParam[] = [
+      const data:MsgListParams[] = [
         { role: "system", content: analyzeSystem},
         { role: "user", content: msgText }
       ]
