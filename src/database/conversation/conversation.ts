@@ -1,5 +1,5 @@
 import { dbClient } from "~/config";
-import { conversationProps, msgProps } from "./conversation.interface";
+import { conversationModifyProps, conversationProps, msgProps } from "./conversation.interface";
 
 export class ConversationService {
     private static instance: ConversationService;
@@ -26,6 +26,18 @@ export class ConversationService {
         try {
             return await dbClient.conversation.findUnique({ 
                 where: { id }
+             })
+        } catch (error) {
+            console.log('Error getting conversation:', error)
+            throw error
+        }
+    }
+
+    async modifyConversation(id: string, data: conversationModifyProps) {
+        try {
+            return await dbClient.conversation.update({ 
+                where: { id },
+                data: data
              })
         } catch (error) {
             console.log('Error getting conversation:', error)

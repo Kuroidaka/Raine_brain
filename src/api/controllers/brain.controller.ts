@@ -10,6 +10,7 @@ import path from "path";
 import { OpenaiService } from "~/services/llm/openai";
 
 import { ConversationSummaryMemory } from "langchain/memory";
+import chalk from "chalk";
 
 export const BrainController = {
   chat: async (req: Request, res: Response, next: NextFunction) => {
@@ -54,9 +55,7 @@ export const BrainController = {
         isEnableLTMemo
       );
 
-      // summrize the conversation
-      const historySummarized = await STMemo.summaryConversation(messages)
-
+      console.log("messages", messages)
       // Asking
       const output = await GroqService.chat(
         messages,
@@ -64,19 +63,24 @@ export const BrainController = {
         res
       );
 
-
- 
       isEnableStream
       ? res.end()
       : res.status(200).json(output.content);
 
-      output.content && STMemo.conversation_id &&
-      STMemo.addMessage(output.content, true, STMemo.conversation_id);
-    
-      const customPrompt = `
-      Summary of previous conversation:\n${historySummarized}\n\nUser say: ${prompt}`
 
-      isEnableLTMemo && (await teachableAgent.considerMemoStorage(customPrompt, memoryDetail));
+      messages.push({role: "assistant", content: output.content})
+
+      // summrize the conversation
+      const historySummarized = await STMemo.processSummaryConversation(conversationID, messages)
+      console.log(chalk.green("HistorySummarized: "), historySummarized)
+
+      // Add Ai response into DB
+      output.content && STMemo.conversation_id &&
+      await STMemo.addMessage(output.content, true, STMemo.conversation_id, historySummarized);
+    
+      // Consider store into LTMemo
+      const customPrompt = `Previous summary: ${historySummarized}\n\nUser: ${prompt}`
+      isEnableLTMemo && await teachableAgent.considerMemoStorage(customPrompt, memoryDetail);
 
     } catch (error) {
       console.log(error);

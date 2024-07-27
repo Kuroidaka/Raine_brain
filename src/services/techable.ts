@@ -72,7 +72,7 @@ export class TeachableService {
               this.debug && console.log("general task", generalTask)
               await this.memo_store.rememberMemo(generalTask, advice.content, relateMemo);
               memoAdded = true;
-              if(this.debug === 0) console.log(advice.content)
+              if(this.debug === 0) console.log(chalk.green("Long_term saved"), advice.content)
             }
           }
         }
@@ -144,7 +144,6 @@ export class TeachableService {
           general_task && memoList.push(...await this.retrieveRelevantMemos(general_task, botRelate))
         }
       }
-      console.log("memoList", memoList)
       memoList = this.removeDuplicates(memoList);
       memoList = this.sortByCreatedAt(memoList);
       let memoOutputList: string[] = memoList.map(memo => `${memo.createdAt}: ${memo.output_text}`);

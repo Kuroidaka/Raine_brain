@@ -53,6 +53,7 @@ model Conversation {
   id            String    @id @default(uuid())
   name          String    @default("New Chat")
   from          String?
+  summarize     String?   @db.LongText
   lastMessage   String    @db.LongText
   lastMessageAt DateTime  @default(now())
   createdAt     DateTime  @default(now())

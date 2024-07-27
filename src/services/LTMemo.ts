@@ -174,7 +174,6 @@ export class MemoStore {
 
             const memos = []
             const numResult = results.ids[0].length
-            console.log("results", results)
             for(let i = 0; i < numResult; i++) {
                 const uid = results.ids[0][i]
                 const input_text = results.documents[0][i] || ""

@@ -12,3 +12,9 @@ export interface msgProps {
     conversationId: string  
 }
 
+export interface conversationModifyProps {
+    name?: string
+    from?: string
+    summarize?: string | null
+    lastMessage?: string
+}

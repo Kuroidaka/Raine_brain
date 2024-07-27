@@ -130,6 +130,8 @@ export class TestController {
       
       await conversationService.deleteMsgInConversation(id)
 
+      await conversationService.modifyConversation(id, { summarize: null })
+
       return res.status(200).json({ data: "Done!!" });
     } catch (error) {
       console.log(error);

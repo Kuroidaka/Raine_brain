@@ -7,6 +7,7 @@ import { OpenaiService } from './llm/openai';
 import { ChatOpenAI } from '@langchain/openai';
 import { ConversationSummaryMemory, MemoryVariables } from "langchain/memory";
 import { PromptTemplate } from "@langchain/core/prompts";
+import { ChatCompletionUserMessageParam } from 'groq-sdk/resources/chat/completions';
 
 const describeImgInstruction = `
 Instruction Prompt for Analyzing Tiled Screenshots from a Video Feed:
@@ -85,7 +86,9 @@ export class STMemoStore {
         }));
     };
 
-    async getMessages(conversationId:string): Promise<MsgListParams[]> {
+    async getMessages(conversationId:string, summarize?:string | null): Promise<MsgListParams[]> {
+
+        if(summarize) return [{role: "system", content: summarize}]
         const msgList = await conversationService.getMsg(conversationId)
 
         const newMsgList = await this.convertMessagesFormat(msgList)
@@ -93,17 +96,23 @@ export class STMemoStore {
         return newMsgList;
     }
 
-    async addMessage(message:string, isBot:boolean, conversationId:string): Promise<void> {
-
-        await conversationService.addMsg({
+    async addMessage(message:string, isBot:boolean, conversationId:string, historySummarized?: string): Promise<void> {
+        
+        const addMsgPromise = conversationService.addMsg({
             text: message,
             isBot: isBot,
             userID: this.username,
-            conversationId: conversationId  
-        })
-    }
+            conversationId: conversationId
+        });
+    
+        const modifyConversationPromise = conversationService.modifyConversation(conversationId, {
+            summarize: historySummarized,
+            lastMessage: message
+        });
 
-    async addMessages(messages:[]): Promise<void> {
+        isBot && historySummarized
+        ? await Promise.all([addMsgPromise, modifyConversationPromise])
+        : await addMsgPromise
     }
 
     async clear(): Promise<void> {
@@ -163,16 +172,21 @@ export class STMemoStore {
         
         const memory = new ConversationSummaryMemory({
             memoryKey: "chat_history",
-            llm: new ChatOpenAI({ model: "gpt-3.5-turbo", temperature: 0 }),
+            llm: new ChatOpenAI({ model: "gpt-4o-mini-2024-07-18", temperature: 0 }),
         });
         
         async function processChatData(data: MsgListParams[]) {
             for (let i = 0; i < data.length; i++) {
                 if (data[i].role === "user") {
                     let input = data[i].content;
-                    if (i + 1 < data.length && data[i + 1]?.role === "assistant") {
-                        let output = data[i + 1].content;
-                        await memory.saveContext({ input: input }, { output: output });
+                    if (i + 1 < data.length) {
+                        if(data[i + 1]?.role === "assistant") {
+                            let output = data[i + 1].content;
+                            await memory.saveContext({ input: input }, { output: output });
+                        }
+                        else if(data[i + 1]?.role === "user") {
+                            await memory.saveContext({ input: input }, { output: "..." });
+                        }
                     }
                 }
             }
@@ -183,6 +197,26 @@ export class STMemoStore {
         const result = await memory.loadMemoryVariables({})
 
         return result.chat_history
+    }
+
+    public async processSummaryConversation(conversationId: string, messages: MsgListParams[]):Promise<string> {
+
+        const filteredMessages = (() => {
+            const systemMessages = messages.filter(message => message.role === 'system');
+            const nonSystemMessages = messages.filter(message => message.role !== 'system');
+
+            if (systemMessages.length > 0) {
+                const newSum = {
+                    role: "user",
+                    content: systemMessages[systemMessages.length - 1].content
+                }
+                // Tạm thời, nhớ thay đổi lại logic để phòng cho trường hợp các role khác và đối với vision
+                nonSystemMessages.unshift(newSum as ChatCompletionUserMessageParam);
+            }
+            return nonSystemMessages;
+        })();
+
+        return await this.summaryConversation(filteredMessages)
     }
 
     public async process(
@@ -202,7 +236,7 @@ export class STMemoStore {
         this.addMessage(originalPrompt, false, this.conversation_id)
         
 
-        const history:MsgListParams[] = await this.getMessages(this.conversation_id)
+        const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize)
 
         history.push({
             "role": "user",
