@@ -11,7 +11,9 @@ import { OpenaiService } from "~/services/llm/openai";
 
 import { ConversationSummaryMemory } from "langchain/memory";
 import chalk from "chalk";
+import { ConversationService } from "~/database/conversation/conversation";
 
+const conversationService = ConversationService.getInstance()
 export const BrainController = {
   chat: async (req: Request, res: Response, next: NextFunction) => {
     // preprocess data params
@@ -68,16 +70,21 @@ export const BrainController = {
       : res.status(200).json(output.content);
 
 
-      messages.push({role: "assistant", content: output.content})
+      // messages.push({role: "assistant", content: output.content})
 
-      // summrize the conversation
-      const historySummarized = await STMemo.processSummaryConversation(conversationID, messages)
-      console.log(chalk.green("HistorySummarized: "), historySummarized)
 
       // Add Ai response into DB
       output.content && STMemo.conversation_id &&
-      await STMemo.addMessage(output.content, true, STMemo.conversation_id, historySummarized);
+      await STMemo.addMessage(output.content, true, STMemo.conversation_id);
     
+      // summrize the conversation
+      const historySummarized = await STMemo.processSummaryConversation(STMemo.conversation_id as string)
+      console.log(chalk.green("HistorySummarized: "), historySummarized)
+
+      await conversationService.modifyConversation(STMemo.conversation_id as string, {
+        summarize: historySummarized,
+      });
+
       // Consider store into LTMemo
       const customPrompt = `Previous summary: ${historySummarized}\n\nUser: ${prompt}`
       isEnableLTMemo && await teachableAgent.considerMemoStorage(customPrompt, memoryDetail);

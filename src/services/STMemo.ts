@@ -96,7 +96,7 @@ export class STMemoStore {
         return newMsgList;
     }
 
-    async addMessage(message:string, isBot:boolean, conversationId:string, historySummarized?: string): Promise<void> {
+    async addMessage(message:string, isBot:boolean, conversationId:string): Promise<void> {
         
         const addMsgPromise = conversationService.addMsg({
             text: message,
@@ -106,13 +106,12 @@ export class STMemoStore {
         });
     
         const modifyConversationPromise = conversationService.modifyConversation(conversationId, {
-            summarize: historySummarized,
+            // summarize: historySummarized,
             lastMessage: message
         });
 
-        isBot && historySummarized
-        ? await Promise.all([addMsgPromise, modifyConversationPromise])
-        : await addMsgPromise
+        await Promise.all([addMsgPromise, modifyConversationPromise])
+
     }
 
     async clear(): Promise<void> {
@@ -132,7 +131,7 @@ export class STMemoStore {
         list.unshift(
             { role: "system", content: `Today is: ${new Date()}` },
             { role: "system", content: `
-                # Your information: 
+                # AI information: 
                     1. Name: Raine.
                     2. Gender: Female.
                     3. Character: Loyalty
@@ -199,24 +198,28 @@ export class STMemoStore {
         return result.chat_history
     }
 
-    public async processSummaryConversation(conversationId: string, messages: MsgListParams[]):Promise<string> {
-
-        const filteredMessages = (() => {
-            const systemMessages = messages.filter(message => message.role === 'system');
-            const nonSystemMessages = messages.filter(message => message.role !== 'system');
-
-            if (systemMessages.length > 0) {
-                const newSum = {
+    public async processSummaryConversation(conversationId: string):Promise<string> {
+        const conID = conversationId || this.conversation_id
+        const newHistory:MsgListParams[] = []
+        let conversation = await conversationService.getConversation(conID as string) 
+        
+        if(conversation) {
+            if(conversation.summarize) {
+                newHistory.push({
                     role: "user",
-                    content: systemMessages[systemMessages.length - 1].content
-                }
-                // Tạm thời, nhớ thay đổi lại logic để phòng cho trường hợp các role khác và đối với vision
-                nonSystemMessages.unshift(newSum as ChatCompletionUserMessageParam);
+                    content: conversation.summarize
+                })
             }
-            return nonSystemMessages;
-        })();
 
-        return await this.summaryConversation(filteredMessages)
+            const history:MsgListParams[] = await this.getMessages(conID as string)
+
+            newHistory.push(history[history.length - 2])
+            newHistory.push(history[history.length - 1])
+        }
+
+        console.log("newHistory", newHistory)
+
+        return await this.summaryConversation(newHistory)
     }
 
     public async process(
