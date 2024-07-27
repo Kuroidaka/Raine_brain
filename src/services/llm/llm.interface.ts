@@ -16,3 +16,11 @@ export interface analyzeOutputInter {
 
 
 export type MsgListParams = | OpenAIMsgParam | GroqMsgParam
+
+export interface DataMemo {
+    id: string,
+    input_text:string,
+    output_text:string,
+    distance: number,
+    createdAt: string
+}

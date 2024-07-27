@@ -18,7 +18,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "noImplicitAny": true,
-    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "typeRoots": [".vscode/node_modules/@types", "./src/types"],
     "paths": {
       "~/*": ["src/*"] // Đường dẫn tương đối cho các import (alias)
     }
@@ -28,5 +28,5 @@
   },
   "files": ["src/type.d.ts"], // Các file dùng để defined global type cho dự án
   "include": ["src/**/*"], // Đường dẫn include cho các file cần build
-  "exclude": ["node_modules", "**/*.spec.ts"]
+  "exclude": [".vscode/node_modules", "**/*.spec.ts"]
 }

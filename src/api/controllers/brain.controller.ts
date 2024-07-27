@@ -8,7 +8,8 @@ import { STMemoStore } from "~/services/STMemo";
 import { messagesInter, MsgListParams } from "~/services/llm/llm.interface";
 import path from "path";
 import { OpenaiService } from "~/services/llm/openai";
-import { isObject } from "../../utils";
+
+import { ConversationSummaryMemory } from "langchain/memory";
 
 export const BrainController = {
   chat: async (req: Request, res: Response, next: NextFunction) => {
@@ -16,7 +17,7 @@ export const BrainController = {
     console.clear();
     const { prompt, conversationID, imgURL } = req.body;
     const { username } = req.user;
-    const { isStream = "false", isLTMemo = "false", isVision } = req.query;
+    const { isStream = "false", isLTMemo = "false", isVision = "false" } = req.query;
     const isEnableStream = isStream === "true";
     const isEnableLTMemo = isLTMemo === "true"; // Enable Long term memory
     const isEnableVision = isVision === "true"; 
@@ -31,17 +32,21 @@ export const BrainController = {
       // Long term memory process
       const pathMemo = path.join("src", "assets", "tmp", "memos", userId);
       const teachableAgent = new TeachableService(0, pathMemo);
+
+      const { relateMemory, memoryDetail } = await teachableAgent.considerMemoRetrieval(prompt)
+      
+     
       let promptWithRelatedMemory = isEnableLTMemo
-        ? await teachableAgent.considerMemoRetrieval(prompt)
+        ? prompt + teachableAgent.concatenateMemoTexts(relateMemory)
         : prompt;
 
       // Short term memory process
       const STMemo = new STMemoStore(userId, conversationID);
 
       // Describe Context for vision
-      if(isEnableVision && imgURL) {
-        promptWithRelatedMemory = await STMemo.describeImage(imgURL, promptWithRelatedMemory)
-      }
+      // if(isEnableVision && imgURL) {
+      //   promptWithRelatedMemory = await STMemo.describeImage(imgURL, promptWithRelatedMemory)
+      // }
 
       const messages: MsgListParams[] = await STMemo.process(
         prompt,
@@ -49,22 +54,30 @@ export const BrainController = {
         isEnableLTMemo
       );
 
+      // summrize the conversation
+      const historySummarized = await STMemo.summaryConversation(messages)
+
       // Asking
       const output = await GroqService.chat(
         messages,
         isEnableStream,
-        res,
-        next
+        res
       );
 
-      isEnableStream
-        ? res.end()
-        : res.status(200).json({ data: output.content });
 
-      output.content &&
-        STMemo.conversation_id &&
-        STMemo.addMessage(output.content, true, STMemo.conversation_id);
-      isEnableLTMemo && (await teachableAgent.considerMemoStorage(prompt));
+ 
+      isEnableStream
+      ? res.end()
+      : res.status(200).json(output.content);
+
+      output.content && STMemo.conversation_id &&
+      STMemo.addMessage(output.content, true, STMemo.conversation_id);
+    
+      const customPrompt = `
+      Summary of previous conversation:\n${historySummarized}\n\nUser say: ${prompt}`
+
+      isEnableLTMemo && (await teachableAgent.considerMemoStorage(customPrompt, memoryDetail));
+
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware
@@ -95,7 +108,7 @@ export const BrainController = {
           ],
         },
       ];
-      const output = await OpenaiService.chat(messages, false, res, next);
+      const output = await OpenaiService.chat(messages, false, res);
 
       return res.status(200).json({ data: output.content });
       // res.end()

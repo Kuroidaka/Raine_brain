@@ -15,8 +15,7 @@ export const OpenaiService = {
   chat: async (
     messages: MsgListParams[],
     isEnableStream = false,
-    res?: Response,
-    next?: NextFunction
+    res?: Response
   ):Promise<outputInter> => {
 
     // This way allow us to send message as a string or and array object
@@ -25,7 +24,7 @@ export const OpenaiService = {
       : messages;
   
     // Return to Stream feature
-    if (isEnableStream && res && next) return OpenaiService.stream(res, data, next);
+    if (isEnableStream && res) return OpenaiService.stream(res, data);
   
     try {
       const { choices } = await openAIClient.chat.completions.create({
@@ -42,7 +41,7 @@ export const OpenaiService = {
       }
     }
   },  
-  stream: async(res: Response, messages: (MsgListParams[]), next:NextFunction) => {
+  stream: async(res: Response, messages: (MsgListParams[])) => {
     let content = ""
     const errorMsg = "Someone call Canh, there are some Bug with my program"
     try {

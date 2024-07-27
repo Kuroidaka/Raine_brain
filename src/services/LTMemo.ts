@@ -3,16 +3,26 @@ import * as path from 'path';
 import { Chroma } from "@langchain/community/vectorstores/chroma";
 import { OpenAIEmbeddings } from '@langchain/openai';
 import { JSONLoader } from "langchain/document_loaders/fs/json";
-import { ChromaClient } from 'chromadb';
-import { assert, deleteFilesInDirectory, deleteFolderRecursive } from '~/utils';
+import { ChromaClient, OpenAIEmbeddingFunction } from 'chromadb';
+import { assert, deleteFilesInDirectory, deleteFolderRecursive, generateId } from '~/utils';
 import { NotImplementedException } from '~/common/error';
 import chalk from 'chalk';
+import { DataMemo } from './llm/llm.interface';
 
-type Memo = [string, string];
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+
+const embeddingFunction = new OpenAIEmbeddingFunction({
+    openai_api_key: OPENAI_API_KEY as string,
+    openai_model: "text-embedding-3-small"
+})
+
+type Memo = [string, string, string];
 
 const chromaClient = new ChromaClient({
     path: "http://localhost:8000"
   });
+
+
 
 export class MemoStore {
     public uidTextDict: { [key: string]: Memo };
@@ -74,20 +84,61 @@ export class MemoStore {
     // Add a new input-output pair
     public async addInputOutputPair(inputText: string, outputText: string): Promise<void> {
         try {
-            const id = Math.random().toString();
-            const vectorStore = await Chroma.fromTexts(
-                [inputText],
-                [{id: id}],
-                new OpenAIEmbeddings(),
-                {
-                    collectionName: "memos",
-                    url: "http://localhost:8000",
-                }
-            );
+
+            const id = generateId();
+            // console.log("id", id)
+
+            const collection = await chromaClient.getOrCreateCollection({name: "memos"}) 
+            await collection.add({
+                ids: [id],
+                metadatas: {
+                    createdAt: new Date().toISOString()
+                },
+                documents: [inputText]
+            })
     
-            await vectorStore.similaritySearchWithScore(inputText, 10);
+            // const storage = await collection.query({
+            //     nResults: 10,
+            //     queryTexts: [inputText]
+            // })
+            // console.log("storage", storage)
+            this.uidTextDict[id] = [inputText, outputText, new Date().toISOString()];
+            // this.saveData(botRelate);
+
+        } catch (error) {
+            console.log(error)
+            throw error
+        }
+       
+    }
+
+    public async rememberMemo(inputText: string, outputText: string, relateMemo:DataMemo[]): Promise<void> {
+        try {
             
-            this.uidTextDict[id] = [inputText, outputText];
+            return this.addInputOutputPair(inputText, outputText)
+
+
+        } catch (error) {
+            console.log(error)
+            throw error
+        }
+       
+    }
+
+    public async repairInputOutputPair(ids: string[], inputTexts: string[], outputTexts: string[]): Promise<void> {
+        try {
+            // const collection = await chromaClient.getOrCreateCollection({name: "memos"})
+
+            // Search for the most similar document    
+            // await collection.upsert({
+            //     ids: ids,
+            //     documents: inputTexts,
+            //   });
+            // await vectorStore.similaritySearchWithScore(inputText, 10);
+
+            for(let i = 0; i < ids.length; i ++ ) {
+                // this.uidTextDict[ids[i]] = [inputTexts[i], outputTexts[i]];
+            }
             // this.saveData(botRelate);
 
         } catch (error) {
@@ -98,7 +149,7 @@ export class MemoStore {
     }
 
     // Retrieve data based on input
-    public async get_related_memos(inputText: string, n_results = 10, botRelate=false):Promise<{ input_text:string, output_text:string }[]> {
+    public async get_related_memos(inputText: string, n_results = 10, botRelate=false):Promise<DataMemo[]> {
         try {
             const memo_path = botRelate ? this.path_to_bot_db_object : this.path_to_user_db_object
             // load memory
@@ -112,27 +163,31 @@ export class MemoStore {
                 n_results = uidTextDictLength;
             }
             // // Load the docs into the vector store
-            const vectorStore = await Chroma.fromExistingCollection(
-                new OpenAIEmbeddings(),
-                { collectionName: "memos" },
-              );
-            // Search for the most similar document
-            const results = await vectorStore.similaritySearchWithScore(inputText, n_results);
+            const collection = await chromaClient.getOrCreateCollection({name: "memos"})
+
+            // Search for the most similar document    
+            const results = await collection.query({
+                queryTexts: [inputText],
+                nResults: n_results,
+            })
+
 
             const memos = []
-            const numResult = results.length
-
+            const numResult = results.ids[0].length
+            console.log("results", results)
             for(let i = 0; i < numResult; i++) {
-                const uid = results[i][0].metadata.id
-                const input_text = results[i][0].pageContent
-                const distance = results[i][1]
+                const uid = results.ids[0][i]
+                const input_text = results.documents[0][i] || ""
+                const distance = results.distances && results.distances.length > 0 ? results.distances[0][i] : 6;
+
 
                 if(distance < this.recall_threshold && this.uidTextDict[uid]?.length > 0) {
                     const input_text2 = this.uidTextDict[uid][0]
                     const output_text = this.uidTextDict[uid][1]
+                    const createdAt = this.uidTextDict[uid][2]
                     assert(input_text == input_text2) 
     
-                    memos.push({ input_text, output_text })
+                    memos.push({ id: uid,input_text, output_text, distance, createdAt })
                 }
 
             }
@@ -140,7 +195,7 @@ export class MemoStore {
             //     name: "memos"
             // });
             // console.log("collections", collections)
-
+            // console.log("memos", memos)
             return memos
 
         } catch (error) {

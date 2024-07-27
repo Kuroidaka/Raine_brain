@@ -1,6 +1,6 @@
 import path from "path";
 import { GroqService } from "./llm/groq"
-import { analyzeOutputInter } from "./llm/llm.interface"
+import { analyzeOutputInter, DataMemo } from "./llm/llm.interface"
 import { MemoStore } from "./LTMemo";
 import chalk from "chalk";
 
@@ -22,21 +22,21 @@ export class TeachableService {
     this.memo_store = new MemoStore(this.debug, reset_db, path_to_db_dir, recall_threshold)
   } 
  
-  public async preprocess(prompt: string) {
-    try {
-        let expandedText = prompt
-        expandedText = await this.considerMemoRetrieval(prompt)
+  // public async preprocess(prompt: string) {
+  //   try {
+  //       let expandedText = prompt
+  //       expandedText = await this.considerMemoRetrieval(prompt)
 
-        await this.considerMemoStorage(prompt)
+  //       await this.considerMemoStorage(prompt)
         
-        return expandedText
-    } catch (error) {
-        console.error(">>TeachableService>>preprocess");
-      throw error;
-    }
-  }
+  //       return expandedText
+  //   } catch (error) {
+  //       console.error(">>TeachableService>>preprocess");
+  //     throw error;
+  //   }
+  // }
 
-  public async considerMemoStorage(prompt:string) {
+  public async considerMemoStorage(prompt:string, relateMemo: DataMemo[]) {
     try {
       let memoAdded = false
       let botRelate = (await GroqService.analyzer(prompt, "Consider whether this task is related to you or not. Answer with just one word, yes or no.", this.debug) as analyzeOutputInter).content?.toLowerCase().includes("yes") || false
@@ -48,12 +48,14 @@ export class TeachableService {
         this.debug
       )
       if (analyze.content?.toLowerCase().includes("yes")) {
+        console.log("yes1")
         const advice:analyzeOutputInter = await GroqService.analyzer(
           prompt, 
           "Briefly copy any advice from the TEXT that may be useful for a similar but different task in the future. But if no advice is present, just respond with 'none'.",
           this.debug
         )
         if (advice.content && !advice.content.toLowerCase().includes("none")) {
+          console.log("yes1.1")
           const { content : task }:analyzeOutputInter = await GroqService.analyzer(
             prompt, 
             "Briefly copy just the task from the TEXT, then stop. Don't solve it, and don't include any advice.", this.debug
@@ -68,8 +70,9 @@ export class TeachableService {
     
             if (generalTask) {
               this.debug && console.log("general task", generalTask)
-              await this.memo_store.addInputOutputPair(generalTask, advice.content);
+              await this.memo_store.rememberMemo(generalTask, advice.content, relateMemo);
               memoAdded = true;
+              if(this.debug === 0) console.log(advice.content)
             }
           }
         }
@@ -82,15 +85,17 @@ export class TeachableService {
         this.debug
       )
       if (analyze.content?.toLowerCase().includes("yes")) {
-
+        console.log("yes2")
         const [question, answer] = await Promise.all([
           GroqService.analyzer(prompt, `Imagine that the user forgot this information in the TEXT. How would they ask you for this information? Use the third person to refer to the person in your response, as it refers to ${!botRelate ? "the user (don't mention gender)" : "you"}. Include no other text in your response.`, this.debug),
           GroqService.analyzer(prompt, `Copy the information from the TEXT that should be committed to memory. Add no explanation. The person mentioned in your response refers to ${!botRelate ? "the user (don't mention gender)" : "you"}.`, this.debug)
         ]);
         
         if(question.content && answer.content){
-          await this.memo_store.addInputOutputPair(question.content, answer.content);
+          await this.memo_store.rememberMemo(question.content, answer.content, relateMemo);
           memoAdded = true
+
+          if(this.debug === 0) console.log(answer.content)
         }
       }
       if(this.debug === 0) {
@@ -105,7 +110,16 @@ export class TeachableService {
     }
   }
 
-  public async considerMemoRetrieval(prompt:string):Promise<string> {
+  public async considerMemoRepair(prompt:string) {
+    try {
+   
+    } catch (error) {
+        console.error(">>TeachableService>>considerMemoStorage");
+        throw error;
+    }
+  }
+
+  public async considerMemoRetrieval(prompt:string):Promise<{ relateMemory:string[], memoryDetail: DataMemo[] }> {
     try {
       //  analyze task and relevance relationship
       const [analyzeResult, isRelateResult] = await Promise.all([
@@ -130,31 +144,53 @@ export class TeachableService {
           general_task && memoList.push(...await this.retrieveRelevantMemos(general_task, botRelate))
         }
       }
-
-      memoList = [...new Set(memoList)];
+      console.log("memoList", memoList)
+      memoList = this.removeDuplicates(memoList);
+      memoList = this.sortByCreatedAt(memoList);
+      let memoOutputList: string[] = memoList.map(memo => `${memo.createdAt}: ${memo.output_text}`);
       
-      this.debug === 0 && console.log("Related memory list", memoList)
+      this.debug === 0 && console.log("Related memory list", memoOutputList)
 
-      return prompt + this.concatenateMemoTexts(memoList)
+      return { 
+        relateMemory: memoOutputList,
+        memoryDetail: memoList
+      }
     } catch (error) {
         console.error(">>TeachableService>>considerMemoRetrieval");
         throw error;
     }
   }
 
-  private async retrieveRelevantMemos(prompt:string, botRelate:boolean):Promise<string[]> {
+  private sortByCreatedAt (arr: DataMemo[]): DataMemo[] {
+    return arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  };
+  
+
+  private removeDuplicates(list: DataMemo[]): DataMemo[] {
+    const uniqueIds = new Set<string>();
+    return list.filter(memo => {
+        if (uniqueIds.has(memo.id)) {
+            return false;
+        } else {
+            uniqueIds.add(memo.id);
+            return true;
+        }
+    });
+}
+
+
+  private async retrieveRelevantMemos(prompt:string, botRelate:boolean):Promise<DataMemo[]> {
     try {
       let memoList = await this.memo_store.get_related_memos(prompt, this.max_num_retrievals, botRelate)
       
-      const memoOutputList: string[] = memoList.map(memo => memo.output_text);
-      return memoOutputList;
+      return memoList;
     } catch (error) {
         console.error(">>TeachableService>>retrieveRelevantMemos");
         throw error;
     }
   }
 
-  private concatenateMemoTexts(memoList:string[]): string {
+  public concatenateMemoTexts(memoList:string[]): string {
     /** Concatenates the memo texts into a single string for inclusion in the chat context. */
     let memoTexts = "";
     if (memoList.length > 0) {

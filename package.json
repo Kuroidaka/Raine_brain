@@ -4,14 +4,14 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "npx tsx watch src/index.ts",
+    "dev": "npx tsx src/index.ts",
     "debug": "npx tsx watch --inspect src/index.ts",
     "build": "rimraf ./dist && tsc && tsc-alias",
     "start": "npx tsx src/index.ts"
   },
   "dependencies": {
     "@langchain/community": "^0.2.18",
-    "@langchain/openai": "^0.2.1",
+    "@langchain/openai": "^0.2.5",
     "@langchain/redis": "^0.0.5",
     "@prisma/client": "^5.16.2",
     "@types/bcrypt": "^5.0.2",
@@ -139,6 +139,7 @@
     "undici-types": "^5.26.5",
     "unpipe": "^1.0.0",
     "utils-merge": "^1.0.1",
+    "uuid": "^10.0.0",
     "v8-compile-cache-lib": "^3.0.1",
     "vary": "^1.1.2",
     "yn": "^3.1.1"

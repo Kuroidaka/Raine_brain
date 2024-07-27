@@ -10,6 +10,6 @@ export class ChatDto {
 
   @IsString()
   @IsOptional()
-  imgURL: string;
+  imgURL?: string;
   
 }

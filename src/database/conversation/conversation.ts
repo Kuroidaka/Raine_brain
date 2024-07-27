@@ -33,6 +33,19 @@ export class ConversationService {
         }
     }
 
+    async deleteMsgInConversation(id:string) {
+        try {
+            await dbClient.message.deleteMany({
+                where: {
+                  conversationId: id,
+                },
+            });
+        } catch (error) {
+            console.log('Error getting conversation:', error)
+            throw error
+        }
+    }
+
     async addMsg(data: msgProps) {
         try {
             return await dbClient.message.create({ data });

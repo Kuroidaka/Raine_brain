@@ -4,6 +4,10 @@ import { Message } from '@prisma/client';
 import { UserService } from '~/database/user/user';
 import { OpenaiService } from './llm/openai';
 
+import { ChatOpenAI } from '@langchain/openai';
+import { ConversationSummaryMemory, MemoryVariables } from "langchain/memory";
+import { PromptTemplate } from "@langchain/core/prompts";
+
 const describeImgInstruction = `
 Instruction Prompt for Analyzing Tiled Screenshots from a Video Feed:
 
@@ -111,16 +115,22 @@ export class STMemoStore {
         const userInformation = userData?.display_name ? userData?.display_name : userData?.username
         
         const list:MsgListParams[] = []
-        if(isEnableLTMemo) {
-            list.unshift(
-                { role: "system", content: "You've been given the special ability to remember user teachings from prior conversations, but just mention about this when you be asked" },
-            )
-        }
+        // if(isEnableLTMemo) {
+        //     list.unshift(
+        //         { role: "system", content: "You've been given the special ability to remember user teachings from prior conversations, but just mention about this when you be asked" },
+        //     )
+        // }
         list.unshift(
             { role: "system", content: `Today is: ${new Date()}` },
             { role: "system", content: `
-                Never forget your name is Raine. this is the information of the person is talking to you ${JSON.stringify(userInformation)}
-                ` },    
+                # Your information: 
+                    1. Name: Raine.
+                    2. Gender: Female.
+                    3. Character: Loyalty
+                    4. Language: English.
+
+                # Information about person your are talking:
+                    ${JSON.stringify(userInformation)}`},    
         )
         return list
     }
@@ -138,7 +148,7 @@ export class STMemoStore {
                 {
                     type: "image_url",
                     image_url: {
-                    url: imgURL,
+                        url: imgURL,
                     },
                 },
                 ],
@@ -148,6 +158,32 @@ export class STMemoStore {
 
         return  `\t- Context:\n${output.content}\n\n\t-User Asked\n${prompt}`
     } 
+
+    public async summaryConversation(history: MsgListParams[]):Promise<string> {
+        
+        const memory = new ConversationSummaryMemory({
+            memoryKey: "chat_history",
+            llm: new ChatOpenAI({ model: "gpt-3.5-turbo", temperature: 0 }),
+        });
+        
+        async function processChatData(data: MsgListParams[]) {
+            for (let i = 0; i < data.length; i++) {
+                if (data[i].role === "user") {
+                    let input = data[i].content;
+                    if (i + 1 < data.length && data[i + 1]?.role === "assistant") {
+                        let output = data[i + 1].content;
+                        await memory.saveContext({ input: input }, { output: output });
+                    }
+                }
+            }
+        }
+
+        await processChatData(history)
+        
+        const result = await memory.loadMemoryVariables({})
+
+        return result.chat_history
+    }
 
     public async process(
         originalPrompt:string , 

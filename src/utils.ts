@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 export function isObject(value: any): boolean {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -65,3 +66,9 @@ export function deleteFolderRecursive(folderPath: string): void {
         fs.rmdirSync(folderPath);
     }
 }
+
+
+
+export const generateId = (): string => {
+  return uuidv4();
+};

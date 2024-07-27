@@ -13,8 +13,7 @@ export const GroqService = {
   chat: async (
     messages: MsgListParams[] | string,
     isEnableStream = false,
-    res?: Response,
-    next?: NextFunction
+    res?: Response
   ):Promise<outputInter> => {
 
     // This way allow us to send message as a string or and array object
@@ -23,7 +22,7 @@ export const GroqService = {
       : messages;
   
     // Return to Stream feature
-    if (isEnableStream && res && next) return GroqService.stream(res, data, next);
+    if (isEnableStream && res) return GroqService.stream(res, data);
   
     try {
       const { choices } = await groqClient.chat.completions.create({
@@ -40,7 +39,7 @@ export const GroqService = {
       }
     }
   },  
-  stream: async(res: Response, messages: (MsgListParams[]), next:NextFunction) => {
+  stream: async(res: Response, messages: (MsgListParams[])) => {
     let content = ""
     const errorMsg = "Someone call Canh, there are some Bug with my program"
     try {
