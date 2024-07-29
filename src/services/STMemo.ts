@@ -72,7 +72,7 @@ export class STMemoStore {
     username: string;
     conversation_id: string | undefined;
     // Simulate a real database layer. Stores serialized objects.
-    fakeDatabase:{};
+    summaryChat:string;
 
     constructor(username:string, conversation_id?:string) {
         this.username = username;
@@ -217,7 +217,6 @@ export class STMemoStore {
             newHistory.push(history[history.length - 1])
         }
 
-        console.log("newHistory", newHistory)
 
         return await this.summaryConversation(newHistory)
     }
@@ -238,6 +237,7 @@ export class STMemoStore {
 
         this.addMessage(originalPrompt, false, this.conversation_id)
         
+        this.summaryChat = conversation.summarize as string
 
         const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize)
 

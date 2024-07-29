@@ -57,9 +57,8 @@ export const BrainController = {
         isEnableLTMemo
       );
 
-      console.log("messages", messages)
       // Asking
-      const output = await GroqService.chat(
+      const output = await OpenaiService.chat(
         messages,
         isEnableStream,
         res
@@ -68,10 +67,6 @@ export const BrainController = {
       isEnableStream
       ? res.end()
       : res.status(200).json(output.content);
-
-
-      // messages.push({role: "assistant", content: output.content})
-
 
       // Add Ai response into DB
       output.content && STMemo.conversation_id &&
@@ -86,8 +81,7 @@ export const BrainController = {
       });
 
       // Consider store into LTMemo
-      const customPrompt = `Previous summary: ${historySummarized}\n\nUser: ${prompt}`
-      isEnableLTMemo && await teachableAgent.considerMemoStorage(customPrompt, memoryDetail);
+      isEnableLTMemo && await teachableAgent.considerMemoStorage(prompt, memoryDetail, STMemo.summaryChat);
 
     } catch (error) {
       console.log(error);
