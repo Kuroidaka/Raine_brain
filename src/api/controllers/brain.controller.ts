@@ -18,7 +18,8 @@ export const BrainController = {
   chat: async (req: Request, res: Response, next: NextFunction) => {
     // preprocess data params
     console.clear();
-    const { prompt, conversationID, imgURL } = req.body;
+    const { prompt, conversationID, imgURL, base64Data } = req.body;
+    console.log("base64Data", req.body)
     const { username } = req.user;
     const { isStream = "false", isLTMemo = "false", isVision = "false" } = req.query;
     const isEnableStream = isStream === "true";
@@ -44,12 +45,12 @@ export const BrainController = {
         : prompt;
 
       // Short term memory process
-      const STMemo = new STMemoStore(userId, conversationID);
+      const STMemo = new STMemoStore(userId, conversationID, isEnableVision);
 
       // Describe Context for vision
-      // if(isEnableVision && imgURL) {
-      //   promptWithRelatedMemory = await STMemo.describeImage(imgURL, promptWithRelatedMemory)
-      // }
+      if(isEnableVision && base64Data) {
+        promptWithRelatedMemory = await STMemo.describeImage(base64Data, promptWithRelatedMemory)
+      }
 
       const messages: MsgListParams[] = await STMemo.process(
         prompt,
@@ -57,8 +58,10 @@ export const BrainController = {
         isEnableLTMemo
       );
 
+      console.log("messages", messages)
+
       // Asking
-      const output = await OpenaiService.chat(
+      const output = await GroqService.chat(
         messages,
         isEnableStream,
         res

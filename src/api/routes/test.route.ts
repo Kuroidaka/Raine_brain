@@ -14,6 +14,7 @@ router.delete('/reset_memory', TestController.resetMemo);
 router.post('/consider_memo', TestController.considerMemo);
 router.get('/consider_get_relevant', TestController.considerMemoRetrieval);
 router.delete('/rs_con/:id', TestController.rsConversation);
+router.post('/img', TestController.describeImageBase);
 
 
 export default router;

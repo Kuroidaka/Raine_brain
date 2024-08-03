@@ -27,7 +27,7 @@ export const AuthController = {
                 password: hashedPassword
             })
             
-            const token = jwt.sign({ id: newUser.id, username }, SECRET_KEY, { expiresIn: '12h' });
+            const token = jwt.sign({ id: newUser.id, username }, SECRET_KEY);
 
             return res.status(200).json({token})
         } catch (error) {

@@ -1,4 +1,4 @@
-import { groqClient } from '~/config/groq';
+import { groqClient, openAIClient} from '~/config';
 import { NextFunction, Request, Response } from 'express';
 import { traceable } from 'langsmith/traceable';
 import { TeachableService } from '~/services/techable';
@@ -15,7 +15,7 @@ const conversationService = ConversationService.getInstance()
 export class TestController {
   static async ping(req: Request, res: Response, next:NextFunction) {
     try {
-      return res.status(200).json({ data: "pong!" });
+      return res.status(200).json({ data: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjA1NmRlZDBlLWVmNTQtNDE3YS1iZWYyLTI4OTk3ZTQ4NmQ5OCIsInVzZXJuYW1lIjoiY2FuaCIsImlhdCI6MTcyMjQ5NzkxMCwiZXhwIjoxNzIyNTQxMTEwfQ.Tg-XhCATSQ-5ZpsMMPKahCK8ECr8YaFOA-x6MZZ8RyI` });
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware
@@ -152,6 +152,46 @@ export class TestController {
       memo.saveData(false, "canh");
 
       return res.status(200).json({ data: "Done!!" });
+    } catch (error) {
+      console.log(error);
+      // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  }
+
+  static async describeImageBase(req: Request, res: Response, next:NextFunction) {
+    try {
+      const base64Data = req.body.data
+
+      // const decodedData = Buffer.from(base64Data, 'base64').toString('utf-8');
+
+    // create an OpenAI request with a prompt
+      console.log("decodedData", base64Data)
+      const completion = await openAIClient.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: "Describe this image as if you were David Attenborough. Provide as much detail as possible.",
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: base64Data,
+                },
+              },
+            ],
+          },
+        ],
+        stream: false,
+        max_tokens: 1000,
+      });
+
+
+      return res.status(200).json({ data: completion.choices[0].message.content });
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware

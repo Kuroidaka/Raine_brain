@@ -11,5 +11,9 @@ export class ChatDto {
   @IsString()
   @IsOptional()
   imgURL?: string;
+
+  @IsString()
+  @IsOptional()
+  base64Data?: string;
   
 }

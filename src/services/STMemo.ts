@@ -73,10 +73,12 @@ export class STMemoStore {
     conversation_id: string | undefined;
     // Simulate a real database layer. Stores serialized objects.
     summaryChat:string;
+    isEnableVision:boolean; 
 
-    constructor(username:string, conversation_id?:string) {
+    constructor(username:string, conversation_id?:string, isEnableVision=false) {
         this.username = username;
-        this.conversation_id = conversation_id || undefined
+        this.conversation_id = conversation_id || undefined,
+        this.isEnableVision = isEnableVision    
     }
 
     async convertMessagesFormat(messages: Message[]): Promise<MsgListParams[]> {
@@ -140,11 +142,30 @@ export class STMemoStore {
                 # Information about person your are talking:
                     ${JSON.stringify(userInformation)}`},    
         )
+
+        if(this.isEnableVision) {
+            list.unshift({ role: "system", content: `
+            Context: The assistant receives a tiled series of screenshots from a user's live video feed. These screenshots represent sequential frames from the video, capturing distinct moments. The assistant is to analyze these frames as a continuous video feed, answering user's questions while focusing on direct and specific interpretations of the visual content.
+            
+            1. When the user asks a question, use spatial and temporal information from the video screenshots.
+            2. Respond with brief, precise answers to the user questions. Go straight to the point, avoid superficial details. Be concise as much as possible.
+            3. Address the user directly, and assume that what is shown in the images is what the user is doing.
+            4. Use "you" and "your" to refer to the user.
+            5. DO NOT mention a series of individual images, a strip, a grid, a pattern or a sequence. Do as if the user and the assistant were both seeing the video.
+            6. DO NOT be over descriptive.
+            7. Assistant will not interact with what is shown in the images. It is the user that is interacting with the objects in the images.
+            8. Keep in mind that the grid of images will show the same object in a sequence of time. E.g. If an identical glass is shown in several consecutive images, it is the same glass and NOT multiple glasses.
+            9. When asked about spatial questions, provide clear and specific information regarding the location and arrangement of elements within the frames. This includes understanding and describing the relative positions, distances, and orientations of objects and people in the visual field, as if observing a real-time 3D space.
+            10. If the user gives instructions, follow them precisely.
+            11. Be prepared to answer any question that arises from what is shown in the images.
+                ` })
+        }
+
         return list
     }
 
-    async describeImage(imgURL:string, prompt:string): Promise<string | null> {
-
+    async describeImage(base64Data:string, prompt:string): Promise<string | null> {
+        console.log("base64Data", base64Data)
         const messages: MsgListParams[] = [
             {
                 role: "system",
@@ -156,7 +177,7 @@ export class STMemoStore {
                 {
                     type: "image_url",
                     image_url: {
-                        url: imgURL,
+                        url: base64Data,
                     },
                 },
                 ],
