@@ -22,11 +22,34 @@ export class ConversationService {
         }
     } 
     
-    async getConversation(id:string){   
+
+    async getConversation(id?:string){   
         try {
             return await dbClient.conversation.findUnique({ 
                 where: { id }
-             })
+            })
+        } catch (error) {
+            console.log('Error getting conversation:', error)
+            throw error
+        }
+    }
+    async getConversationByUser(userId:string){   
+        try {
+            return await dbClient.conversation.findMany({
+                where: {
+                  userID: userId,
+                },
+                include: {
+                  messages: {
+                    orderBy: {
+                        createdAt: 'asc'
+                    }
+                  },
+                },
+                orderBy: {
+                    lastMessageAt: 'desc',
+                }
+            })
         } catch (error) {
             console.log('Error getting conversation:', error)
             throw error
@@ -45,6 +68,17 @@ export class ConversationService {
         }
     }
 
+    async deleteConversation(id:string) {
+        try {
+            await this.deleteMsgInConversation(id)
+            await dbClient.conversation.delete({
+                where: { id },
+            });
+        } catch (error) {
+            console.log('Error getting conversation:', error)
+            throw error
+        }
+    }
     async deleteMsgInConversation(id:string) {
         try {
             await dbClient.message.deleteMany({

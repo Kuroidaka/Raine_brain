@@ -45,6 +45,7 @@ model User {
   updated_at   DateTime @default(now())
   role_id      String?
   Role         Role?    @relation(fields: [role_id], references: [id])
+  conversations Conversation[]
 
   @@index([role_id], map: "Role_role_id_fkey")
 }
@@ -54,11 +55,16 @@ model Conversation {
   name          String    @default("New Chat")
   from          String?
   summarize     String?   @db.LongText
-  lastMessage   String    @db.LongText
-  lastMessageAt DateTime  @default(now())
+  lastMessage   String?   @db.LongText
+  lastMessageAt DateTime?  @default(now())
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   messages      Message[]
+  userID        String
+  user          User       @relation(fields: [userID], references: [id])
+
+  @@index([userID], map: "Conversation_userID_fkey")
+
 }
 
 model Message {

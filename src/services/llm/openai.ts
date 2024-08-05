@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { traceable } from "langsmith/traceable";
 import { openAIClient } from '../../config/openai';
 import { MsgListParams, outputInter } from './llm.interface';
+import { io } from '~/index';
 
 const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
@@ -54,16 +55,17 @@ export const OpenaiService = {
       for await (const chunk of stream) {
         // Print the completion returned by the LLM.
         const text = chunk.choices[0]?.delta?.content || "";
-        content += text;
-        console.log(text);
-        res.write(JSON.stringify({ text }) + '\n');
+        console.log(text)
+        content += text 
+        io.emit('chatResChunk', { content });
       }
 
       return { content };
     } catch (error) {
       console.log(error);
-      res.write(JSON.stringify({ text: " " + errorMsg }) + '\n');
-      content += errorMsg
+      // res.write(JSON.stringify({ text: " " + errorMsg }) + '\n');
+      content += ("\n" + errorMsg)
+      io.emit('chatResChunk', { content });
 
       return { content }
     }

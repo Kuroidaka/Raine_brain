@@ -20,21 +20,21 @@ export const BrainController = {
     console.clear();
     const { prompt, conversationID, imgURL, base64Data } = req.body;
     console.log("base64Data", req.body)
-    const { username } = req.user;
+    const { id: userID } = req.user;
     const { isStream = "false", isLTMemo = "false", isVision = "false" } = req.query;
     const isEnableStream = isStream === "true";
     const isEnableLTMemo = isLTMemo === "true"; // Enable Long term memory
     const isEnableVision = isVision === "true"; 
 
     if (isEnableStream) {
-      res.setHeader("Content-Type", "application/json");
-      res.setHeader("Transfer-Encoding", "chunked");
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
     }
 
     try {
-      const userId = username;
       // Long term memory process
-      const pathMemo = path.join("src", "assets", "tmp", "memos", userId);
+      const pathMemo = path.join("src", "assets", "tmp", "memos", userID);
       const teachableAgent = new TeachableService(0, pathMemo);
 
       const { relateMemory, memoryDetail } = await teachableAgent.considerMemoRetrieval(prompt)
@@ -45,7 +45,7 @@ export const BrainController = {
         : prompt;
 
       // Short term memory process
-      const STMemo = new STMemoStore(userId, conversationID, isEnableVision);
+      const STMemo = new STMemoStore(userID, conversationID, isEnableVision);
 
       // Describe Context for vision
       if(isEnableVision && base64Data) {
@@ -67,24 +67,29 @@ export const BrainController = {
         res
       );
 
-      isEnableStream
-      ? res.end()
-      : res.status(200).json(output.content);
+      const callBack = async () => {
+        // Add Ai response into DB
+        output.content && STMemo.conversation_id &&
+        await STMemo.addMessage(output.content, true, STMemo.conversation_id);
+      
+        // summrize the conversation
+        const historySummarized = await STMemo.processSummaryConversation(STMemo.conversation_id as string)
+        console.log(chalk.green("HistorySummarized: "), historySummarized)
+  
+        await conversationService.modifyConversation(STMemo.conversation_id as string, {
+          summarize: historySummarized,
+        });
+  
+        // Consider store into LTMemo
+        isEnableLTMemo && await teachableAgent.considerMemoStorage(prompt, memoryDetail, STMemo.summaryChat);
+      }
 
-      // Add Ai response into DB
-      output.content && STMemo.conversation_id &&
-      await STMemo.addMessage(output.content, true, STMemo.conversation_id);
-    
-      // summrize the conversation
-      const historySummarized = await STMemo.processSummaryConversation(STMemo.conversation_id as string)
-      console.log(chalk.green("HistorySummarized: "), historySummarized)
 
-      await conversationService.modifyConversation(STMemo.conversation_id as string, {
-        summarize: historySummarized,
-      });
+      res.status(200).json(output.content)
+      await callBack()
 
-      // Consider store into LTMemo
-      isEnableLTMemo && await teachableAgent.considerMemoStorage(prompt, memoryDetail, STMemo.summaryChat);
+
+
 
     } catch (error) {
       console.log(error);

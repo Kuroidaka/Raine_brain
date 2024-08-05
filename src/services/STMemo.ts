@@ -69,14 +69,14 @@ const conversationService = ConversationService.getInstance()
 const userService = UserService.getInstance()
 export class STMemoStore {
 
-    username: string;
+    userID: string;
     conversation_id: string | undefined;
     // Simulate a real database layer. Stores serialized objects.
     summaryChat:string;
     isEnableVision:boolean; 
 
-    constructor(username:string, conversation_id?:string, isEnableVision=false) {
-        this.username = username;
+    constructor(userID:string, conversation_id?:string, isEnableVision=false) {
+        this.userID = userID;
         this.conversation_id = conversation_id || undefined,
         this.isEnableVision = isEnableVision    
     }
@@ -103,7 +103,7 @@ export class STMemoStore {
         const addMsgPromise = conversationService.addMsg({
             text: message,
             isBot: isBot,
-            userID: this.username,
+            userID: this.userID,
             conversationId: conversationId
         });
     
@@ -121,7 +121,7 @@ export class STMemoStore {
 
     async get_system_prompt(isEnableLTMemo:boolean):Promise<MsgListParams[]> {
 
-        const userData = await userService.getUser({ username: this.username })
+        const userData = await userService.getUser({ id: this.userID })
         const userInformation = userData?.display_name ? userData?.display_name : userData?.username
         
         const list:MsgListParams[] = []
@@ -252,7 +252,7 @@ export class STMemoStore {
         : null;
         
         if (!conversation) {
-            conversation = await conversationService.addNewConversation({ lastMessage: originalPrompt });
+            conversation = await conversationService.addNewConversation({ lastMessage: originalPrompt, userID: this.userID });
         }
         this.conversation_id = conversation.id
 

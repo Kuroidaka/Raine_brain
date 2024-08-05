@@ -128,6 +128,7 @@
     "setprototypeof": "^1.2.0",
     "side-channel": "^1.0.6",
     "simple-update-notifier": "^2.0.0",
+    "socket.io": "^4.7.5",
     "statuses": "^2.0.1",
     "supports-color": "^5.5.0",
     "termcolor": "^0.2.0",
