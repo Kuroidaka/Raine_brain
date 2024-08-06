@@ -14,6 +14,17 @@ export const ConversationController = {
             next(error);
         }
     },
+    getConversationById: async (req: Request, res: Response, next:NextFunction) => { 
+        const { id:conID } = req.params
+        try {
+            const data = await conversationService.getConversation(conID)
+            return res.status(200).json(data);
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
     createConversation: async (req: Request, res: Response, next:NextFunction) => { 
         const { id:userID } = req.user
         try {

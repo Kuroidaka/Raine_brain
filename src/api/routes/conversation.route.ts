@@ -7,6 +7,7 @@ import validateToken from '../middlewares/validate_token';
 const router = Router();
 
 router.get('/get', validateToken, ConversationController.getConversation);
+router.get('/get/:id', validateToken, ConversationController.getConversationById);
 router.post('/create', validateToken, ConversationController.createConversation);
 router.delete('/delete/:id', validateToken, ConversationController.deleteConversation);
 

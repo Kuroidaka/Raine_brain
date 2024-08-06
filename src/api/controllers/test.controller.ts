@@ -15,7 +15,7 @@ const conversationService = ConversationService.getInstance()
 export class TestController {
   static async ping(req: Request, res: Response, next:NextFunction) {
     try {
-      return res.status(200).json({ data: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjUzOGQ4ZGU3LTBhZDktNDIxZS04NmEzLTBjNjk0NWFiYTliOSIsInVzZXJuYW1lIjoiY2FuaCIsImlhdCI6MTcyMjg3NTY0NywiZXhwIjoxNzIyOTE4ODQ3fQ.IrcQqlW5HnOazlwYx5x_lQOtAtIqaaj2lIAISRNZ868` });
+      return res.status(200).json({ data: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjUzOGQ4ZGU3LTBhZDktNDIxZS04NmEzLTBjNjk0NWFiYTliOSIsInVzZXJuYW1lIjoiY2FuaCIsImlhdCI6MTcyMjkyMjUwNH0.EnXvVaRnY1p1F1oUDjmY4gwsC1NUaER68mAyaSCv0CI` });
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware

@@ -23,10 +23,17 @@ export class ConversationService {
     } 
     
 
-    async getConversation(id?:string){   
+    async getConversation(id:string){   
         try {
             return await dbClient.conversation.findUnique({ 
-                where: { id }
+                where: { id },
+                include: {
+                    messages: {
+                        orderBy: {
+                            createdAt: 'asc'
+                        }
+                    },
+                },
             })
         } catch (error) {
             console.log('Error getting conversation:', error)

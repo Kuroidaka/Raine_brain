@@ -85,7 +85,7 @@ export const BrainController = {
       }
 
 
-      res.status(200).json(output.content)
+      res.status(200).json({content: output.content, conversationID: STMemo.conversation_id})
       await callBack()
 
 
