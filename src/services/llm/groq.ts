@@ -5,6 +5,7 @@ import { analyzeOutputInter, messagesInter, MsgListParams, outputInter } from ".
 import { NotFoundException } from "~/common/error";
 import { io } from "~/index";
 import { IncomingMessage } from "http";
+import * as fs from 'fs';
 
 const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
@@ -100,6 +101,50 @@ export const GroqService = {
     } catch (error) {
       console.log(">>GroqService>>analyzer", error);
       throw error;
+    }
+  },
+  stt: async (audioPath: string) => {
+    try {
+      const transcription = await groqClient.audio.transcriptions.create({
+        file: fs.createReadStream(audioPath),
+        model: "whisper-large-v3",
+        // prompt: "Specify context or spelling",
+        // response_format: "json", // Optional
+        language: "en", // Optional
+        temperature: 0.0, // Optional
+      });
+      console.log(transcription.text);
+
+      return {
+        content: transcription.text
+      }
+    } catch (error) {
+      console.error(error);
+      return {
+        content: "Give me a quick breather; I'll be back in a few minutes, fresher than ever!"
+      }
+    }
+  },
+  tts: async (audioPath: string) => {
+    try {
+      const transcription = await groqClient.audio.transcriptions.create({
+        file: fs.createReadStream(audioPath),
+        model: "whisper-large-v3",
+        // prompt: "Specify context or spelling",
+        // response_format: "json", // Optional
+        language: "en", // Optional
+        temperature: 0.0, // Optional
+      });
+      console.log(transcription.text);
+
+      return {
+        content: transcription.text
+      }
+    } catch (error) {
+      console.error(error);
+      return {
+        content: "Give me a quick breather; I'll be back in a few minutes, fresher than ever!"
+      }
     }
   }
 }

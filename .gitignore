@@ -129,3 +129,4 @@ src/assets/img
 chroma.log
 
 src/assets/tmp/*
+src/assets/file/audio/*

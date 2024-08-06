@@ -72,3 +72,24 @@ export function deleteFolderRecursive(folderPath: string): void {
 export const generateId = (): string => {
   return uuidv4();
 };
+
+
+export const splitText = (text:string , maxLength:number) => {
+    const words = text.split(' ');
+    const chunks = [];
+    let currentChunk = '';
+  
+    for (const word of words) {
+      if ((currentChunk + word).length > maxLength) {
+        chunks.push(currentChunk.trim());
+        currentChunk = '';
+      }
+      currentChunk += `${word} `;
+    }
+  
+    if (currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+    }
+  
+    return chunks;
+  };
