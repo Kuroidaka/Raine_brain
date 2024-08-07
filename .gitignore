@@ -130,3 +130,6 @@ chroma.log
 
 src/assets/tmp/*
 src/assets/file/audio/*
+
+localhost+1-key.pem
+localhost+1.pem
