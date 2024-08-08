@@ -151,31 +151,22 @@ export const BrainController = {
   },
   test: async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { prompt, imgURL } = req.body;
 
-      const messages: MsgListParams[] = [
-        {
-          role: "system",
-          content: `
+      const { id: userID } = req.user;
+      if (!req.file) {
+        throw new NotFoundException("File upload failed")
+      }
+    
+      const filePath = req.file.path;
+      console.log("filePath", filePath)
 
-          `,
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "image_url",
-              image_url: {
-                url: imgURL,
-              },
-            },
-          ],
-        },
-      ];
-      const output = await OpenaiService.chat(messages, false, res);
+      // Short term memory process
+      const STMemo = new STMemoStore(userID);
+      
+      // Describe Context for vision
+      const message = await STMemo.describeImage([filePath])
 
-      return res.status(200).json({ data: output.content });
-      // res.end()
+      return res.status(200).json({ data: message });
     } catch (error) {
       console.log(error);
       next(error);

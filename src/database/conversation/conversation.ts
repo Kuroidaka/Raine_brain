@@ -22,7 +22,6 @@ export class ConversationService {
         }
     } 
     
-
     async getConversation(id:string){   
         try {
             return await dbClient.conversation.findUnique({ 

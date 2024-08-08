@@ -167,31 +167,32 @@ export class TestController {
 
     // create an OpenAI request with a prompt
       console.log("decodedData", base64Data)
-      const completion = await openAIClient.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: "Describe this image as if you were David Attenborough. Provide as much detail as possible.",
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: base64Data,
-                },
-              },
-            ],
-          },
-        ],
-        stream: false,
-        max_tokens: 1000,
-      });
+      // const completion = await openAIClient.chat.completions.create({
+      //   model: "gpt-4o",
+      //   messages: [
+      //     {
+      //       role: "user",
+      //       content: [
+      //         {
+      //           type: "text",
+      //           text: "Describe this image as if you were David Attenborough. Provide as much detail as possible.",
+      //         },
+      //         {
+      //           type: "image_url",
+      //           image_url: {
+      //             url: base64Data,
+      //           },
+      //         },
+      //       ],
+      //     },
+      //   ],
+      //   stream: false,
+      //   max_tokens: 1000,
+      // });
 
+      // const result = completion.choices[0].message.content 
 
-      return res.status(200).json({ data: completion.choices[0].message.content });
+      return res.status(200).json({ data: base64Data });
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware

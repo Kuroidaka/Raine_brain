@@ -1,4 +1,4 @@
-import { messagesInter, MsgListParams } from './llm/llm.interface'
+import { ChatCompletionContentPart, ChatCompletionContentPartImage, ChatCompletionUserMessageParams, messagesInter, MsgListParams } from './llm/llm.interface'
 import { ConversationService } from '~/database/conversation/conversation';
 import { Message } from '@prisma/client';
 import { UserService } from '~/database/user/user';
@@ -8,6 +8,8 @@ import { ChatOpenAI } from '@langchain/openai';
 import { ConversationSummaryMemory, MemoryVariables } from "langchain/memory";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { ChatCompletionUserMessageParam } from 'groq-sdk/resources/chat/completions';
+import path from 'path';
+import { createImageContent, processImage } from '~/utils';
 
 const describeImgInstruction = `
 Instruction Prompt for Analyzing Tiled Screenshots from a Video Feed:
@@ -64,6 +66,8 @@ Example Analysis:
 6. Concluding Interpretation:
    - The sequence depicts a typical, pleasant day in the park, highlighting moments of social interaction and personal relaxation.
    - If the user asks about the conversation, refer to Frames 2 and 3, noting the friendly and animated nature of the interaction.`
+
+
 
 const conversationService = ConversationService.getInstance()
 const userService = UserService.getInstance()
@@ -164,28 +168,78 @@ export class STMemoStore {
         return list
     }
 
-    async describeImage(base64Data:string, prompt:string): Promise<string | null> {
-        console.log("base64Data", base64Data)
+    async describeImage(filesPath: string[]): Promise<string | null> {
+        // console.log("base64Data", base64Data)
+
+        const userMsg = await this.processImageBeforeDescribe(filesPath)
+
         const messages: MsgListParams[] = [
             {
                 role: "system",
                 content: describeImgInstruction
             },
-            {
-                role: "user",
-                content: [
-                {
-                    type: "image_url",
-                    image_url: {
-                        url: base64Data,
-                    },
-                },
-                ],
-            },
+            ...userMsg as ChatCompletionUserMessageParams[],
         ];
+        console.log("messages", messages)
         const output = await OpenaiService.chat(messages);
 
-        return  `\t- Context:\n${output.content}\n\n\t-User Asked\n${prompt}`
+        return  `\t- Context:\n${output.content}`
+    } 
+
+    async processImageBeforeDescribe( 
+        filePathList: string[] = [],
+        fileNamesList: string[] | null = null,
+        tiled: boolean = false,
+        maxSizePx: number = 1024,
+        detailThreshold: number = 700,
+        userMsgStr?: string,
+    ): Promise<{role:string, content:ChatCompletionContentPart[]}[]>{
+        /*    const userMsgStr = 'Here are the images:';
+        **    const filePathList = ['path/to/your/image1.jpg', 'path/to/your/image2.png']; // Replace with your image paths
+        **    const maxSizePx = 1024;
+        **    const fileNamesList = ['image1.jpg', 'image2.png']; // Optional: Original file names
+        **    const tiled = false;
+        **    const detailThreshold = 700;
+        */
+        if (!Array.isArray(filePathList)) {
+            filePathList = [];
+        }
+    
+        if (!filePathList.length) {
+            tiled = false;
+        }
+    
+        let fileNames: string[];
+        if (fileNamesList && fileNamesList.length === filePathList.length) {
+            fileNames = fileNamesList;
+        } else {
+            fileNames = filePathList.map(filePath => path.basename(filePath));
+        }
+    
+        const base64ImagesPromises = filePathList.map(filePath => processImage(filePath, maxSizePx));
+        const base64Images = await Promise.all(base64ImagesPromises);
+    
+        let uploadedImagesText = "";
+        if (fileNames.length) {
+            uploadedImagesText = "\n\n---\n\nUploaded images:\n" + fileNames.join('\n');
+        }
+    
+        if (tiled) {
+            const content: ChatCompletionContentPart[] = [{ text: userMsgStr + uploadedImagesText, type: "text" }];
+
+            content.push(...base64Images.map(({ encodedImage, maxDim }) => createImageContent(encodedImage, maxDim, detailThreshold)));
+            return [{ role: 'user' as "user", content }];
+        } else {
+            const content: ChatCompletionContentPart[] = [{ text: userMsgStr + uploadedImagesText, type: "text"  }];
+
+            content.push(...base64Images.map(({ encodedImage }) => ({
+                image_url: {
+                    url: `data:image/jpeg;base64,${encodedImage}`
+                },
+                type: 'image_url'
+                })) as ChatCompletionContentPartImage[]);
+            return [{ role: 'user' as "user", content }];
+        }
     } 
 
     public async summaryConversation(history: MsgListParams[]):Promise<string> {
