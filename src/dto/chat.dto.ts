@@ -8,4 +8,12 @@ export class ChatDto {
   @IsOptional()
   conversationID: string;
 
+  @IsString()
+  @IsOptional()
+  imgURL?: string;
+
+  @IsString()
+  @IsOptional()
+  base64Data?: string;
+  
 }

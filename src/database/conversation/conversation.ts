@@ -1,5 +1,5 @@
 import { dbClient } from "~/config";
-import { conversationProps, msgProps } from "./conversation.interface";
+import { conversationModifyProps, conversationProps, msgProps } from "./conversation.interface";
 
 export class ConversationService {
     private static instance: ConversationService;
@@ -25,8 +25,73 @@ export class ConversationService {
     async getConversation(id:string){   
         try {
             return await dbClient.conversation.findUnique({ 
-                where: { id }
+                where: { id },
+                include: {
+                    messages: {
+                        orderBy: {
+                            createdAt: 'asc'
+                        }
+                    },
+                },
+            })
+        } catch (error) {
+            console.log('Error getting conversation:', error)
+            throw error
+        }
+    }
+    async getConversationByUser(userId:string){   
+        try {
+            return await dbClient.conversation.findMany({
+                where: {
+                  userID: userId,
+                },
+                include: {
+                  messages: {
+                    orderBy: {
+                        createdAt: 'asc'
+                    }
+                  },
+                },
+                orderBy: {
+                    lastMessageAt: 'desc',
+                }
+            })
+        } catch (error) {
+            console.log('Error getting conversation:', error)
+            throw error
+        }
+    }
+
+    async modifyConversation(id: string, data: conversationModifyProps) {
+        try {
+            return await dbClient.conversation.update({ 
+                where: { id },
+                data: data
              })
+        } catch (error) {
+            console.log('Error getting conversation:', error)
+            throw error
+        }
+    }
+
+    async deleteConversation(id:string) {
+        try {
+            await this.deleteMsgInConversation(id)
+            await dbClient.conversation.delete({
+                where: { id },
+            });
+        } catch (error) {
+            console.log('Error getting conversation:', error)
+            throw error
+        }
+    }
+    async deleteMsgInConversation(id:string) {
+        try {
+            await dbClient.message.deleteMany({
+                where: {
+                  conversationId: id,
+                },
+            });
         } catch (error) {
             console.log('Error getting conversation:', error)
             throw error

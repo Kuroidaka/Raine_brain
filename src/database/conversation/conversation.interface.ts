@@ -1,7 +1,8 @@
 export interface conversationProps {
     name?: string
     from?: string
-    lastMessage: string
+    lastMessage?: string
+    userID: string
 }
 
 export interface msgProps {
@@ -12,3 +13,9 @@ export interface msgProps {
     conversationId: string  
 }
 
+export interface conversationModifyProps {
+    name?: string
+    from?: string
+    summarize?: string | null
+    lastMessage?: string
+}

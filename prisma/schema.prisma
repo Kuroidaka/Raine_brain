@@ -8,13 +8,47 @@ datasource db {
 }
 
 model Task {
-  id        String   @id
-  title     String   @db.LongText
-  time      DateTime
-  repeat    Boolean
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  interval  Int?
+  id          String           @id @default(uuid())
+  title       String           @db.LongText
+  color       String?
+  time        DateTime?
+  note        String?          @db.LongText
+  categories  TaskCategory[]
+  subTask     SubTask[]
+  userId      String
+  status      Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user      User  @relation(fields: [userId], references: [id])
+}
+
+model SubTask {
+  id        String           @id @default(uuid())
+  title     String           @db.LongText
+  status    Boolean          @default(false)
+  taskId    String
+
+  task      Task  @relation(fields: [taskId], references: [id])
+}
+
+model TaskCategory {
+  taskId     String
+  category   Categories
+  task       Task    @relation(fields: [taskId], references: [id])
+
+  @@id([taskId, category])
+}
+
+enum Categories {
+  health
+  play
+  spirituality
+  environment
+  work
+  finance
+  development
+  relationships
 }
 
 model File {
@@ -37,14 +71,16 @@ model Role {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  display_name String?
-  username     String   @unique
-  password     String
-  created_at   DateTime @default(now())
-  updated_at   DateTime @default(now())
-  role_id      String?
-  Role         Role?    @relation(fields: [role_id], references: [id])
+  id            String   @id @default(uuid())
+  display_name  String?
+  username      String   @unique
+  password      String
+  created_at    DateTime @default(now())
+  updated_at    DateTime @default(now())
+  role_id       String?
+  Role          Role?    @relation(fields: [role_id], references: [id])
+  conversations Conversation[]
+  Task          Task[]
 
   @@index([role_id], map: "Role_role_id_fkey")
 }
@@ -53,11 +89,17 @@ model Conversation {
   id            String    @id @default(uuid())
   name          String    @default("New Chat")
   from          String?
-  lastMessage   String    @db.LongText
-  lastMessageAt DateTime  @default(now())
+  summarize     String?   @db.LongText
+  lastMessage   String?   @db.LongText
+  lastMessageAt DateTime?  @default(now())
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   messages      Message[]
+  userID        String
+  user          User       @relation(fields: [userID], references: [id])
+
+  @@index([userID], map: "Conversation_userID_fkey")
+
 }
 
 model Message {

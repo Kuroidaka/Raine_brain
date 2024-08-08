@@ -1,9 +1,11 @@
 import { groqClient } from "~/config/groq";
 import { NextFunction, Request, Response } from "express";
 import { traceable } from "langsmith/traceable";
-import { analyzeOutputInter, messagesInter, outputInter } from "./groq.interface";
-import { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
+import { analyzeOutputInter, messagesInter, MsgListParams, outputInter } from "./llm.interface";
 import { NotFoundException } from "~/common/error";
+import { io } from "~/index";
+import { IncomingMessage } from "http";
+import * as fs from 'fs';
 
 const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
@@ -12,23 +14,22 @@ You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results 
 
 export const GroqService = {
   chat: async (
-    messages: ChatCompletionMessageParam[] | messagesInter[] | string,
+    messages: MsgListParams[] | string,
     isEnableStream = false,
-    res?: Response,
-    next?: NextFunction
+    res?: Response
   ):Promise<outputInter> => {
 
     // This way allow us to send message as a string or and array object
-    const data: (ChatCompletionMessageParam[] | messagesInter[]) = (typeof messages === 'string') 
+    const data: (MsgListParams[]) = (typeof messages === 'string') 
       ? [{ role: "user", content: JSON.stringify(messages) }]
       : messages;
   
     // Return to Stream feature
-    if (isEnableStream && res && next) return GroqService.stream(res, data, next);
+    if (isEnableStream && res) return GroqService.stream(res, data);
   
     try {
       const { choices } = await groqClient.chat.completions.create({
-        messages: data as ChatCompletionMessageParam[],
+        messages: data as MsgListParams[],
         model: "llama3-70b-8192",
       });
       return {
@@ -41,12 +42,12 @@ export const GroqService = {
       }
     }
   },  
-  stream: async(res: Response, messages: (ChatCompletionMessageParam[] | messagesInter[]), next:NextFunction) => {
+  stream: async(res: Response, messages: (MsgListParams[])) => {
     let content = ""
     const errorMsg = "Someone call Canh, there are some Bug with my program"
     try {
       const stream = await groqClient.chat.completions.create({
-        messages: messages as ChatCompletionMessageParam[],
+        messages: messages as MsgListParams[],
         model: "llama3-8b-8192",
         stream: true,
       });
@@ -54,16 +55,17 @@ export const GroqService = {
       for await (const chunk of stream) {
         // Print the completion returned by the LLM.
         const text = chunk.choices[0]?.delta?.content || "";
-        content += text;
-        console.log(text);
-        res.write(JSON.stringify({ text }) + '\n');
+        console.log(text)
+        content += text 
+        io.emit('chatResChunk', { content });
       }
-
+      
       return { content };
     } catch (error) {
       console.log(error);
-      res.write(JSON.stringify({ text: " " + errorMsg }) + '\n');
-      content += errorMsg
+      // res.write(JSON.stringify({ text: " " + errorMsg }) + '\n');
+      content += ("\n" + errorMsg)
+      io.emit('chatResChunk', { content });
 
       return { content }
     }
@@ -75,7 +77,7 @@ export const GroqService = {
       const analysis_instructions = "# INSTRUCTIONS\n" + analysisInstructions + "\n"
 
       const msgText = [analysis_instructions, text_to_analyze, analysis_instructions].join("\n");
-      const data:ChatCompletionMessageParam[] = [
+      const data:MsgListParams[] = [
         { role: "system", content: analyzeSystem},
         { role: "user", content: msgText }
       ]
@@ -99,6 +101,50 @@ export const GroqService = {
     } catch (error) {
       console.log(">>GroqService>>analyzer", error);
       throw error;
+    }
+  },
+  stt: async (audioPath: string) => {
+    try {
+      const transcription = await groqClient.audio.transcriptions.create({
+        file: fs.createReadStream(audioPath),
+        model: "whisper-large-v3",
+        // prompt: "Specify context or spelling",
+        // response_format: "json", // Optional
+        language: "en", // Optional
+        temperature: 0.0, // Optional
+      });
+      console.log(transcription.text);
+
+      return {
+        content: transcription.text
+      }
+    } catch (error) {
+      console.error(error);
+      return {
+        content: "Give me a quick breather; I'll be back in a few minutes, fresher than ever!"
+      }
+    }
+  },
+  tts: async (audioPath: string) => {
+    try {
+      const transcription = await groqClient.audio.transcriptions.create({
+        file: fs.createReadStream(audioPath),
+        model: "whisper-large-v3",
+        // prompt: "Specify context or spelling",
+        // response_format: "json", // Optional
+        language: "en", // Optional
+        temperature: 0.0, // Optional
+      });
+      console.log(transcription.text);
+
+      return {
+        content: transcription.text
+      }
+    } catch (error) {
+      console.error(error);
+      return {
+        content: "Give me a quick breather; I'll be back in a few minutes, fresher than ever!"
+      }
     }
   }
 }
