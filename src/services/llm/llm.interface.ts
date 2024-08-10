@@ -2,13 +2,22 @@ import {
     ChatCompletionContentPart as GroqChatCompletionContentPart, 
     ChatCompletionMessageParam as OpenAIMsgParam,
     ChatCompletionContentPartImage as OpenAIChatCompletionContentPartImage,
-    ChatCompletionUserMessageParam as OpenAIChatCompletionUserMessageParam
+    ChatCompletionUserMessageParam as OpenAIChatCompletionUserMessageParam,
+    ChatCompletionSystemMessageParam as OpenAIChatCompletionSystemMessageParam,
+    ChatCompletionAssistantMessageParam as OpenAIChatCompletionAssistantMessageParam,
+    ChatCompletionToolMessageParam as OpenAIChatCompletionToolMessageParam,
+    ChatCompletionFunctionMessageParam as OpenAIChatCompletionFunctionMessageParam
 } from "openai/resources/chat/completions"
 import { 
     ChatCompletionContentPart as OpenAIChatCompletionContentPart,
     ChatCompletionMessageParam as GroqMsgParam,
     ChatCompletionContentPartImage as GroqChatCompletionContentPartImage,
-    ChatCompletionUserMessageParam as GroqChatCompletionUserMessageParam
+    ChatCompletionUserMessageParam as GroqChatCompletionUserMessageParam,
+    ChatCompletionSystemMessageParam as GroqChatCompletionSystemMessageParam,
+    ChatCompletionAssistantMessageParam as GroqChatCompletionAssistantMessageParam,
+    ChatCompletionToolMessageParam as GroqChatCompletionToolMessageParam,
+    ChatCompletionFunctionMessageParam as GroqChatCompletionFunctionMessageParam
+    
  } from "groq-sdk/resources/chat/completions";
 
 
@@ -26,7 +35,15 @@ export interface analyzeOutputInter {
 }
 
 
-export type MsgListParams = | OpenAIMsgParam | GroqMsgParam
+export type MsgListParams = |
+OpenAIChatCompletionSystemMessageParam |  GroqChatCompletionSystemMessageParam | 
+Omit<OpenAIChatCompletionAssistantMessageParam, 'function_call'> & {
+    function_call?: OpenAIChatCompletionAssistantMessageParam.FunctionCall
+} | GroqChatCompletionAssistantMessageParam |
+OpenAIChatCompletionToolMessageParam | GroqChatCompletionToolMessageParam |
+OpenAIChatCompletionUserMessageParam | GroqChatCompletionUserMessageParam | 
+OpenAIChatCompletionFunctionMessageParam | GroqChatCompletionFunctionMessageParam
+
 
 export type ChatCompletionUserMessageParams = OpenAIChatCompletionUserMessageParam | GroqChatCompletionUserMessageParam
 
