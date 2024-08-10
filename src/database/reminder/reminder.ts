@@ -21,11 +21,11 @@ export class ReminderService {
         };
     };
     
-    async addNewTask(data:TaskProps, categories?: Categories[]){
+    async addNewTask(data:TaskProps, categories: Categories[]){
         try {
 
             const dataObject: TaskWithCateProps = data
-            if(categories) {
+            if(categories.length > 0) {
                 dataObject.categories = this.mapCategoriesToPrisma(categories)
             }
 
@@ -36,11 +36,29 @@ export class ReminderService {
         }
     }
 
+    async getTasksById(id:string){
+        try {
+            return await dbClient.task.findUnique({ 
+                where: { id },
+                include: {
+                    categories: true,
+                    subTask: true
+                }
+             })
+        } catch (error) {
+            console.log('Error geting task:',error)
+            throw error
+        }
+    }
     async getTasksByUser(userId:string){
         try {
             return await dbClient.task.findMany({ 
                 where: {
                     userId: userId
+                },
+                include: {
+                    categories: true,
+                    subTask: true
                 }
              })
         } catch (error) {
@@ -49,31 +67,51 @@ export class ReminderService {
         }
     }
 
-    async updateTask(taskId: string, data:UpdateTaskProps, categories?: Categories[]){
+    async updateTask(taskId: string, data:UpdateTaskProps, categories: Categories[]){
         try {
-
-            const dataObject: UpdateTaskWithCateProps = data
-            if(categories) {
-                dataObject.categories = this.mapCategoriesToPrisma(categories)
+            const dataObject: UpdateTaskWithCateProps = data;
+    
+            if (categories.length > 0) {
+                // If categories are provided, update the categories
+                dataObject.categories = this.mapCategoriesToPrisma(categories);
+            } else {
+                // If categories are not provided, remove all existing categories
+                await dbClient.taskCategory.deleteMany({
+                    where: {
+                        taskId: taskId
+                    }
+                });
             }
-
+    
             return await dbClient.task.update({
                 where: { id: taskId },
                 data: dataObject
-             })
+            });
         } catch (error) {
-            console.log('Error updating task:',error)
-            throw error
+            console.log('Error updating task:', error);
+            throw error;
         }
     }
     
     async deleteTask(taskId:string) {
         try {
-            return await dbClient.task.delete({ 
-                where: {
-                    id: taskId
-                }
-             })
+        // Start a transaction
+        return await dbClient.$transaction(async (tx) => {
+            // Delete related TaskCategory records
+            await tx.taskCategory.deleteMany({
+                where: { taskId }
+            });
+
+            // Delete related SubTask records
+            await tx.subTask.deleteMany({
+                where: { taskId }
+            });
+
+            // Finally, delete the Task itself
+            return await tx.task.delete({
+                where: { id: taskId }
+            });
+        });
         } catch (error) {
             console.log('Error deleting task:',error)
             throw error
