@@ -10,7 +10,7 @@ class TaskData {
   color?: string;
 
   @IsDateString()
-  time: Date;
+  deadline: Date | string | null;
 
   @IsString()
   @IsOptional()
@@ -26,7 +26,7 @@ class UpdateTaskData {
   color?: string;
 
   @IsDateString()
-  time?: Date;
+  deadline?: Date | string | null;
 
   @IsString()
   @IsOptional()
@@ -37,18 +37,18 @@ export class CreateTaskDto {
   data: TaskData;
 
   @IsArray()
-  @IsEnum($Enums.Categories, { each: true })
+  @IsEnum($Enums.Areas, { each: true })
   @IsOptional()
-  category: $Enums.Categories[];
+  area: $Enums.Areas[];
 }
 
 export class UpdateTaskDto {
   data: UpdateTaskData;
 
   @IsArray()
-  @IsEnum($Enums.Categories, { each: true })
+  @IsEnum($Enums.Areas, { each: true })
   @IsOptional()
-  category: $Enums.Categories[];
+  area: $Enums.Areas[];
 }
 
 export class SubTaskCreateDto {

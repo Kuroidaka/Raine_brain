@@ -1,6 +1,6 @@
 import { dbClient } from "~/config";
-import { SubTaskProps, TaskProps, TaskWithCateProps, UpdateSubTaskProps, UpdateTaskProps, UpdateTaskWithCateProps } from "./reminder.interface";
-import { Categories, Prisma } from "@prisma/client";
+import { SubTaskProps, TaskProps, TaskWithAreaProps, UpdateSubTaskProps, UpdateTaskProps, UpdateTaskWithCateProps } from "./reminder.interface";
+import { Areas, Prisma } from "@prisma/client";
 
 export class ReminderService {
     private static instance: ReminderService;
@@ -14,19 +14,26 @@ export class ReminderService {
         return ReminderService.instance;
     }
 
-    private  mapCategoriesToPrisma (categories?: Categories[]): Prisma.TaskCategoryCreateNestedManyWithoutTaskInput | undefined  {
-        if (!categories) return undefined;
+    private  mapAreaToPrisma (area?: Areas[]): Prisma.TaskAreasCreateNestedManyWithoutTaskInput | undefined  {
+        if (!area) return undefined;
         return {
-            create: categories.map(category => ({ category }))
+            create: area.map(area => ({ area }))
         };
     };
+
+    private preprocessDeadlineTime(deadline: Date | string | null) {
+        if(deadline === "someday") return null
+        else if(deadline !== null) return new Date(deadline).toISOString()
+        else return deadline
+    }
     
-    async addNewTask(data:TaskProps, categories: Categories[]){
+    async addNewTask(data:TaskProps, area: Areas[]){
         try {
 
-            const dataObject: TaskWithCateProps = data
-            if(categories.length > 0) {
-                dataObject.categories = this.mapCategoriesToPrisma(categories)
+            const dataObject: TaskWithAreaProps = data
+            dataObject.deadline = this.preprocessDeadlineTime(dataObject.deadline)
+            if(area.length > 0) {
+                dataObject.area = this.mapAreaToPrisma(area)
             }
 
             return await dbClient.task.create({ data: dataObject })
@@ -41,7 +48,7 @@ export class ReminderService {
             return await dbClient.task.findUnique({ 
                 where: { id },
                 include: {
-                    categories: true,
+                    area: true,
                     subTask: true
                 }
              })
@@ -57,7 +64,7 @@ export class ReminderService {
                     userId: userId
                 },
                 include: {
-                    categories: true,
+                    area: true,
                     subTask: true
                 }
              })
@@ -67,20 +74,22 @@ export class ReminderService {
         }
     }
 
-    async updateTask(taskId: string, data:UpdateTaskProps, categories: Categories[]){
+    async updateTask(taskId: string, data:UpdateTaskProps, area: Areas[]){
         try {
             const dataObject: UpdateTaskWithCateProps = data;
-    
-            if (categories.length > 0) {
-                // If categories are provided, update the categories
-                dataObject.categories = this.mapCategoriesToPrisma(categories);
-            } else {
-                // If categories are not provided, remove all existing categories
-                await dbClient.taskCategory.deleteMany({
-                    where: {
-                        taskId: taskId
-                    }
-                });
+            if(dataObject.deadline){
+                dataObject.deadline = this.preprocessDeadlineTime(dataObject.deadline)
+            }
+            // Remove all the old list
+            await dbClient.taskAreas.deleteMany({
+                where: {
+                    taskId: taskId
+                }
+            });
+
+            if (area.length > 0) {
+                // If Area are provided, update the Area
+                dataObject.area = this.mapAreaToPrisma(area);
             }
     
             return await dbClient.task.update({
@@ -97,8 +106,8 @@ export class ReminderService {
         try {
         // Start a transaction
         return await dbClient.$transaction(async (tx) => {
-            // Delete related TaskCategory records
-            await tx.taskCategory.deleteMany({
+            // Delete related TaskArea records
+            await tx.taskAreas.deleteMany({
                 where: { taskId }
             });
 

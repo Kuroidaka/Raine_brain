@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 export interface TaskProps {
     title: string;
     color?: string;
-    time: Date;
+    deadline: Date | string | null;
     note?: string;
     userId: string;
 }
@@ -11,16 +11,16 @@ export interface TaskProps {
 export interface UpdateTaskProps {
     title?: string;
     color?: string;
-    time?: Date;
+    deadline?: Date | string | null;
     note?: string;
 }
 
-export interface TaskWithCateProps extends TaskProps {
-    categories?: Prisma.TaskCategoryCreateNestedManyWithoutTaskInput
+export interface TaskWithAreaProps extends TaskProps {
+    area?: Prisma.TaskAreasCreateNestedManyWithoutTaskInput
 }
 
 export interface UpdateTaskWithCateProps extends UpdateTaskProps {
-    categories?: Prisma.TaskCategoryCreateNestedManyWithoutTaskInput
+    area?: Prisma.TaskAreasCreateNestedManyWithoutTaskInput
 }
 
   
@@ -34,7 +34,7 @@ export interface UpdateSubTaskProps {
     status: boolean;
 }
   
-enum Categories {
+enum Area {
     HEALTH = "health",
     PLAY = "play",
     SPIRITUALITY = "spirituality",

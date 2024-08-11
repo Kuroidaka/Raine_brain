@@ -7,13 +7,13 @@ export const reminderController = {
     createTask: async (req: Request, res: Response, next:NextFunction) => {       
         const { 
             data,
-            category = []
+            area = []
          } = req.body;
 
-         const { id: userId } = req.user
+        const { id: userId } = req.user
         
         try {
-            await reminderService.addNewTask({...data, userId}, category)
+            await reminderService.addNewTask({...data, userId}, area)
             return res.status(200).json({})
         } catch (error) {
             console.log(error);
@@ -49,10 +49,10 @@ export const reminderController = {
     },
     updateTask: async (req: Request, res: Response, next:NextFunction) => {       
         const { id:taskID } = req.params;
-        const { data, category = [] } = req.body;
+        const { data, area = [] } = req.body;
         
         try {
-            const result = await reminderService.updateTask(taskID, data, category)
+            const result = await reminderService.updateTask(taskID, data, area)
             return res.status(200).json(result)
         } catch (error) {
             console.log(error);

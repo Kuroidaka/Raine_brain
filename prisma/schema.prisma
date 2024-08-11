@@ -11,9 +11,9 @@ model Task {
   id          String           @id @default(uuid())
   title       String           @db.LongText
   color       String?
-  time        DateTime?
+  deadline    DateTime?
   note        String?          @db.LongText
-  categories  TaskCategory[]
+  area        TaskAreas[]
   subTask     SubTask[]
   userId      String
   status      Boolean          @default(false)
@@ -32,15 +32,15 @@ model SubTask {
   task      Task  @relation(fields: [taskId], references: [id])
 }
 
-model TaskCategory {
+model TaskAreas {
   taskId     String
-  category   Categories
+  area       Areas
   task       Task    @relation(fields: [taskId], references: [id])
 
-  @@id([taskId, category])
+  @@id([taskId, area])
 }
 
-enum Categories {
+enum Areas {
   health
   play
   spirituality

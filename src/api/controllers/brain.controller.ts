@@ -57,9 +57,9 @@ export const BrainController = {
       const STMemo = new STMemoStore(userID, conversationID, isEnableVision);
 
       // Describe Context for vision
-      if(isEnableVision && base64Data) {
-        promptWithRelatedMemory = await STMemo.describeImage(base64Data, promptWithRelatedMemory)
-      }
+      // if(isEnableVision && base64Data) {
+      //   promptWithRelatedMemory = await STMemo.describeImage(base64Data, promptWithRelatedMemory)
+      // }
 
       const messages: MsgListParams[] = await STMemo.process(
         prompt,
