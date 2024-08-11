@@ -178,4 +178,19 @@ export function createImageContent(image: string, maxdim: number, detailThreshol
         image_url: { url: `data:image/jpeg;base64,${image}`, detail: detail }
     } as ChatCompletionContentPartImage
 }
-  
+
+export function formatDateTime(date = new Date()): string {
+    const now = new Date(date);
+    const options: Intl.DateTimeFormatOptions = {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    };
+
+    return now.toLocaleString('en-GB', options).replace(',', '');
+}
+
+// console.log(formatDateTime());  // Example output: "Sun 11 Aug 22:51"

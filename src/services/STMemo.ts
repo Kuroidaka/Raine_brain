@@ -1,6 +1,6 @@
 import { ChatCompletionContentPart, ChatCompletionContentPartImage, ChatCompletionUserMessageParams, messagesInter, MsgListParams } from './llm/llm.interface'
 import { ConversationService } from '~/database/conversation/conversation';
-import { Message } from '@prisma/client';
+import { Message, Conversation } from '@prisma/client';
 import { UserService } from '~/database/user/user';
 import { OpenaiService } from './llm/openai';
 
@@ -9,7 +9,7 @@ import { ConversationSummaryMemory, MemoryVariables } from "langchain/memory";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { ChatCompletionUserMessageParam } from 'groq-sdk/resources/chat/completions';
 import path from 'path';
-import { createImageContent, processImage } from '~/utils';
+import { createImageContent, formatDateTime, processImage } from '~/utils';
 
 const describeImgInstruction = `
 Instruction Prompt for Analyzing Tiled Screenshots from a Video Feed:
@@ -92,14 +92,21 @@ export class STMemoStore {
         }));
     };
 
-    async getMessages(conversationId:string, summarize?:string | null): Promise<MsgListParams[]> {
-
-        if(summarize) return [{role: "system", content: summarize}]
-        const msgList = await conversationService.getMsg(conversationId)
-
-        const newMsgList = await this.convertMessagesFormat(msgList)
-
-        return newMsgList;
+    async getMessages(conversationId: string, summarize?: string | null, take?: number): Promise<MsgListParams[]> {
+        let result: MsgListParams[] = []; // Ensure result is properly typed
+    
+        if (summarize) {
+            result.push({ role: "system", content: summarize });
+        }
+    
+        const msgList = await conversationService.getMsg(conversationId, take);
+    
+        const newMsgList = await this.convertMessagesFormat(msgList);
+    
+        // Merge result and newMsgList
+        const mergedList = [...result, ...newMsgList];
+    
+        return mergedList;
     }
 
     async addMessage(message:string, isBot:boolean, conversationId:string): Promise<void> {
@@ -301,12 +308,16 @@ export class STMemoStore {
         promptWithRelatedMemory:string, 
         isEnableLTMemo:boolean
     ):Promise<MsgListParams[]> {
-        let conversation = this.conversation_id
+        let conversation:Conversation | null = this.conversation_id
         ? await conversationService.getConversation(this.conversation_id)
         : null;
         
         if (!conversation) {
-            conversation = await conversationService.addNewConversation({ lastMessage: originalPrompt, userID: this.userID });
+            conversation = await conversationService.addNewConversation({ 
+                lastMessage: originalPrompt,
+                userID: this.userID,
+                name: formatDateTime()
+            })
         }
         this.conversation_id = conversation.id
 
@@ -314,7 +325,7 @@ export class STMemoStore {
         
         this.summaryChat = conversation.summarize as string
 
-        const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize)
+        const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize, 4)
 
         history.push({
             "role": "user",

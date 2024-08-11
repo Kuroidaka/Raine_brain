@@ -1,5 +1,6 @@
 import { dbClient } from "~/config";
 import { conversationModifyProps, conversationProps, msgProps } from "./conversation.interface";
+import { Prisma } from "@prisma/client";
 
 export class ConversationService {
     private static instance: ConversationService;
@@ -107,14 +108,22 @@ export class ConversationService {
         }
     }
 
-    async getMsg(conversationId:string) {
+    async getMsg(conversationId:string, take?: number) {
         try {
-            const messages = await dbClient.message.findMany({
+
+            const query:Prisma.MessageFindManyArgs  = {
                 where: { conversationId },
                 orderBy: {
-                    createdAt: 'asc',
+                    createdAt: take ? 'desc' : 'asc',
                 },
-            })
+            }
+
+            if(take) query.take = take
+            let messages = await dbClient.message.findMany(query)
+
+            if (take && messages.length > 0) {
+                messages = messages.reverse(); // Reverse the array to get the oldest first
+            }
 
             return messages
         } catch (error) {

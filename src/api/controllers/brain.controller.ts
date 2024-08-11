@@ -97,9 +97,6 @@ export const BrainController = {
       res.status(200).json({content: output.content, conversationID: STMemo.conversation_id})
       await callBack()
 
-
-
-
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware
