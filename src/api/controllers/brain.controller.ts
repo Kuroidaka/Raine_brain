@@ -1,27 +1,18 @@
 import { NextFunction, Request, Response } from "express";
 import fs from 'fs/promises';
-import { traceable } from "langsmith/traceable";
-import { json } from "body-parser";
+
 import path from "path";
-import { ConversationSummaryMemory } from "langchain/memory";
-import chalk from "chalk";
-import { groqClient } from "~/config/groq";
-import { fileURLToPath } from 'url';
 
 import { GroqService } from "../../services/llm/groq";
-import { TeachableService } from "~/services/techable";
 import { STMemoStore } from "~/services/STMemo";
-import { messagesInter, MsgListParams } from "~/services/llm/llm.interface";
-import { OpenaiService } from "~/services/llm/openai";
+
 import { DeepGramService } from "~/services/llm/deepgram";
-
-
 import { ConversationService } from "~/database/conversation/conversation";
 import { NotFoundException } from "~/common/error";
 
 import { io } from "~/index";
-import { splitText } from "~/utils";
-import { ChatService, chatService } from '~/services/chat/chat';
+import { createImageContent, processImage, splitText } from "~/utils";
+import { ChatService } from '~/services/chat/chat';
 
 const conversationService = ConversationService.getInstance()
 export const BrainController = {
@@ -31,9 +22,8 @@ export const BrainController = {
     const { prompt, conversationID, imgURL } = req.body;
     console.log("body", req.body)
     const { id: userID } = req.user;
-    const { isStream = "false", isVision = "false" } = req.query;
+    const { isStream = "false"} = req.query;
     const isEnableStream = isStream === "true";
-    const isEnableVision = isVision === "true"; 
 
     if (isEnableStream) {
       res.setHeader('Content-Type', 'text/event-stream');
@@ -42,14 +32,68 @@ export const BrainController = {
     }
 
     try {
+
+      const isVision = false
       const chatService = new ChatService(
         userID,
         conversationID,
-        isEnableVision,
+        isVision,
         isEnableStream
       )
 
       const result = await chatService.processChat(res, prompt)
+
+      res.status(200).json({
+        content: result.output.content, conversationID: result.conversationID
+      })
+      
+      await chatService.handleProcessAfterChat(
+        result.output,
+        prompt,
+        result.memoryDetail
+      )
+
+    } catch (error) {
+      console.log(error);
+      // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  },
+  videoChat: async (req: Request, res: Response, next: NextFunction) => {
+    // preprocess data params
+    // console.clear();
+    const { prompt, conversationID } = req.body;
+
+    if (!req.file) {
+      throw new NotFoundException("File upload failed")
+    }
+  
+    const filePath = req.file.path;
+    console.log("filePath", filePath)
+   
+    console.log("body", req.body)
+    const { id: userID } = req.user;
+    const { isStream = "false", isVision = "false" } = req.query;
+    const isEnableStream = isStream === "true";
+
+    if (isEnableStream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+    }
+
+    try {
+      const isVision = true
+      const chatService = new ChatService(
+        userID,
+        conversationID,
+        isVision,
+        isEnableStream
+      )
+
+      const result = await chatService.processVideoChat(res, prompt, filePath)
+            
+      console.log("result", result)
 
       res.status(200).json({
         content: result.output.content, conversationID: result.conversationID

@@ -14,6 +14,7 @@ import upload from '~/common/multer';
 const router = Router();
 
 router.post('/chat', validateToken, validateDto(ChatDto), BrainController.chat);
+router.post('/chat/video', validateToken, upload.single('file'), validateDto(ChatDto), BrainController.videoChat);
 router.post('/stt', validateToken, upload.single('file'), BrainController.stt);
 router.post('/tts', validateToken, BrainController.tts);
 router.post('/describe_img', validateToken, upload.single('file'), BrainController.describeImg);

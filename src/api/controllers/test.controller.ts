@@ -109,14 +109,33 @@ export class TestController {
 
   static async do(req: Request, res: Response, next:NextFunction) {
     try {
-      const prompt = req.body.prompt
-      
-      const STMemo = new STMemoStore("canh", "78f5cfe3-2553-49bc-ac8f-e28e0708d840")
-      const history:MsgListParams[] = await STMemo.process(prompt, prompt, true)
-      const result = await STMemo.summaryConversation(history)
-      // await memory.clear()
-      // const history = await memory.loadMemoryVariables({})
-      return res.status(200).json({ data: result });
+      const response = await openAIClient.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: "what is my favorite?"
+          },
+          {
+            role: "assistant",
+            content: "Egg"
+          },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Can you see it from this image" },
+              {
+                type: "image_url",
+                image_url: {
+                  "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ_70EYZOC0uaAZ4iKgu8T6tnGlOYTgAjf-_w&s",
+                },
+              },
+            ],
+          },
+        ],
+      });      
+
+      return res.status(200).json({ data: response.choices[0] });
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware

@@ -9,7 +9,7 @@ import { ConversationSummaryMemory, MemoryVariables } from "langchain/memory";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { ChatCompletionUserMessageParam } from 'groq-sdk/resources/chat/completions';
 import path from 'path';
-import { createImageContent, formatDateTime, processImage } from '~/utils';
+import { createImageContent, formatDateTime, processImage, readTextFile } from '~/utils';
 
 const describeImgInstruction = `
 Input: Grid images of the video chat between human and AI
@@ -31,8 +31,6 @@ Input: Grid images of the video chat between human and AI
    - Summarize the overall interpretation of the sequence. Explain the main message or event depicted by the series of frames.
    - Address any specific questions from the user by referencing relevant frames and details.
 `
-
-
 
 const conversationService = ConversationService.getInstance()
 const userService = UserService.getInstance()
@@ -120,21 +118,9 @@ export class STMemoStore {
         )
 
         if(this.isEnableVision) {
-            list.unshift({ role: "system", content: `
-            Context: The assistant receives a tiled series of screenshots from a user's live video feed. These screenshots represent sequential frames from the video, capturing distinct moments. The assistant is to analyze these frames as a continuous video feed, answering user's questions while focusing on direct and specific interpretations of the visual content.
-            
-            1. When the user asks a question, use spatial and temporal information from the video screenshots.
-            2. Respond with brief, precise answers to the user questions. Go straight to the point, avoid superficial details. Be concise as much as possible.
-            3. Address the user directly, and assume that what is shown in the images is what the user is doing.
-            4. Use "you" and "your" to refer to the user.
-            5. DO NOT mention a series of individual images, a strip, a grid, a pattern or a sequence. Do as if the user and the assistant were both seeing the video.
-            6. DO NOT be over descriptive.
-            7. Assistant will not interact with what is shown in the images. It is the user that is interacting with the objects in the images.
-            8. Keep in mind that the grid of images will show the same object in a sequence of time. E.g. If an identical glass is shown in several consecutive images, it is the same glass and NOT multiple glasses.
-            9. When asked about spatial questions, provide clear and specific information regarding the location and arrangement of elements within the frames. This includes understanding and describing the relative positions, distances, and orientations of objects and people in the visual field, as if observing a real-time 3D space.
-            10. If the user gives instructions, follow them precisely.
-            11. Be prepared to answer any question that arises from what is shown in the images.
-                ` })
+            const frameGuidePersona = await readTextFile('src/assets/persona/frameGuide.txt')
+
+            list.unshift({ role: "system", content: frameGuidePersona})
         }
 
         return list
@@ -241,7 +227,9 @@ export class STMemoStore {
 
     public async process(
         originalPrompt:string , 
-        promptWithRelatedMemory:string
+        promptWithRelatedMemory:string,
+        includeImage = false,
+        imgFilePath?: string
     ):Promise<MsgListParams[]> {
         let conversation:Conversation | null = this.conversation_id
         ? await conversationService.getConversation(this.conversation_id)
@@ -262,10 +250,24 @@ export class STMemoStore {
 
         const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize, 4)
 
-        history.push({
-            "role": "user",
-            "content": promptWithRelatedMemory
-        })
+        if(includeImage && imgFilePath) {
+
+            const { encodedImage, maxDim } = await processImage(imgFilePath);
+            const imgContent = createImageContent(encodedImage, maxDim, 700)
+
+            history.push({
+                "role": "user",
+                "content": [
+                    { type: "text", text: promptWithRelatedMemory },
+                    imgContent
+                ]
+            })
+        }else {
+            history.push({
+                "role": "user",
+                "content": promptWithRelatedMemory
+            })
+        }
 
         const system = await this.get_system_prompt()
 

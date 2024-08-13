@@ -144,7 +144,7 @@ return await sharp(imageBuffer).png().toBuffer();
 }
   
 
-export async function processImage(filePath: string, maxSize: number): Promise<{ encodedImage: string, maxDim: number }> {
+export async function processImage(filePath: string, maxSize = 1024): Promise<{ encodedImage: string, maxDim: number }> {
     const imageBuffer = fs.readFileSync(filePath);
     const image = sharp(imageBuffer);
     const metadata = await image.metadata();
@@ -169,7 +169,7 @@ export async function processImage(filePath: string, maxSize: number): Promise<{
     }
 }
   
-export function createImageContent(image: string, maxdim: number, detailThreshold: number) {
+export function createImageContent(image: string, maxdim: number, detailThreshold = 700) {
     type DetailLevel = "auto" | "low" | "high" | undefined;
 
     const detail:DetailLevel = maxdim < detailThreshold ? 'low' : 'high';
@@ -194,3 +194,15 @@ export function formatDateTime(date = new Date()): string {
 }
 
 // console.log(formatDateTime());  // Example output: "Sun 11 Aug 22:51"
+
+export function readTextFile(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) {
+                reject(`Error reading the file: ${err.message}`);
+                return;
+            }
+            resolve(data);
+        });
+    });
+}

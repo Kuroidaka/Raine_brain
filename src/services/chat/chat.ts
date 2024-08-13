@@ -9,6 +9,7 @@ import { historyChatProcessingParams } from './chat.interface';
 import chalk from "chalk";
 import { ConversationService } from "~/database/conversation/conversation";
 import { InternalServerErrorException } from "~/common/error";
+import { OpenaiService } from "../llm/openai";
 
 const conversationService = ConversationService.getInstance()
 export class ChatService  {
@@ -33,7 +34,8 @@ export class ChatService  {
     this.isEnableStream = isEnableStream;
   }
 
-  public async processChat(res: Response, prompt: string) :Promise<{
+  public async processChat(res: Response, prompt: string, 
+    imgFilePath?: string) :Promise<{
     output: outputInter,
     conversationID: string,
     memoryDetail: DataMemo[]
@@ -50,17 +52,12 @@ export class ChatService  {
       // Short term memory process
       this.STMemo = new STMemoStore(this.userID, this.conversationID, this.isEnableVision);
 
-      // Describe Context for vision (if enabled)
-      // if (this.isEnableVision && this.base64Data) {
-      //   promptWithRelatedMemory = await STMemo.describeImage(this.base64Data, promptWithRelatedMemory);
-      // }
-
-      const messages = await this.STMemo.process(prompt, promptWithRelatedMemory);
+      const messages = await this.STMemo.process(prompt, promptWithRelatedMemory, Boolean(imgFilePath), imgFilePath);
 
       console.log("messages", messages);
 
       // Asking
-      const output = await GroqService.chat(messages, this.isEnableStream, res);
+      const output = await OpenaiService.chat(messages, this.isEnableStream, res);
 
       // // Post-processing
       // await this.handlePostProcessing(output, STMemo, , prompt, memoryDetail);
@@ -70,6 +67,19 @@ export class ChatService  {
         conversationID: this.STMemo.conversation_id as string,
         memoryDetail: memoryDetail
       }
+    } catch (error) {
+      console.error("Error in processChat:", error);
+      throw new InternalServerErrorException("error occur while processing chat")
+    }
+  }
+
+  public async processVideoChat(res: Response, prompt: string, imgFilePath: string) :Promise<{
+    output: outputInter,
+    conversationID: string,
+    memoryDetail: DataMemo[]
+  }>{
+    try {
+      return this.processChat(res, prompt, imgFilePath);
     } catch (error) {
       console.error("Error in processChat:", error);
       throw new InternalServerErrorException("error occur while processing chat")
