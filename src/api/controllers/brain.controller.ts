@@ -146,7 +146,7 @@ export const BrainController = {
       return next(error);
     }
   },
-  test: async (req: Request, res: Response, next: NextFunction) => {
+  describeImg: async (req: Request, res: Response, next: NextFunction) => {
     try {
 
       const { id: userID } = req.user;
@@ -154,6 +154,7 @@ export const BrainController = {
         throw new NotFoundException("File upload failed")
       }
     
+      const { prompt } = req.body
       const filePath = req.file.path;
       console.log("filePath", filePath)
 
@@ -161,7 +162,7 @@ export const BrainController = {
       const STMemo = new STMemoStore(userID);
       
       // Describe Context for vision
-      const message = await STMemo.describeImage([filePath])
+      const message = await STMemo.describeImage([filePath], prompt)
 
       return res.status(200).json({ data: message });
     } catch (error) {

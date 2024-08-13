@@ -12,60 +12,25 @@ import path from 'path';
 import { createImageContent, formatDateTime, processImage } from '~/utils';
 
 const describeImgInstruction = `
-Instruction Prompt for Analyzing Tiled Screenshots from a Video Feed:
-
-1. Overview of the Sequence:
-   - Start with a brief summary of what is happening across the series of screenshots. Identify the primary subjects and any recurring actions or themes.
-
-2. Frame-by-Frame Analysis:
+Input: Grid images of the video chat between human and AI
+1. Frame-by-Frame Analysis:
    - Describe each frame sequentially, noting the key elements and changes in each frame. Focus on movement, interaction, and any transitions between frames.
 
-3. Detail Specifics:
+2. Detail Specifics:
    - Pay attention to specific details in each frame, such as the presence of people, objects, background elements, and any text or symbols.
    - Note any significant actions, gestures, or events occurring in the frames.
 
-4. Context and Continuity:
+3. Context and Continuity:
    - Explain how each frame relates to the previous and next ones. Ensure a clear narrative or sequence of events is established.
    - Identify any patterns or repeated actions that are significant.
 
-5. Emotional and Atmospheric Elements:
+4. Emotional and Atmospheric Elements:
    - Highlight any changes in mood or atmosphere across the frames. Look for cues such as facial expressions, body language, and environmental changes.
 
-6. Concluding Interpretation:
+5. Concluding Interpretation:
    - Summarize the overall interpretation of the sequence. Explain the main message or event depicted by the series of frames.
    - Address any specific questions from the user by referencing relevant frames and details.
-
-Example Analysis:
-
-1. Overview:
-   - The sequence shows a person walking through a park, interacting with various objects and people along the way.
-
-2. Frame-by-Frame Analysis:
-   - Frame 1: The person is entering the park, holding a coffee cup.
-   - Frame 2: They stop to greet a friend sitting on a bench.
-   - Frame 3: Both individuals are engaged in conversation, with animated expressions.
-   - Frame 4: The person continues walking, now holding a phone.
-   - Frame 5: They stop to admire a flower bed.
-   - Frame 6: The person takes a seat on a bench, still looking at their phone.
-
-3. Detail Specifics:
-   - Frame 1: The coffee cup is a takeaway cup with a recognizable logo.
-   - Frame 2: The friend has a book open on their lap.
-   - Frame 3: Both are smiling, indicating a friendly conversation.
-   - Frame 4: The phone is visible, showing a map application.
-   - Frame 5: The flowers are brightly colored, adding a cheerful element to the scene.
-   - Frame 6: The person appears relaxed, leaning back on the bench.
-
-4. Context and Continuity:
-   - The sequence shows a coherent narrative of a leisurely walk in the park, with interactions and moments of personal interest.
-   - The frames transition smoothly, depicting a continuous and natural flow of events.
-
-5. Emotional and Atmospheric Elements:
-   - The overall mood is pleasant and relaxed, with friendly interactions and moments of individual enjoyment.
-
-6. Concluding Interpretation:
-   - The sequence depicts a typical, pleasant day in the park, highlighting moments of social interaction and personal relaxation.
-   - If the user asks about the conversation, refer to Frames 2 and 3, noting the friendly and animated nature of the interaction.`
+`
 
 
 
@@ -175,10 +140,10 @@ export class STMemoStore {
         return list
     }
 
-    async describeImage(filesPath: string[]): Promise<string | null> {
+    async describeImage(filesPath: string[], userMsgStr:string): Promise<string | null> {
         // console.log("base64Data", base64Data)
 
-        const userMsg = await this.processImageBeforeDescribe(filesPath)
+        const userMsg = await this.processImageBeforeDescribe(filesPath, userMsgStr)
 
         const messages: MsgListParams[] = [
             {
@@ -195,58 +160,29 @@ export class STMemoStore {
 
     async processImageBeforeDescribe( 
         filePathList: string[] = [],
-        fileNamesList: string[] | null = null,
-        tiled: boolean = false,
+        userMsgStr?: string,
         maxSizePx: number = 1024,
         detailThreshold: number = 700,
-        userMsgStr?: string,
     ): Promise<{role:string, content:ChatCompletionContentPart[]}[]>{
         /*    const userMsgStr = 'Here are the images:';
         **    const filePathList = ['path/to/your/image1.jpg', 'path/to/your/image2.png']; // Replace with your image paths
         **    const maxSizePx = 1024;
-        **    const fileNamesList = ['image1.jpg', 'image2.png']; // Optional: Original file names
-        **    const tiled = false;
         **    const detailThreshold = 700;
         */
-        if (!Array.isArray(filePathList)) {
-            filePathList = [];
-        }
     
-        if (!filePathList.length) {
-            tiled = false;
-        }
-    
-        let fileNames: string[];
-        if (fileNamesList && fileNamesList.length === filePathList.length) {
-            fileNames = fileNamesList;
-        } else {
-            fileNames = filePathList.map(filePath => path.basename(filePath));
-        }
+        let fileNames: string[] = filePathList.map(filePath => path.basename(filePath));
     
         const base64ImagesPromises = filePathList.map(filePath => processImage(filePath, maxSizePx));
         const base64Images = await Promise.all(base64ImagesPromises);
-    
-        let uploadedImagesText = "";
-        if (fileNames.length) {
-            uploadedImagesText = "\n\n---\n\nUploaded images:\n" + fileNames.join('\n');
-        }
-    
-        if (tiled) {
-            const content: ChatCompletionContentPart[] = [{ text: userMsgStr + uploadedImagesText, type: "text" }];
 
-            content.push(...base64Images.map(({ encodedImage, maxDim }) => createImageContent(encodedImage, maxDim, detailThreshold)));
-            return [{ role: 'user' as "user", content }];
-        } else {
-            const content: ChatCompletionContentPart[] = [{ text: userMsgStr + uploadedImagesText, type: "text"  }];
+        let uploadedImagesText = `Assume that TEXT is what human said during the conversation of the video chat\nTEXT: ${userMsgStr}`
+    
+        
+        const content: ChatCompletionContentPart[] = [{ text: uploadedImagesText, type: "text" }];
 
-            content.push(...base64Images.map(({ encodedImage }) => ({
-                image_url: {
-                    url: `data:image/jpeg;base64,${encodedImage}`
-                },
-                type: 'image_url'
-                })) as ChatCompletionContentPartImage[]);
-            return [{ role: 'user' as "user", content }];
-        }
+        content.push(...base64Images.map(({ encodedImage, maxDim }) => createImageContent(encodedImage, maxDim, detailThreshold)));
+
+        return [{ role: 'user' as "user", content }];
     } 
 
     public async summaryConversation(history: MsgListParams[]):Promise<string> {

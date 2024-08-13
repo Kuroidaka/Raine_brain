@@ -16,7 +16,8 @@ const router = Router();
 router.post('/chat', validateToken, validateDto(ChatDto), BrainController.chat);
 router.post('/stt', validateToken, upload.single('file'), BrainController.stt);
 router.post('/tts', validateToken, BrainController.tts);
-router.post('/test', validateToken, upload.single('file'), BrainController.test);
+router.post('/describe_img', validateToken, upload.single('file'), BrainController.describeImg);
+// router.post('/test', validateToken, upload.single('file'), BrainController.test);
 
 
 export default router;
