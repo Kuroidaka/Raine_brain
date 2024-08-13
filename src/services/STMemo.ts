@@ -95,7 +95,7 @@ export class STMemoStore {
     async clear(): Promise<void> {
     }
 
-    async get_system_prompt(isEnableLTMemo:boolean):Promise<MsgListParams[]> {
+    async get_system_prompt():Promise<MsgListParams[]> {
 
         const userData = await userService.getUser({ id: this.userID })
         const userInformation = userData?.display_name ? userData?.display_name : userData?.username
@@ -170,7 +170,7 @@ export class STMemoStore {
         **    const detailThreshold = 700;
         */
     
-        let fileNames: string[] = filePathList.map(filePath => path.basename(filePath));
+        // let fileNames: string[] = filePathList.map(filePath => path.basename(filePath));
     
         const base64ImagesPromises = filePathList.map(filePath => processImage(filePath, maxSizePx));
         const base64Images = await Promise.all(base64ImagesPromises);
@@ -241,8 +241,7 @@ export class STMemoStore {
 
     public async process(
         originalPrompt:string , 
-        promptWithRelatedMemory:string, 
-        isEnableLTMemo:boolean
+        promptWithRelatedMemory:string
     ):Promise<MsgListParams[]> {
         let conversation:Conversation | null = this.conversation_id
         ? await conversationService.getConversation(this.conversation_id)
@@ -268,7 +267,7 @@ export class STMemoStore {
             "content": promptWithRelatedMemory
         })
 
-        const system = await this.get_system_prompt(isEnableLTMemo)
+        const system = await this.get_system_prompt()
 
         return system.concat(history)
     }

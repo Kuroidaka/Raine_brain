@@ -21,18 +21,18 @@ import { NotFoundException } from "~/common/error";
 
 import { io } from "~/index";
 import { splitText } from "~/utils";
+import { ChatService, chatService } from '~/services/chat/chat';
 
 const conversationService = ConversationService.getInstance()
 export const BrainController = {
   chat: async (req: Request, res: Response, next: NextFunction) => {
     // preprocess data params
     console.clear();
-    const { prompt, conversationID, imgURL, base64Data } = req.body;
+    const { prompt, conversationID, imgURL } = req.body;
     console.log("body", req.body)
     const { id: userID } = req.user;
-    const { isStream = "false", isLTMemo = "false", isVision = "false" } = req.query;
+    const { isStream = "false", isVision = "false" } = req.query;
     const isEnableStream = isStream === "true";
-    const isEnableLTMemo = isLTMemo === "true"; // Enable Long term memory
     const isEnableVision = isVision === "true"; 
 
     if (isEnableStream) {
@@ -42,60 +42,24 @@ export const BrainController = {
     }
 
     try {
-      // Long term memory process
-      const pathMemo = path.join("src", "assets", "tmp", "memos", userID);
-      const teachableAgent = new TeachableService(0, pathMemo);
+      const chatService = new ChatService(
+        userID,
+        conversationID,
+        isEnableVision,
+        isEnableStream
+      )
 
-      const { relateMemory, memoryDetail } = await teachableAgent.considerMemoRetrieval(prompt)
+      const result = await chatService.processChat(res, prompt)
+
+      res.status(200).json({
+        content: result.output.content, conversationID: result.conversationID
+      })
       
-     
-      let promptWithRelatedMemory = isEnableLTMemo
-        ? prompt + teachableAgent.concatenateMemoTexts(relateMemory)
-        : prompt;
-
-      // Short term memory process
-      const STMemo = new STMemoStore(userID, conversationID, isEnableVision);
-
-      // Describe Context for vision
-      // if(isEnableVision && base64Data) {
-      //   promptWithRelatedMemory = await STMemo.describeImage(base64Data, promptWithRelatedMemory)
-      // }
-
-      const messages: MsgListParams[] = await STMemo.process(
+      await chatService.handleProcessAfterChat(
+        result.output,
         prompt,
-        promptWithRelatedMemory,
-        isEnableLTMemo
-      );
-
-      console.log("messages", messages)
-
-      // Asking
-      const output = await GroqService.chat(
-        messages,
-        isEnableStream,
-        res
-      );
-
-      const callBack = async () => {
-        // Add Ai response into DB
-        output.content && STMemo.conversation_id &&
-        await STMemo.addMessage(output.content, true, STMemo.conversation_id);
-      
-        // summrize the conversation
-        const historySummarized = await STMemo.processSummaryConversation(STMemo.conversation_id as string)
-        console.log(chalk.green("HistorySummarized: "), historySummarized)
-  
-        await conversationService.modifyConversation(STMemo.conversation_id as string, {
-          summarize: historySummarized,
-        });
-  
-        // Consider store into LTMemo
-        isEnableLTMemo && await teachableAgent.considerMemoStorage(prompt, memoryDetail, STMemo.summaryChat);
-      }
-
-
-      res.status(200).json({content: output.content, conversationID: STMemo.conversation_id})
-      await callBack()
+        result.memoryDetail
+      )
 
     } catch (error) {
       console.log(error);
