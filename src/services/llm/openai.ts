@@ -4,14 +4,16 @@ import { traceable } from "langsmith/traceable";
 import { openAIClient } from '../../config/openai';
 import { MsgListParams, outputInter } from './llm.interface';
 import { io } from '~/index';
+import * as fs from 'fs';
+import path from 'path';
 
 const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
 The user will give you analysis INSTRUCTIONS copied twice, at both the beginning and the end.
 You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested.`
+const audioPath = 'src/assets/file/audio';
 
-
-const MODEL = "gpt-4o-mini-2024-07-18"
+const MODEL = "gpt-4o"
 export const OpenaiService = {
   chat: async (
     messages: MsgListParams[],
@@ -70,6 +72,38 @@ export const OpenaiService = {
       return { content }
     }
   },
+  tts: async (text:string) => {
+    try {
+      const outputFile = path.join(audioPath, `output_${Date.now()}.mp3`)
+
+      const response = await openAIClient.audio.speech.create({
+        model: "tts-1",
+        voice: "alloy",
+        input: text,
+      });
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      await fs.promises.writeFile(outputFile, buffer);
+
+
+
+      // const stream = await response.getStream();
+      // if (stream) {
+      //   const file = fs.createWriteStream(outputFile);
+      //     await pipeline(stream as ReadableStream<Uint8Array>, file);
+      //     console.log(`Audio file written to ${outputFile}`);
+      // } else {
+      //   throw new NotImplementedException("Error occur while text to speech with deepgram")
+      // }
+
+      return outputFile
+
+
+    } catch (error) {
+      console.error(error);
+      throw new NotImplementedException("Error occur while text to speech with openAI")
+    }
+  }
   // analyzer: async(textToAnalyze:string, analysisInstructions:string, debug?:number): Promise<analyzeOutputInter>=> {
   //   try {
 

@@ -41,11 +41,13 @@ export class STMemoStore {
     // Simulate a real database layer. Stores serialized objects.
     summaryChat:string;
     isEnableVision:boolean; 
+    lang: string
 
-    constructor(userID:string, conversation_id?:string, isEnableVision=false) {
+    constructor(userID:string, conversation_id?:string, isEnableVision=false, lang='en') {
         this.userID = userID;
         this.conversation_id = conversation_id || undefined,
-        this.isEnableVision = isEnableVision    
+        this.isEnableVision = isEnableVision,
+        this.lang = lang
     }
 
     async convertMessagesFormat(messages: Message[]): Promise<MsgListParams[]> {
@@ -106,21 +108,21 @@ export class STMemoStore {
         // }
         list.unshift(
             { role: "system", content: `Today is: ${new Date()}` },
+            { role: "system", content: `Use the language ${this.lang} in your response` },
             { role: "system", content: `
                 # AI information: 
                     1. Name: Raine.
                     2. Gender: Female.
                     3. Character: Loyalty
-                    4. Language: English.
 
-                # Information about person your are talking:
+                # Information about human your are talking:
                     ${JSON.stringify(userInformation)}`},    
         )
 
         if(this.isEnableVision) {
             const frameGuidePersona = await readTextFile('src/assets/persona/frameGuide.txt')
 
-            list.unshift({ role: "system", content: frameGuidePersona})
+            list.push({ role: "system", content: frameGuidePersona})
         }
 
         return list

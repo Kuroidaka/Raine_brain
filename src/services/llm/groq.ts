@@ -103,15 +103,15 @@ export const GroqService = {
       throw error;
     }
   },
-  stt: async (audioPath: string) => {
+  stt: async (audioPath: string , lang = 'en') => {
     try {
       const transcription = await groqClient.audio.transcriptions.create({
         file: fs.createReadStream(audioPath),
         model: "whisper-large-v3",
-        // prompt: "Specify context or spelling",
+        prompt: "Raine, Cảnh",
         // response_format: "json", // Optional
-        language: "en", // Optional
-        temperature: 0.0, // Optional
+        language: lang, // Optional
+        temperature: .7, // Optional
       });
       console.log(transcription.text);
 
@@ -125,26 +125,26 @@ export const GroqService = {
       }
     }
   },
-  tts: async (audioPath: string) => {
-    try {
-      const transcription = await groqClient.audio.transcriptions.create({
-        file: fs.createReadStream(audioPath),
-        model: "whisper-large-v3",
-        // prompt: "Specify context or spelling",
-        // response_format: "json", // Optional
-        language: "en", // Optional
-        temperature: 0.0, // Optional
-      });
-      console.log(transcription.text);
+  // tts: async (audioPath: string) => {
+  //   try {
+  //     const transcription = await groqClient.audio.transcriptions.create({
+  //       file: fs.createReadStream(audioPath),
+  //       model: "whisper-large-v3",
+  //       // prompt: "Specify context or spelling",
+  //       // response_format: "json", // Optional
+  //       language: "vi", // Optional
+  //       temperature: 0.0, // Optional
+  //     });
+  //     console.log(transcription.text);
 
-      return {
-        content: transcription.text
-      }
-    } catch (error) {
-      console.error(error);
-      return {
-        content: "Give me a quick breather; I'll be back in a few minutes, fresher than ever!"
-      }
-    }
-  }
+  //     return {
+  //       content: transcription.text
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     return {
+  //       content: "Give me a quick breather; I'll be back in a few minutes, fresher than ever!"
+  //     }
+  //   }
+  // }
 }

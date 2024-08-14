@@ -21,17 +21,20 @@ export class ChatService  {
   private base64Data: string | null;
   private STMemo: STMemoStore;
   private teachableAgent: TeachableService
+  private lang: string
 
   constructor(
     userID: string,
     conversationID: string,
     isEnableVision: boolean,
     isEnableStream: boolean,
+    lang: string
   ) {
     this.userID = userID;
     this.conversationID = conversationID;
     this.isEnableVision = isEnableVision;
     this.isEnableStream = isEnableStream;
+    this.lang = lang
   }
 
   public async processChat(res: Response, prompt: string, 
@@ -49,8 +52,8 @@ export class ChatService  {
 
       let promptWithRelatedMemory = prompt + this.teachableAgent.concatenateMemoTexts(relateMemory)
 
-      // Short term memory process
-      this.STMemo = new STMemoStore(this.userID, this.conversationID, this.isEnableVision);
+      // Short term memory process,
+      this.STMemo = new STMemoStore(this.userID, this.conversationID, this.isEnableVision, this.lang);
 
       const messages = await this.STMemo.process(prompt, promptWithRelatedMemory, Boolean(imgFilePath), imgFilePath);
 
@@ -73,18 +76,18 @@ export class ChatService  {
     }
   }
 
-  public async processVideoChat(res: Response, prompt: string, imgFilePath: string) :Promise<{
-    output: outputInter,
-    conversationID: string,
-    memoryDetail: DataMemo[]
-  }>{
-    try {
-      return this.processChat(res, prompt, imgFilePath);
-    } catch (error) {
-      console.error("Error in processChat:", error);
-      throw new InternalServerErrorException("error occur while processing chat")
-    }
-  }
+  // public async processVideoChat(res: Response, prompt: string, imgFilePath: string) :Promise<{
+  //   output: outputInter,
+  //   conversationID: string,
+  //   memoryDetail: DataMemo[]
+  // }>{
+  //   try {
+  //     return this.processChat(res, prompt, imgFilePath);
+  //   } catch (error) {
+  //     console.error("Error in processChat:", error);
+  //     throw new InternalServerErrorException("error occur while processing chat")
+  //   }
+  // }
 
   public async handleProcessAfterChat(output: outputInter, prompt: string, memoryDetail: DataMemo[]) {
     // Add AI response into DB

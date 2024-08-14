@@ -144,7 +144,7 @@ return await sharp(imageBuffer).png().toBuffer();
 }
   
 
-export async function processImage(filePath: string, maxSize = 1024): Promise<{ encodedImage: string, maxDim: number }> {
+export async function processImage(filePath: string, maxSize = 6480): Promise<{ encodedImage: string, maxDim: number }> {
     const imageBuffer = fs.readFileSync(filePath);
     const image = sharp(imageBuffer);
     const metadata = await image.metadata();

@@ -4,15 +4,16 @@ import fs from 'fs/promises';
 import path from "path";
 
 import { GroqService } from "../../services/llm/groq";
-import { STMemoStore } from "~/services/STMemo";
-
+import { ChatService } from '~/services/chat/chat';
 import { DeepGramService } from "~/services/llm/deepgram";
+
+import { STMemoStore } from "~/services/STMemo";
 import { ConversationService } from "~/database/conversation/conversation";
 import { NotFoundException } from "~/common/error";
 
 import { io } from "~/index";
 import { createImageContent, processImage, splitText } from "~/utils";
-import { ChatService } from '~/services/chat/chat';
+import { OpenaiService } from "~/services/llm/openai";
 
 const conversationService = ConversationService.getInstance()
 export const BrainController = {
@@ -64,12 +65,12 @@ export const BrainController = {
     // console.clear();
     const { prompt, conversationID } = req.body;
 
-    if (!req.file) {
-      throw new NotFoundException("File upload failed")
+    let filePath
+    if (req.file) {
+      filePath = req.file.path;
+      console.log("filePath", filePath)
     }
   
-    const filePath = req.file.path;
-    console.log("filePath", filePath)
    
     console.log("body", req.body)
     const { id: userID } = req.user;
@@ -88,10 +89,11 @@ export const BrainController = {
         userID,
         conversationID,
         isVision,
-        isEnableStream
+        isEnableStream,
+        "ja"
       )
 
-      const result = await chatService.processVideoChat(res, prompt, filePath)
+      const result = await chatService.processChat(res, prompt, filePath)
             
       console.log("result", result)
 
@@ -115,11 +117,11 @@ export const BrainController = {
     if (!req.file) {
       throw new NotFoundException("File upload failed")
     }
-  
+
     const filePath = req.file.path;
     console.log("filePath", filePath)
     try {
-      const output = await GroqService.stt(filePath);
+      const output = await GroqService.stt(filePath, 'ja');
 
       return res.status(200).json(output)
     } catch (error) {
@@ -138,7 +140,8 @@ export const BrainController = {
       const chunks = splitText(text, 2000);
 
       for (const chunk of chunks) {
-        const file = await DeepGramService.tts(chunk);
+        // const file = await DeepGramService.tts(chunk);
+        const file = await OpenaiService.tts(chunk);
         const absolutePath = path.resolve(file);
 
         const fileBuffer = await fs.readFile(absolutePath);
