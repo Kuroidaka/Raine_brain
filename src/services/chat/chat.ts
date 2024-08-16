@@ -28,7 +28,7 @@ export class ChatService  {
     conversationID: string,
     isEnableVision: boolean,
     isEnableStream: boolean,
-    lang: string
+    lang = 'en'
   ) {
     this.userID = userID;
     this.conversationID = conversationID;
@@ -61,9 +61,6 @@ export class ChatService  {
 
       // Asking
       const output = await OpenaiService.chat(messages, this.isEnableStream, res);
-
-      // // Post-processing
-      // await this.handlePostProcessing(output, STMemo, , prompt, memoryDetail);
 
       return {
         output: output,

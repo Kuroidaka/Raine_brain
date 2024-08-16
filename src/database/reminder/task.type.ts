@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-export interface TaskProps {
+export type TaskProps = {
     title: string;
     color?: string;
     deadline: Date | string | null;
@@ -8,7 +8,7 @@ export interface TaskProps {
     userId: string;
 }
 
-export interface UpdateTaskProps {
+export type UpdateTaskProps = {
     title?: string;
     color?: string;
     deadline?: Date | string | null;
@@ -24,12 +24,12 @@ export interface UpdateTaskWithCateProps extends UpdateTaskProps {
 }
 
   
-export interface SubTaskProps {
+export type SubTaskProps = {
     title: string;
     taskId: string;
 }
 
-export interface UpdateSubTaskProps {
+export type UpdateSubTaskProps = {
     title?: string;
     status: boolean;
 }

@@ -1,17 +1,17 @@
 import { dbClient } from "~/config";
-import { SubTaskProps, TaskProps, TaskWithAreaProps, UpdateSubTaskProps, UpdateTaskProps, UpdateTaskWithCateProps } from "./reminder.interface";
+import { SubTaskProps, TaskProps, TaskWithAreaProps, UpdateSubTaskProps, UpdateTaskProps, UpdateTaskWithCateProps } from "./task.type";
 import { Areas, Prisma } from "@prisma/client";
 
-export class ReminderService {
-    private static instance: ReminderService;
+export class TaskService {
+    private static instance: TaskService;
 
     private constructor() {}
 
-    public static getInstance(): ReminderService {
-        if (!ReminderService.instance) {
-            ReminderService.instance = new ReminderService();
+    public static getInstance(): TaskService {
+        if (!TaskService.instance) {
+            TaskService.instance = new TaskService();
         }
-        return ReminderService.instance;
+        return TaskService.instance;
     }
 
     private  mapAreaToPrisma (area?: Areas[]): Prisma.TaskAreasCreateNestedManyWithoutTaskInput | undefined  {
@@ -102,6 +102,24 @@ export class ReminderService {
         }
     }
     
+    async checkTask(taskId: string){
+        try {
+            const task = await dbClient.task.findUnique({
+                where: { id: taskId }
+            })
+
+            return await dbClient.task.update({
+                where: { id: taskId },
+                data: {
+                    status: !task?.status
+                }
+            });
+        } catch (error) {
+            console.log('Error checking task:', error);
+            throw error;
+        }
+    }
+    
     async deleteTask(taskId:string) {
         try {
         // Start a transaction
@@ -158,5 +176,6 @@ export class ReminderService {
             throw error
         }
     }
+
 
 }

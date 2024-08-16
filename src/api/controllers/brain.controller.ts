@@ -14,6 +14,7 @@ import { NotFoundException } from "~/common/error";
 import { io } from "~/index";
 import { createImageContent, processImage, splitText } from "~/utils";
 import { OpenaiService } from "~/services/llm/openai";
+import { MemoStore } from "~/services/LTMemo";
 
 const conversationService = ConversationService.getInstance()
 export const BrainController = {
@@ -90,7 +91,6 @@ export const BrainController = {
         conversationID,
         isVision,
         isEnableStream,
-        "ja"
       )
 
       const result = await chatService.processChat(res, prompt, filePath)
@@ -181,4 +181,18 @@ export const BrainController = {
       next(error);
     }
   },
+  resetLTMemo: async (req: Request, res: Response, next:NextFunction) => {
+    try {
+      const { userID } = req.body
+        
+      const memo = new MemoStore(0)
+
+      await memo.resetDb(userID)
+      return res.status(200).json({ data: "done" }); 
+    } catch (error) {
+      console.log(error);
+      // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  }
 };
