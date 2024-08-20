@@ -47,16 +47,16 @@ export class CreateRoutineDto {
 }
 
 export class UpdateRoutineDto {
-  data: UpdateRoutineData;
+  data?: UpdateRoutineData;
 
   @IsArray()
   @IsEnum($Enums.Areas, { each: true })
   @IsOptional()
-  area: $Enums.Areas[];
+  area?: $Enums.Areas[];
 
 
   @IsArray()
   @IsOptional()
-  dates: UpdateRoutineDateProps[];
+  dates?: UpdateRoutineDateProps[];
 
 }

@@ -30,6 +30,7 @@ export class RoutineService {
                 dataObject.area = this.mapAreaToPrisma(area);
             }
 
+            console.log("dataObject", dataObject)
             return await dbClient.routine.create({ data: dataObject });
         } catch (error) {
             console.log('Error adding routine:', error);
@@ -79,6 +80,13 @@ export class RoutineService {
                     }
                 });
     
+                await tx.routineDate.deleteMany({
+                    where: {
+                        routineID: routineId
+                    }
+                });
+    
+
                 if (area.length > 0) {
                     dataObject.area = this.mapAreaToPrisma(area);
                 }
