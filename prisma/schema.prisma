@@ -28,6 +28,8 @@ model SubTask {
   title     String           @db.LongText
   status    Boolean          @default(false)
   taskId    String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   task      Task  @relation(fields: [taskId], references: [id])
 }

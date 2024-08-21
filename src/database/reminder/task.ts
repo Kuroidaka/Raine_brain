@@ -57,6 +57,7 @@ export class TaskService {
             throw error
         }
     }
+
     async getTasksByUser(userId:string){
         try {
             return await dbClient.task.findMany({ 
@@ -141,6 +142,17 @@ export class TaskService {
         });
         } catch (error) {
             console.log('Error deleting task:',error)
+            throw error
+        }
+    }
+
+    async getSubTask(taskID:string) {
+        try {
+            return await dbClient.subTask.findMany({ where: {
+                taskId: taskID
+            }})
+        } catch (error) {
+            console.log('Error get subtask:',error)
             throw error
         }
     }

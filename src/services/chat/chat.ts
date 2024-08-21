@@ -5,7 +5,7 @@ import { TeachableService } from "~/services/techable";
 import { STMemoStore } from "~/services/STMemo";
 import { DataMemo, MsgListParams, outputInter } from "../llm/llm.interface";
 import { GroqService } from "../llm/groq";
-import { historyChatProcessingParams } from './chat.interface';
+import { Debug, historyChatProcessingParams } from './chat.interface';
 import chalk from "chalk";
 import { ConversationService } from "~/database/conversation/conversation";
 import { InternalServerErrorException } from "~/common/error";
@@ -37,16 +37,17 @@ export class ChatService  {
     this.lang = lang
   }
 
-  public async processChat(res: Response, prompt: string, 
-    imgFilePath?: string) :Promise<{
+  public async processChat(debug: Debug, res: Response, prompt: string, imgFilePath?: string) :Promise<{
     output: outputInter,
     conversationID: string,
     memoryDetail: DataMemo[]
   }>{
     try {
+      const { debugChat = 0, debugMemo = 0 } = debug
+
       // Long term memory process
       const pathMemo = path.join("src", "assets", "tmp", "memos", this.userID);
-      this.teachableAgent = new TeachableService(0, pathMemo);
+      this.teachableAgent = new TeachableService(debugMemo, pathMemo);
 
       const { relateMemory, memoryDetail } = await this.teachableAgent.considerMemoRetrieval(prompt);
 
@@ -60,7 +61,8 @@ export class ChatService  {
       console.log("messages", messages);
 
       // Asking
-      const output = await OpenaiService.chat(messages, this.isEnableStream, res);
+      const enableTools = true
+      const output = await OpenaiService.chat(messages, this.isEnableStream, enableTools, res, debugChat);
 
       return {
         output: output,

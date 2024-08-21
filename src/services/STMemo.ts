@@ -95,7 +95,7 @@ export class STMemoStore {
     async clear(): Promise<void> {
     }
 
-    async get_system_prompt():Promise<MsgListParams[]> {
+    async get_system_prompt(toolCall=true):Promise<MsgListParams[]> {
 
         const userData = await userService.getUser({ id: this.userID })
         const userInformation = userData?.display_name ? userData?.display_name : userData?.username
@@ -123,6 +123,10 @@ export class STMemoStore {
             const frameGuidePersona = await readTextFile('src/assets/persona/frameGuide.txt')
 
             list.push({ role: "system", content: frameGuidePersona})
+        }
+
+        if(toolCall) {
+            list.push({ role: "system", content: "Whenever a user request involves tasks or task management: Call the ReminderChatServiceTool:"})
         }
 
         return list

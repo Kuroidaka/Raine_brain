@@ -15,6 +15,7 @@ import { io } from "~/index";
 import { createImageContent, processImage, splitText } from "~/utils";
 import { OpenaiService } from "~/services/llm/openai";
 import { MemoStore } from "~/services/LTMemo";
+import { outputInter } from '~/services/llm/llm.interface'
 
 const conversationService = ConversationService.getInstance()
 export const BrainController = {
@@ -42,12 +43,19 @@ export const BrainController = {
         isVision,
         isEnableStream
       )
+      const debugOptions = {
+        debugChat: 1,
+        debugMemo: 0
+      }
 
-      const result = await chatService.processChat(res, prompt)
+      const result = await chatService.processChat(debugOptions, res, prompt)
 
-      res.status(200).json({
-        content: result.output.content, conversationID: result.conversationID
-      })
+      const response: outputInter & { conversationID: string } = {
+        content: result.output.content,
+        conversationID: result.conversationID,
+        ...(result.output.data && { data: result.output.data }),
+      };
+      res.status(200).json(response)
       
       await chatService.handleProcessAfterChat(
         result.output,
@@ -93,7 +101,12 @@ export const BrainController = {
         isEnableStream,
       )
 
-      const result = await chatService.processChat(res, prompt, filePath)
+      const debugOptions = {
+        debugChat: 1,
+        debugMemo: 0
+      }
+
+      const result = await chatService.processChat(debugOptions, res, prompt, filePath)
             
       console.log("result", result)
 

@@ -8,11 +8,38 @@ import { ConversationService } from '~/database/conversation/conversation';
 import { STMemoStore } from '~/services/STMemo';
 import { ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions';
 import { messagesInter, MsgListParams } from '~/services/llm/llm.interface';
-import { ChatOpenAI } from "@langchain/openai";
 import { ConversationSummaryMemory } from "langchain/memory";
+
+import { DataSource } from "typeorm";
+import { SqlDatabase } from "langchain/sql_db";
+import { ChatOpenAI } from "@langchain/openai";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { RunnableSequence } from "@langchain/core/runnables";
+import { StringOutputParser } from "@langchain/core/output_parsers";
+import { ReminderChatService } from '~/services/chat/reminder';
 
 const conversationService = ConversationService.getInstance()
 export class TestController {
+
+  static async do(req: Request, res: Response, next:NextFunction) {
+    try {
+      const { q, includeSubTask } = req.body
+
+      const reminderChatService = new ReminderChatService()
+
+      const tasks = await reminderChatService.getTaskDataBaseOnText(q)
+
+      const result = await reminderChatService.processTaskData(tasks, includeSubTask)
+
+      const cmt = await reminderChatService.cmtTaskData(q, result)
+      return res.status(200).json({ message: cmt, data: result });
+      
+    } catch (error) {
+      console.log(error);
+      // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  }
   static async ping(req: Request, res: Response, next:NextFunction) {
     try {
       return res.status(200).json({ data: `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` });
@@ -106,43 +133,6 @@ export class TestController {
       next(error);
     }
   }
-
-  static async do(req: Request, res: Response, next:NextFunction) {
-    try {
-      const response = await openAIClient.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "user",
-            content: "what is my favorite?"
-          },
-          {
-            role: "assistant",
-            content: "Egg"
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "Can you see it from this image" },
-              {
-                type: "image_url",
-                image_url: {
-                  "url": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ_70EYZOC0uaAZ4iKgu8T6tnGlOYTgAjf-_w&s",
-                },
-              },
-            ],
-          },
-        ],
-      });      
-
-      return res.status(200).json({ data: response.choices[0] });
-    } catch (error) {
-      console.log(error);
-      // Rethrow the error to be caught by the errorHandler middleware
-      next(error);
-    }
-  }
-
   static async rsConversation(req: Request, res: Response, next:NextFunction) {
     try {
       const id = req.params.id
