@@ -13,13 +13,14 @@ model Task {
   color       String?
   deadline    DateTime?
   note        String?          @db.LongText
-  area        TaskAreas[]
-  subTask     SubTask[]
-  userId      String
   status      Boolean          @default(false)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  
+  area        TaskAreas[]
+  subTask     SubTask[]
 
+  userId      String
   user      User  @relation(fields: [userId], references: [id])
 }
 

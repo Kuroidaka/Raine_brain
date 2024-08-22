@@ -15,7 +15,7 @@ import { SubTask } from "@prisma/client";
 const taskService = TaskService.getInstance()
 export class ReminderChatService  {
 
-  prompt = PromptTemplate.fromTemplate(`Based on the provided SQL table schema below, write a SQL query that would answer the user's question.
+  prompt = PromptTemplate.fromTemplate(`Based on the provided SQL table schema below, write a SQL query that would answer the user's question.(not response with SQL)
   ------------
   SCHEMA: {schema}
   ------------
@@ -44,8 +44,6 @@ export class ReminderChatService  {
               "TaskAreas": "The TaskAreas table links tasks to specific areas, defined by the Areas enum. This allows tasks to be categorized into different life areas, such as health, play, spirituality, environment, work, finance, development, relationships."
             }
           });
-          
-          
 
           const sqlQueryChain = RunnableSequence.from([
             {
@@ -116,7 +114,9 @@ export class ReminderChatService  {
       const data = await Promise.all(tasks.map(async task => {
         const result: TaskSQLWithSub = {};
 
+        if (task?.id) result.id = task?.id;
         if (task?.title) result.title = task?.title;
+        if (task?.color) result.color = task?.color;
         if (task?.note) result.note = task?.note;
         if (task?.deadline) result.deadline = task?.deadline;
         if (Number(task?.status) === 1) {
@@ -225,13 +225,11 @@ export class ReminderChatService  {
   public async run(q: string, includeSubTask: boolean) {
     try {
       const tasks = await this.getTaskDataBaseOnText(q)
-
       const result = await this.processTaskData(tasks, includeSubTask)
 
-      const cmt = await this.cmtTaskData(q, result)  
+      // const cmt = await this.cmtTaskData(q, result)  
       return {
-        data: result,
-        message: cmt
+        data: result
       }
     } catch (error) {
       return{

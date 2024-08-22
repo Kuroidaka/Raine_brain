@@ -29,8 +29,21 @@ export interface messagesInter {
 
 export interface outputInter {
     content: string | null,
+    data?: outputInterData[]
+}
+
+export interface outputInterData {
+    name: string,
+    data?: any
+}
+
+
+
+export interface outputInterEnsureContent {
+    content: string,
     data?: any[]
 }
+
 
 export interface analyzeOutputInter {
     content: string | null

@@ -250,11 +250,10 @@ export class STMemoStore {
         }
         this.conversation_id = conversation.id
 
-        this.addMessage(originalPrompt, false, this.conversation_id)
-        
         this.summaryChat = conversation.summarize as string
 
         const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize, 4)
+        await this.addMessage(originalPrompt, false, this.conversation_id)
 
         if(includeImage && imgFilePath) {
 
