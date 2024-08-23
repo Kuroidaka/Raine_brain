@@ -7,15 +7,17 @@ import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
-import { RoutineSQL, SubTaskSQL, TaskFullIncluded, TaskSQL, TaskSQLWithSub } from "./chat.interface";
+import { RoutineFullIncluded, RoutineSQL, SubTaskSQL, TaskFullIncluded, TaskSQL, TaskSQLWithSub } from "./chat.interface";
 import { TaskService } from "~/database/reminder/task";
 import { SubTask, Task, TaskAreas } from "@prisma/client";
+import { RoutineService } from "~/database/reminder/routine";
 
 
 const taskService = TaskService.getInstance()
+const routineService = RoutineService.getInstance()
 export class ReminderChatService  {
 
-  prompt = PromptTemplate.fromTemplate(`Based on the provided SQL table schema below, write a SQL query that would answer the user's question.(not response with SQL)
+  prompt = PromptTemplate.fromTemplate(`Based on the provided SQL table schema below, write a SQL query that would answer the user's question, always query id.(only response with SQL)
   ------------
   SCHEMA: {schema}
   ------------
@@ -40,7 +42,7 @@ export class ReminderChatService  {
             includesTables: ["Task", "TaskAreas"],
             customDescription: {
               "Task": "The Task table stores information about tasks, including their title, color, deadline, and associated notes. Each task is linked to a user and can have multiple subtasks and areas associated with it",
-              "TaskAreas": "The TaskAreas table links tasks to specific areas, defined by the Areas enum. This allows tasks to be categorized into different life areas, such as health, play, spirituality, environment, work, finance, development, relationships."
+              "TaskAreas": "The TaskAreas table links tasks to specific areas, defined by the Areas enum. This allows tasks to be categorized into different life areas, such as health, play, spirituality, environment, work, finance, development, relationships, This table have to query joined with Task table otherwise error will occur"
             }
           });
 
@@ -78,7 +80,7 @@ export class ReminderChatService  {
             includesTables: ["Routine", "RoutineAreas", "RoutineDate"],
             customDescription: {
               "Routine": "The Routine table stores routine information, including title, color, notes, and whether the routine is currently active. Each routine is associated with a user and can be linked to multiple areas and routine dates.",
-              "RoutineAreas": "The RoutineAreas table links routines to specific areas, as defined by the Areas enum. This allows routines to be categorized into different life areas, such as health, work, or development.",
+              "RoutineAreas": "The RoutineAreas table links routines to specific areas, as defined by the Areas enum. This allows routines to be categorized into different life areas, such as health, work, or development. This table have to query joined with Task table otherwise error will occur",
               "RoutineDate": "The RoutineDate table tracks the completion dates for routines, storing information on when each routine was completed along with a reference to the associated routine."
             }
           });
@@ -131,24 +133,23 @@ export class ReminderChatService  {
       throw new InternalServerErrorException("error occur while process reminder chat")
     }
   }
-  public async processRoutineData(routines: RoutineSQL[]) {
+
+
+  public async processRoutineData(routines: RoutineSQL[]):Promise<(RoutineSQL | RoutineFullIncluded)[]> {
     try {
       const data = await Promise.all(routines.map(async routine => {
-        const result: RoutineSQL = {};
-
-        if (routine?.title) result.title = routine?.title;
-        if (routine?.note) result.note = routine?.note;
-        if (Number(routine?.isActive) === 1) {
-            result.isActive = "Active";
-        } else if (Number(routine?.isActive) === 0) {
-            result.isActive = "Inactive";
+        let result
+        if(routine.id) {
+          result = await routineService.getRoutineById(routine.id);
         }
+        else {
+          result = routine
+        }
+        return result       
+      }));
+      const filteredData = data.filter(routine => routine !== null);
 
-        return result;
-    }));
-
-
-        return data
+      return filteredData
     } catch (error) {
       console.error("Error in process reminder chat:", error);
       throw new InternalServerErrorException("error occur while process reminder chat")
@@ -175,7 +176,7 @@ export class ReminderChatService  {
       throw new InternalServerErrorException("error occur while process reminder chat")
     }
   }
-  public async cmtTaskData(q: string, tasks: (TaskSQL | TaskFullIncluded)[]) {
+  public async cmtTaskData(q: string, tasks: (TaskSQL | TaskFullIncluded)[] | (RoutineSQL | RoutineFullIncluded)[]) {
     try {
       /**
          * Create the final prompt template which is tasked with getting the natural language response.
@@ -217,6 +218,24 @@ export class ReminderChatService  {
     try {
       const tasks = await this.getTaskDataBaseOnText(q)
       const result = await this.processTaskData(tasks)
+
+      const cmt = await this.cmtTaskData(q, result)  
+      return {
+        data: result,
+        comment: cmt
+      }
+    } catch (error) {
+      return{
+        comment: "Error occur while get data from database"
+      }
+    }
+  }
+
+  public async runRoutine(q: string) {
+    try {
+      const routines = await this.getRoutineDataBaseOnText(q)
+      const result = await this.processRoutineData(routines)
+      console.log(result)
 
       const cmt = await this.cmtTaskData(q, result)  
       return {

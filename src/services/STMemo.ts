@@ -148,7 +148,10 @@ export class STMemoStore {
         }
 
         if(toolCall) {
-            list.push({ role: "system", content: "Whenever a user request involves tasks or task management: Call the ReminderChatServiceTool:"})
+            list.push({ role: "system", content: `
+            Whenever a user request involves tasks or task management: Call the ReminderChatServiceTool
+            Whenever a user request involves routines: Call the RoutineChatServiceTool:
+            `})
         }
 
         return list

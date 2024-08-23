@@ -104,7 +104,8 @@ export const OpenaiService = {
   processToolCall: async(debugChat: number, messages: MsgListParams[], responseMessage: ChatCompletionMessage, toolCalls: Array<ChatCompletionMessageToolCall>, isEnableStream: boolean):Promise<outputInter> => {
     try {
       const availableFunctions = {
-          "ReminderChatService": llmTools.ReminderChatService,
+        "ReminderChatService": llmTools.ReminderChatService,
+        "RoutineChatService": llmTools.RoutineChatService
       };
 
       messages.push(responseMessage);
@@ -113,6 +114,7 @@ export const OpenaiService = {
       for (const toolCall of toolCalls) {
         const mark = Math.random()
         const functionName = toolCall.function.name;
+        if(debugChat === 1) console.log(functionName)
         const functionToCall = availableFunctions[functionName as keyof typeof availableFunctions];
         let functionData:outputInterData = {
           name: functionName
@@ -123,11 +125,14 @@ export const OpenaiService = {
 
         debugChat && console.log("functionArgs", functionArgs)
         const functionResponse = await functionToCall(functionArgs);
-        functionData = {
-          ...functionData,
-          comment: functionResponse.comment,
-          data: functionResponse.data
+
+        if(functionResponse.comment) {
+          functionData.comment = functionResponse.comment
         }
+        if(functionResponse.data) {
+          functionData.data = functionResponse.data
+        }
+
         isEnableStream && io.emit('chatResChunkFunc', { functionData: functionData, id: mark  });
 
         messages.push({
@@ -137,16 +142,10 @@ export const OpenaiService = {
           content: functionResponse.comment,
         });
 
-        if(functionResponse?.data){
-          functionData = {
-            ...functionData,
-            data: functionResponse.data,
-            comment: functionResponse.comment
-          }
-          isEnableStream && io.emit('chatResChunkFunc', { functionData: functionData, id: mark });
 
-          listData.push(functionData)
-        }
+        isEnableStream && io.emit('chatResChunkFunc', { functionData: functionData, id: mark });
+
+        listData.push(functionData)
 
       }
       let content = ""

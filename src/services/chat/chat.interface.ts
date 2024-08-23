@@ -1,4 +1,4 @@
-import { SubTask, Task, TaskAreas } from '@prisma/client';
+import { Routine, RoutineAreas, RoutineDate, SubTask, Task, TaskAreas } from '@prisma/client';
 export type historyChatProcessingParams = {
     userID: string,
     prompt: string,
@@ -25,6 +25,8 @@ export type SubTaskSQL = {
 };
 
 export type TaskFullIncluded = Task & { area?: TaskAreas[], subTask?: SubTask[] }
+export type RoutineFullIncluded = Routine & { area?: RoutineAreas[], routineDate?: RoutineDate[] }
+
 
 export type TaskSQLWithSub = TaskSQL & { subTask?: SubTaskSQL[] }
 
@@ -34,7 +36,7 @@ export type RoutineSQL = {
     color?: string;
     note?: string;
     userId?: string;
-    isActive?: number | string;
+    isActive?: number | boolean;
     createdAt?: string;
     updatedAt?: string;
 };
