@@ -92,16 +92,37 @@ export class ConversationService {
             throw error
         }
     }
-    async deleteMsgInConversation(id:string) {
+    async deleteMsgInConversation(id: string) {
         try {
-            await dbClient.message.deleteMany({
-                where: {
-                  conversationId: id,
-                },
+            await dbClient.$transaction(async (prisma) => {
+                // Delete ImageFiles related to the Messages in the Conversation
+                await prisma.imageFile.deleteMany({
+                    where: {
+                        message: {
+                            conversationId: id,
+                        },
+                    },
+                });
+    
+                // Delete MessageFunctions related to the Messages in the Conversation
+                await prisma.messageFuntion.deleteMany({
+                    where: {
+                        message: {
+                            conversationId: id,
+                        },
+                    },
+                });
+    
+                // Delete Messages in the Conversation
+                await prisma.message.deleteMany({
+                    where: {
+                        conversationId: id,
+                    },
+                });
             });
         } catch (error) {
-            console.log('Error getting conversation:', error)
-            throw error
+            console.log('Error deleting messages in conversation:', error);
+            throw error;
         }
     }
 

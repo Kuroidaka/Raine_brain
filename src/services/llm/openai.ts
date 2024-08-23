@@ -123,7 +123,12 @@ export const OpenaiService = {
 
         debugChat && console.log("functionArgs", functionArgs)
         const functionResponse = await functionToCall(functionArgs);
-        // isEnableStream && io.emit('chatResChunk', { content: functionResponse.comment });
+        functionData = {
+          ...functionData,
+          comment: functionResponse.comment,
+          data: functionResponse.data
+        }
+        isEnableStream && io.emit('chatResChunkFunc', { functionData: functionData, id: mark  });
 
         messages.push({
           // name: functionName,
