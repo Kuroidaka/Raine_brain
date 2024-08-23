@@ -17,7 +17,7 @@ const taskService = TaskService.getInstance()
 const routineService = RoutineService.getInstance()
 export class ReminderChatService  {
 
-  prompt = PromptTemplate.fromTemplate(`Based on the provided SQL table schema below, write a SQL query that would answer the user's question, always query id.(only response with SQL)
+  prompt = PromptTemplate.fromTemplate(`Based on the provided SQL table schema below, write a SQL query that would answer the user's question, always select id.(only response with SQL)
   ------------
   SCHEMA: {schema}
   ------------

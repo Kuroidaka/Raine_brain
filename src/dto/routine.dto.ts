@@ -14,6 +14,9 @@ class RoutineData {
   @IsOptional()
   note?: string;
 
+  @IsString()
+  routineTime: string;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
@@ -31,6 +34,10 @@ class UpdateRoutineData {
   @IsString()
   @IsOptional()
   note?: string;
+
+  @IsString()
+  @IsOptional()
+  routineTime?: string;
 
   @IsBoolean()
   @IsOptional()

@@ -5,6 +5,7 @@ export type RoutineProps = {
     color?: string;
     note?: string;
     userId: string;
+    routineTime: string;
     isActive?: boolean;
 }
 
@@ -12,6 +13,7 @@ export type UpdateRoutineProps = {
     title?: string;
     color?: string;
     note?: string;
+    routineTime?: string;
     isActive?: boolean;
 }
 

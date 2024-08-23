@@ -77,6 +77,8 @@ model Routine {
   area        RoutineAreas[]
   userId      String
   isActive    Boolean          @default(true)
+
+  routineTime String          // Store time as "HH:mm"
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   routineDate RoutineDate[]
