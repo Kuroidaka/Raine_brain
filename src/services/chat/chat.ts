@@ -91,7 +91,9 @@ export class ChatService  {
   public async handleProcessAfterChat(output: outputInter, prompt: string, memoryDetail: DataMemo[]) {
     // Add AI response into DB
     if (output.content && this.STMemo.conversation_id) {
-      await this.STMemo.addMessage(output.content, true, this.STMemo.conversation_id);
+      const listDataFunc = output.data
+
+      await this.STMemo.addMessage(output.content, true, this.STMemo.conversation_id, listDataFunc);
 
       // Summarize the conversation
       const historySummarized = await this.STMemo.processSummaryConversation(this.STMemo.conversation_id as string);
@@ -100,6 +102,7 @@ export class ChatService  {
       await conversationService.modifyConversation(this.STMemo.conversation_id as string, {
         summarize: historySummarized,
       });
+
 
       // Consider storing into LTMemo
       await this.teachableAgent.considerMemoStorage(prompt, memoryDetail, this.STMemo.summaryChat);

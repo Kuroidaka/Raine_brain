@@ -1,5 +1,5 @@
 import { dbClient } from "~/config";
-import { conversationModifyProps, conversationProps, msgProps } from "./conversation.interface";
+import { conversationModifyProps, conversationProps, msgFuncProps, msgProps } from "./conversation.interface";
 import { Prisma } from "@prisma/client";
 
 export class ConversationService {
@@ -31,6 +31,9 @@ export class ConversationService {
                     messages: {
                         orderBy: {
                             createdAt: 'asc'
+                        },
+                        include: {
+                            functionData: true
                         }
                     },
                 },
@@ -50,6 +53,9 @@ export class ConversationService {
                   messages: {
                     orderBy: {
                         createdAt: 'asc'
+                    },
+                    include: {
+                        functionData: true
                     }
                   },
                 },
@@ -116,6 +122,9 @@ export class ConversationService {
                 orderBy: {
                     createdAt: take ? 'desc' : 'asc',
                 },
+                include: {
+                    functionData: true
+                }
             }
 
             if(take) query.take = take
@@ -128,6 +137,17 @@ export class ConversationService {
             return messages
         } catch (error) {
             console.error('Error getting message:', error);
+            throw error;
+        }
+    }
+
+    async addMsgFunction(messageId: string, data: msgFuncProps) {
+        try {
+            return await dbClient.messageFuntion.create({ data: {
+                ...data, messageId
+            } });
+        } catch (error) {
+            console.error('Error adding message:', error);
             throw error;
         }
     }

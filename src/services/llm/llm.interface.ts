@@ -34,7 +34,8 @@ export interface outputInter {
 
 export interface outputInterData {
     name: string,
-    data?: any
+    data?: any,
+    comment?: string
 }
 
 

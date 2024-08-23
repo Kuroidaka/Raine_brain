@@ -111,27 +111,36 @@ export const OpenaiService = {
       const listData:outputInterData[] = []
 
       for (const toolCall of toolCalls) {
+        const mark = Math.random()
         const functionName = toolCall.function.name;
         const functionToCall = availableFunctions[functionName as keyof typeof availableFunctions];
+        let functionData:outputInterData = {
+          name: functionName
+        }
 
-        isEnableStream && io.emit('chatResChunkFunc', { functionName: functionName });
+        isEnableStream && io.emit('chatResChunkFunc', { functionData: functionData, id: mark });
         const functionArgs = JSON.parse(toolCall.function.arguments);
 
         debugChat && console.log("functionArgs", functionArgs)
         const functionResponse = await functionToCall(functionArgs);
+        // isEnableStream && io.emit('chatResChunk', { content: functionResponse.comment });
 
         messages.push({
           // name: functionName,
           tool_call_id: toolCall.id,
           role: "tool",
-          content: JSON.stringify(functionResponse.data),
+          content: functionResponse.comment,
         });
 
         if(functionResponse?.data){
-          listData.push({
-            name: functionName,
+          functionData = {
+            ...functionData,
             data: functionResponse.data,
-          })
+            comment: functionResponse.comment
+          }
+          isEnableStream && io.emit('chatResChunkFunc', { functionData: functionData, id: mark });
+
+          listData.push(functionData)
         }
 
       }
@@ -380,7 +389,6 @@ export const OpenaiService = {
     return { content };
   },
   // handleStreamingWithTool: async (debugChat:number, completion: Stream<ChatCompletionChunk>, dataMsg:MsgListParams[], isEnableStream: boolean):Promise<outputInter> => {
-  //   // STILL MISSING CASE FOR FINISHED REASON
   //   let toolCalls: ToolCallCus[] = [];
   //   let content = ""
   //   let resObj:outputInter = {

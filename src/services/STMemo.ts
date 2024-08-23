@@ -1,4 +1,4 @@
-import { ChatCompletionContentPart, ChatCompletionContentPartImage, ChatCompletionUserMessageParams, messagesInter, MsgListParams } from './llm/llm.interface'
+import { ChatCompletionContentPart, ChatCompletionContentPartImage, ChatCompletionUserMessageParams, messagesInter, MsgListParams, outputInterData } from './llm/llm.interface'
 import { ConversationService } from '~/database/conversation/conversation';
 import { Message, Conversation } from '@prisma/client';
 import { UserService } from '~/database/user/user';
@@ -10,6 +10,7 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { ChatCompletionUserMessageParam } from 'groq-sdk/resources/chat/completions';
 import path from 'path';
 import { createImageContent, formatDateTime, processImage, readTextFile } from '~/utils';
+import { msgFuncProps } from '~/database/conversation/conversation.interface';
 
 const describeImgInstruction = `
 Input: Grid images of the video chat between human and AI
@@ -74,23 +75,44 @@ export class STMemoStore {
         return mergedList;
     }
 
-    async addMessage(message:string, isBot:boolean, conversationId:string): Promise<void> {
-        
-        const addMsgPromise = conversationService.addMsg({
-            text: message,
-            isBot: isBot,
-            userID: this.userID,
-            conversationId: conversationId
-        });
+    async addMessage(
+        message: string, 
+        isBot: boolean, 
+        conversationId: string, 
+        listDataFunc?: outputInterData[]
+    ): Promise<void> {
+        try {
+            // Simultaneously add the message and modify the conversation
+            const [newMsg] = await Promise.all([
+                conversationService.addMsg({
+                    text: message,
+                    isBot: isBot,
+                    userID: this.userID,
+                    conversationId: conversationId
+                }),
+                conversationService.modifyConversation(conversationId, {
+                    lastMessage: message
+                })
+            ]);
     
-        const modifyConversationPromise = conversationService.modifyConversation(conversationId, {
-            // summarize: historySummarized,
-            lastMessage: message
-        });
-
-        await Promise.all([addMsgPromise, modifyConversationPromise])
-
+            // If there are any additional functions to run, process them in parallel
+            if (listDataFunc?.length) {
+                await Promise.all(
+                    listDataFunc.map(funcData => 
+                        conversationService.addMsgFunction(newMsg.id, {
+                            name: funcData.name,
+                            data: JSON.stringify(funcData.data),
+                            comment: funcData.comment 
+                        })
+                    )
+                );
+            }
+        } catch (error) {
+            console.error("Error adding message:", error);
+            throw error;
+        }
     }
+    
 
     async clear(): Promise<void> {
     }

@@ -9,8 +9,12 @@ export interface msgProps {
     text: string
     isBot: boolean
     userID: string
-    functionList?: string
     conversationId: string  
+}
+export interface msgFuncProps {
+    name: string
+    data?: string
+    comment?: string 
 }
 
 export interface conversationModifyProps {

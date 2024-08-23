@@ -170,12 +170,25 @@ model Message {
   text           String       @db.LongText
   isBot          Boolean
   userID         String
-  functionList   String?      @db.LongText
   conversationId String
   imgList        ImageFile[]
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  functionData   MessageFuntion[]
 
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
   @@index([conversationId], map: "Message_conversationId_fkey")
+}
+
+model MessageFuntion {
+  id             String       @id @default(uuid())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  name    String
+  data    String?       @db.LongText
+  comment String?       @db.LongText
+
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id])
 }
 
 model ImageFile {

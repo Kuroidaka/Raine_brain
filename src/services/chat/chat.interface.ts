@@ -1,3 +1,4 @@
+import { SubTask, Task, TaskAreas } from '@prisma/client';
 export type historyChatProcessingParams = {
     userID: string,
     prompt: string,
@@ -13,7 +14,7 @@ export type TaskSQL = {
     deadline?: string | null;
     note?: string;
     userId?: string;
-    status?: number | string;
+    status?: number | boolean;
     createdAt?: string;
     updatedAt?: string;
 };
@@ -22,6 +23,8 @@ export type SubTaskSQL = {
     title?: string;
     status?: boolean | string;
 };
+
+export type TaskFullIncluded = Task & { area?: TaskAreas[], subTask?: SubTask[] }
 
 export type TaskSQLWithSub = TaskSQL & { subTask?: SubTaskSQL[] }
 

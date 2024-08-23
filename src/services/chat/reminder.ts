@@ -7,9 +7,9 @@ import { ChatOpenAI } from "@langchain/openai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { RunnableSequence } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
-import { RoutineSQL, SubTaskSQL, TaskSQL, TaskSQLWithSub } from "./chat.interface";
+import { RoutineSQL, SubTaskSQL, TaskFullIncluded, TaskSQL, TaskSQLWithSub } from "./chat.interface";
 import { TaskService } from "~/database/reminder/task";
-import { SubTask } from "@prisma/client";
+import { SubTask, Task, TaskAreas } from "@prisma/client";
 
 
 const taskService = TaskService.getInstance()
@@ -37,10 +37,9 @@ export class ReminderChatService  {
     try {          
           const db = await SqlDatabase.fromDataSourceParams({
             appDataSource: this.datasource,
-            includesTables: ["Task", "SubTask", "TaskAreas"],
+            includesTables: ["Task", "TaskAreas"],
             customDescription: {
               "Task": "The Task table stores information about tasks, including their title, color, deadline, and associated notes. Each task is linked to a user and can have multiple subtasks and areas associated with it",
-              "SubTask": "The SubTask table contains information about individual subtasks that are related to a main task. Each subtask has a title, status, and a reference to the parent task.",
               "TaskAreas": "The TaskAreas table links tasks to specific areas, defined by the Areas enum. This allows tasks to be categorized into different life areas, such as health, play, spirituality, environment, work, finance, development, relationships."
             }
           });
@@ -109,32 +108,24 @@ export class ReminderChatService  {
     }
   }
   
-  public async processTaskData(tasks: TaskSQL[], isSubtask = false) {
+  public async processTaskData(tasks: TaskSQL[]):Promise<(TaskSQL | TaskFullIncluded)[]>  {
     try {
-      const data = await Promise.all(tasks.map(async task => {
-        const result: TaskSQLWithSub = {};
+      const data = await Promise.all(
+        tasks.map(async task => {
+          let result
+          if(task.id) {
+            result = await taskService.getTasksById(task.id);
+          }
+          else {
+            result = task
+          }
+          return result
+        })
+      );
+      // Filter out null values from the result
+      const filteredData = data.filter(task => task !== null);
 
-        if (task?.id) result.id = task?.id;
-        if (task?.title) result.title = task?.title;
-        if (task?.color) result.color = task?.color;
-        if (task?.note) result.note = task?.note;
-        if (task?.deadline) result.deadline = task?.deadline;
-        if (Number(task?.status) === 1) {
-            result.status = "Finished";
-        } else if (Number(task?.status) === 0) {
-            result.status = "Unfinished";
-        }
-
-        if (isSubtask && task.id) {
-            const subtask = await taskService.getSubTask(task.id);
-            result.subTask = await this.processSubTaskData(subtask);
-        }
-
-        return result;
-    }));
-
-
-        return data
+      return filteredData
     } catch (error) {
       console.error("Error in process reminder chat:", error);
       throw new InternalServerErrorException("error occur while process reminder chat")
@@ -184,7 +175,7 @@ export class ReminderChatService  {
       throw new InternalServerErrorException("error occur while process reminder chat")
     }
   }
-  public async cmtTaskData(q: string, tasks: TaskSQLWithSub[]) {
+  public async cmtTaskData(q: string, tasks: (TaskSQL | TaskFullIncluded)[]) {
     try {
       /**
          * Create the final prompt template which is tasked with getting the natural language response.
@@ -222,18 +213,19 @@ export class ReminderChatService  {
     }
   }
 
-  public async run(q: string, includeSubTask: boolean) {
+  public async run(q: string) {
     try {
       const tasks = await this.getTaskDataBaseOnText(q)
-      const result = await this.processTaskData(tasks, includeSubTask)
+      const result = await this.processTaskData(tasks)
 
-      // const cmt = await this.cmtTaskData(q, result)  
+      const cmt = await this.cmtTaskData(q, result)  
       return {
-        data: result
+        data: result,
+        comment: cmt
       }
     } catch (error) {
       return{
-        message: "Error occur while get data from database"
+        comment: "Error occur while get data from database"
       }
     }
   }
