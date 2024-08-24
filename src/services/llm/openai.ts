@@ -8,9 +8,11 @@ import * as fs from 'fs';
 import path from 'path';
 import { ChatCompletion, ChatCompletionAssistantMessageParam, ChatCompletionChunk, ChatCompletionMessage, ChatCompletionMessageToolCall } from 'openai/resources/chat/completions';
 import { ReminderChatService } from '../chat/reminder';
-import { llmTools, toolsDefined } from './tool';
+import { llmTools, toolsDefined, ToolsDefinedType } from './tool';
 import { Stream } from 'openai/streaming';
 import chalk from 'chalk';
+import { tools } from '~/database/toolCall/toolCall.interface'
+import { filterTools } from '~/utils';
 
 const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
@@ -24,27 +26,28 @@ export const OpenaiService = {
   chat: async (
     messages: MsgListParams[],
     isEnableStream = false,
-    toolEnable = false,
+    tools: tools[],
     res?: Response,
     debugChat = 0
   ):Promise<outputInter> => {
+
+    const enableTools = filterTools(tools, toolsDefined)
 
     // This way allow us to send message as a string or and array object
     const dataMsg: (MsgListParams[]) = (typeof messages === 'string') 
       ? [{ role: "user", content: messages }]
       : messages;
-  
+      
     // Return to Stream feature
-    if (isEnableStream && res) return OpenaiService.stream(debugChat, res, dataMsg, toolEnable);
+    if (isEnableStream && res) return OpenaiService.stream(debugChat, res, dataMsg, enableTools);
   
     try {
       let queryObject = {}
-      let resObj:{content: string, data: any[]} = {content: '', data: []}
 
-      if(toolEnable) {
+      if(enableTools.length > 0) {
         queryObject = {
           tool_choice: 'auto',
-          tools: toolsDefined
+          tools: enableTools
         }
       }
 
@@ -67,15 +70,16 @@ export const OpenaiService = {
       }
     }
   },
-  stream: async(debugChat: number ,res: Response, messages: (MsgListParams[]), toolEnable: boolean):Promise<outputInter> => {
+  stream: async(debugChat: number ,res: Response, messages: (MsgListParams[]), enableTools: ToolsDefinedType[]):Promise<outputInter> => {
     let content = ""
     const errorMsg = "Someone call Canh, there are some Bug with my program"
     try {
       let queryObject = {}
-      if(toolEnable) {
+
+      if(enableTools.length > 0) {
         queryObject = {
           tool_choice: 'auto',
-          tools: toolsDefined
+          tools: enableTools
         }
       }
       const stream = await openAIClient.chat.completions.create({

@@ -9,7 +9,7 @@ import { TestDto } from '~/dto/test.dto';
 import { BrainController } from '../controllers/brain.controller';
 import { ChatDto } from '~/dto/chat.dto';
 import validateToken from '../middlewares/validate_token';
-import upload from '~/common/multer';
+import { upload } from '~/common/multer';
 
 const router = Router();
 

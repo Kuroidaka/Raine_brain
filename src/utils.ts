@@ -5,6 +5,8 @@ import pako from 'pako';
 import base64js from 'base64-js';
 import sharp from 'sharp';
 import { ChatCompletionContentPartImage } from './services/llm/llm.interface';
+import { tools } from './database/toolCall/toolCall.interface';
+import { toolsDefined, ToolsDefinedType } from './services/llm/tool';
 
 
 export function isObject(value: any): boolean {
@@ -206,3 +208,14 @@ export function readTextFile(filePath: string): Promise<string> {
         });
     });
 }
+
+export function filterTools(dataArray: tools[], toolsArray: ToolsDefinedType[]): ToolsDefinedType[] {
+    return dataArray.reduce((acc: ToolsDefinedType[], item) => {
+        const matchedTool = toolsArray.find(tool => tool.function.name === item.aiTool.name);
+        if (matchedTool) {
+            acc.push(matchedTool);
+        }
+        return acc;
+    }, []);
+}
+

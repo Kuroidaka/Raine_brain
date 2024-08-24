@@ -29,7 +29,7 @@ export class TestController {
 
       const tasks = await reminderChatService.getTaskDataBaseOnText(q)
 
-      const result = await reminderChatService.processTaskData(tasks, includeSubTask)
+      const result = await reminderChatService.processTaskData(tasks)
 
       const cmt = await reminderChatService.cmtTaskData(q, result)
       return res.status(200).json({ message: cmt, data: result });

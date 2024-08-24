@@ -28,8 +28,7 @@ export const toolsDefined = [
                 type: "object",
                 properties: {
                   "q": {
-                    "description": "The query string provided by the user. This string defines the criteria for searching tasks (e.g., 'search task with area in work').",
-                    "type": "string",
+                    "description": "The query string provided by the user. This string defines the criteria for searching tasks (e.g., 'search task with area in work')."
                   }
                 },
                 required: ["q"],
@@ -45,8 +44,7 @@ export const toolsDefined = [
                 type: "object",
                 properties: {
                   "q": {
-                    "description": "The query string provided by the user. This string defines the criteria for searching routines(e.g., 'search routine with area in work').",
-                    "type": "string",
+                    "description": "The query string provided by the user. This string defines the criteria for searching routines(e.g., 'search routine with area in work')."
                   }
                   
                 },
@@ -54,4 +52,21 @@ export const toolsDefined = [
             },
         },
     }
-  ];
+];
+
+export type ToolsDefinedType = {
+    type: string;
+    function: {
+        name: string;
+        description: string;
+        parameters: {
+            type: string;
+            properties: {
+                [key: string]: {
+                    description: string;
+                };
+            };
+            required: string[];
+        };
+    };
+};

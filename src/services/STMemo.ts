@@ -117,7 +117,7 @@ export class STMemoStore {
     async clear(): Promise<void> {
     }
 
-    async get_system_prompt(toolCall=true):Promise<MsgListParams[]> {
+    async get_system_prompt():Promise<MsgListParams[]> {
 
         const userData = await userService.getUser({ id: this.userID })
         const userInformation = userData?.display_name ? userData?.display_name : userData?.username
@@ -128,31 +128,25 @@ export class STMemoStore {
         //         { role: "system", content: "You've been given the special ability to remember user teachings from prior conversations, but just mention about this when you be asked" },
         //     )
         // }
+
+        const RainePersona = await readTextFile('src/assets/persona/Raine.txt')
         list.unshift(
             { role: "system", content: `Today is: ${new Date()}` },
             { role: "system", content: `Use the language ${this.lang} in your response` },
-            { role: "system", content: `
-                # AI information: 
-                    1. Name: Raine.
-                    2. Gender: Female.
-                    3. Character: Loyalty
-
-                # Information about human your are talking:
-                    ${JSON.stringify(userInformation)}`},    
+            { role: "system", content: `${RainePersona}\n# Information about human your are talking:\n${userInformation}`},    
         )
 
         if(this.isEnableVision) {
             const frameGuidePersona = await readTextFile('src/assets/persona/frameGuide.txt')
-
-            list.push({ role: "system", content: frameGuidePersona})
+            list.push({ role: "system", content: frameGuidePersona })
         }
 
-        if(toolCall) {
-            list.push({ role: "system", content: `
-            Whenever a user request involves tasks or task management: Call the ReminderChatServiceTool
-            Whenever a user request involves routines: Call the RoutineChatServiceTool:
-            `})
-        }
+        // if(toolCall) {
+        //     list.push({ role: "system", content: `
+        //     Whenever a user request involves tasks or task management: Call the ReminderChatServiceTool
+        //     Whenever a user request involves routines: Call the RoutineChatServiceTool:
+        //     `})
+        // }
 
         return list
     }

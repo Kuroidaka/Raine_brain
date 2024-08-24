@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import chalk from 'chalk';
 import https from 'https';
+import http from 'http';
 import fs from 'fs';
 import { Server } from 'socket.io';
 import * as dotenv from "dotenv";
@@ -25,7 +26,7 @@ const options = {
     cert: fs.readFileSync('localhost+1.pem')
 };
 
-const server = https.createServer(options, app);
+const server = http.createServer(app);
 export const io = new Server(server, {
     cors: {
         origin: process.env.CLIENT_URL || 'https://localhost:5173',

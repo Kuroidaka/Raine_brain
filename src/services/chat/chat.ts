@@ -10,6 +10,7 @@ import chalk from "chalk";
 import { ConversationService } from "~/database/conversation/conversation";
 import { InternalServerErrorException } from "~/common/error";
 import { OpenaiService } from "../llm/openai";
+import { ToolCallService } from "~/database/toolCall/toolCall";
 
 const conversationService = ConversationService.getInstance()
 export class ChatService  {
@@ -61,8 +62,10 @@ export class ChatService  {
       console.log("messages", messages);
 
       // Asking
-      const enableTools = true
-      const output = await OpenaiService.chat(messages, this.isEnableStream, enableTools, res, debugChat);
+
+      const toolCallService = ToolCallService.getInstance();
+      const tools = await toolCallService.getToolsByUser(this.userID)
+      const output = await OpenaiService.chat(messages, this.isEnableStream, tools, res, debugChat);
 
       return {
         output: output,
