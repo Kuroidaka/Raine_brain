@@ -1,39 +1,32 @@
 import { NextFunction, Request, Response } from "express";
 import fs from 'fs/promises';
-import { traceable } from "langsmith/traceable";
-import { json } from "body-parser";
+
 import path from "path";
-import { ConversationSummaryMemory } from "langchain/memory";
-import chalk from "chalk";
-import { groqClient } from "~/config/groq";
-import { fileURLToPath } from 'url';
 
 import { GroqService } from "../../services/llm/groq";
-import { TeachableService } from "~/services/techable";
-import { STMemoStore } from "~/services/STMemo";
-import { messagesInter, MsgListParams } from "~/services/llm/llm.interface";
-import { OpenaiService } from "~/services/llm/openai";
+import { ChatService } from '~/services/chat/chat';
 import { DeepGramService } from "~/services/llm/deepgram";
 
-
+import { STMemoStore } from "~/services/STMemo";
 import { ConversationService } from "~/database/conversation/conversation";
 import { NotFoundException } from "~/common/error";
 
 import { io } from "~/index";
-import { splitText } from "~/utils";
+import { createImageContent, processImage, splitText } from "~/utils";
+import { OpenaiService } from "~/services/llm/openai";
+import { MemoStore } from "~/services/LTMemo";
+import { outputInter } from '~/services/llm/llm.interface'
 
 const conversationService = ConversationService.getInstance()
 export const BrainController = {
   chat: async (req: Request, res: Response, next: NextFunction) => {
     // preprocess data params
     console.clear();
-    const { prompt, conversationID, imgURL, base64Data } = req.body;
+    const { prompt, conversationID, imgURL } = req.body;
     console.log("body", req.body)
     const { id: userID } = req.user;
-    const { isStream = "false", isLTMemo = "false", isVision = "false" } = req.query;
+    const { isStream = "false"} = req.query;
     const isEnableStream = isStream === "true";
-    const isEnableLTMemo = isLTMemo === "true"; // Enable Long term memory
-    const isEnableVision = isVision === "true"; 
 
     if (isEnableStream) {
       res.setHeader('Content-Type', 'text/event-stream');
@@ -42,63 +35,90 @@ export const BrainController = {
     }
 
     try {
-      // Long term memory process
-      const pathMemo = path.join("src", "assets", "tmp", "memos", userID);
-      const teachableAgent = new TeachableService(0, pathMemo);
 
-      const { relateMemory, memoryDetail } = await teachableAgent.considerMemoRetrieval(prompt)
-      
-     
-      let promptWithRelatedMemory = isEnableLTMemo
-        ? prompt + teachableAgent.concatenateMemoTexts(relateMemory)
-        : prompt;
-
-      // Short term memory process
-      const STMemo = new STMemoStore(userID, conversationID, isEnableVision);
-
-      // Describe Context for vision
-      if(isEnableVision && base64Data) {
-        promptWithRelatedMemory = await STMemo.describeImage(base64Data, promptWithRelatedMemory)
+      const isVision = false
+      const chatService = new ChatService(
+        userID,
+        conversationID,
+        isVision,
+        isEnableStream
+      )
+      const debugOptions = {
+        debugChat: 1,
+        debugMemo: 0
       }
 
-      const messages: MsgListParams[] = await STMemo.process(
+      const result = await chatService.processChat(debugOptions, res, prompt)
+
+      const response: outputInter & { conversationID: string } = {
+        content: result.output.content,
+        conversationID: result.conversationID,
+        ...(result.output.data && { data: result.output.data }),
+      };
+      res.status(200).json(response)
+      
+      await chatService.handleProcessAfterChat(
+        result.output,
         prompt,
-        promptWithRelatedMemory,
-        isEnableLTMemo
-      );
+        result.memoryDetail
+      )
 
-      console.log("messages", messages)
+    } catch (error) {
+      console.log(error);
+      // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  },
+  videoChat: async (req: Request, res: Response, next: NextFunction) => {
+    // preprocess data params
+    // console.clear();
+    const { prompt, conversationID } = req.body;
 
-      // Asking
-      const output = await GroqService.chat(
-        messages,
+    let filePath
+    if (req.file) {
+      filePath = req.file.path;
+      console.log("filePath", filePath)
+    }
+  
+   
+    console.log("body", req.body)
+    const { id: userID } = req.user;
+    const { isStream = "false", isVision = "false" } = req.query;
+    const isEnableStream = isStream === "true";
+
+    if (isEnableStream) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+    }
+
+    try {
+      const isVision = true
+      const chatService = new ChatService(
+        userID,
+        conversationID,
+        isVision,
         isEnableStream,
-        res
-      );
+      )
 
-      const callBack = async () => {
-        // Add Ai response into DB
-        output.content && STMemo.conversation_id &&
-        await STMemo.addMessage(output.content, true, STMemo.conversation_id);
-      
-        // summrize the conversation
-        const historySummarized = await STMemo.processSummaryConversation(STMemo.conversation_id as string)
-        console.log(chalk.green("HistorySummarized: "), historySummarized)
-  
-        await conversationService.modifyConversation(STMemo.conversation_id as string, {
-          summarize: historySummarized,
-        });
-  
-        // Consider store into LTMemo
-        isEnableLTMemo && await teachableAgent.considerMemoStorage(prompt, memoryDetail, STMemo.summaryChat);
+      const debugOptions = {
+        debugChat: 1,
+        debugMemo: 0
       }
 
+      const result = await chatService.processChat(debugOptions, res, prompt, filePath)
+            
+      console.log("result", result)
 
-      res.status(200).json({content: output.content, conversationID: STMemo.conversation_id})
-      await callBack()
-
-
-
+      res.status(200).json({
+        content: result.output.content, conversationID: result.conversationID
+      })
+      
+      await chatService.handleProcessAfterChat(
+        result.output,
+        prompt,
+        result.memoryDetail
+      )
 
     } catch (error) {
       console.log(error);
@@ -110,11 +130,11 @@ export const BrainController = {
     if (!req.file) {
       throw new NotFoundException("File upload failed")
     }
-  
+
     const filePath = req.file.path;
     console.log("filePath", filePath)
     try {
-      const output = await GroqService.stt(filePath);
+      const output = await GroqService.stt(filePath, 'ja');
 
       return res.status(200).json(output)
     } catch (error) {
@@ -133,7 +153,8 @@ export const BrainController = {
       const chunks = splitText(text, 2000);
 
       for (const chunk of chunks) {
-        const file = await DeepGramService.tts(chunk);
+        // const file = await DeepGramService.tts(chunk);
+        const file = await OpenaiService.tts(chunk);
         const absolutePath = path.resolve(file);
 
         const fileBuffer = await fs.readFile(absolutePath);
@@ -149,7 +170,7 @@ export const BrainController = {
       return next(error);
     }
   },
-  test: async (req: Request, res: Response, next: NextFunction) => {
+  describeImg: async (req: Request, res: Response, next: NextFunction) => {
     try {
 
       const { id: userID } = req.user;
@@ -157,6 +178,7 @@ export const BrainController = {
         throw new NotFoundException("File upload failed")
       }
     
+      const { prompt } = req.body
       const filePath = req.file.path;
       console.log("filePath", filePath)
 
@@ -164,7 +186,7 @@ export const BrainController = {
       const STMemo = new STMemoStore(userID);
       
       // Describe Context for vision
-      const message = await STMemo.describeImage([filePath])
+      const message = await STMemo.describeImage([filePath], prompt)
 
       return res.status(200).json({ data: message });
     } catch (error) {
@@ -172,4 +194,18 @@ export const BrainController = {
       next(error);
     }
   },
+  resetLTMemo: async (req: Request, res: Response, next:NextFunction) => {
+    try {
+      const { userID } = req.body
+        
+      const memo = new MemoStore(0)
+
+      await memo.resetDb(userID)
+      return res.status(200).json({ data: "done" }); 
+    } catch (error) {
+      console.log(error);
+      // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  }
 };

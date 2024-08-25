@@ -1,7 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
+import { FileService } from '~/database/file/file';
+import { ToolCallService } from '~/database/toolCall/toolCall';
 import { UserService } from '~/database/user/user';
 
 const userService = UserService.getInstance();
+const toolCallService = ToolCallService.getInstance();
 export const UserController = {
     getUser: async (req: Request, res: Response, next:NextFunction) => { 
         const { id } = req.params
@@ -35,5 +38,84 @@ export const UserController = {
             // Rethrow the error to be caught by the errorHandler middleware
             next(error);
         }
-    }
+    },
+    // getTools: async (req: Request, res: Response, next:NextFunction) => {
+    //     const { id: userID } = req.user
+    //     console.log("userID", userID)
+    //     try {
+    //         const tools = await toolCallService.getToolsByUser(userID)
+            
+    //         return res.status(200).json(tools);
+    //     } catch (error) {
+    //         console.log(error);
+    //         // Rethrow the error to be caught by the errorHandler middleware
+    //         next(error);
+    //     }
+    // },
+    getTools: async (req: Request, res: Response, next:NextFunction) => {
+        const { id: userID } = req.user
+        try {
+            const tools = await toolCallService.getAllToolsWithUserStatus(userID)
+            
+            return res.status(200).json(tools);
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
+    removeTools: async (req: Request, res: Response, next:NextFunction) => {
+        const { id: userID } = req.user
+        const { toolId } = req.params
+        try {
+            const tools = await toolCallService.removeToolFromUser(userID, toolId)
+            
+            return res.status(200).json(tools);
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
+    updateTools: async (req: Request, res: Response, next:NextFunction) => {
+        const { id: userID } = req.user
+        const { toolId } = req.params
+        try {
+            const tools = await toolCallService.addToolToUser(userID, toolId)
+            
+            return res.status(200).json(tools);
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
+    toggleUserTool: async (req: Request, res: Response, next:NextFunction) => {
+        const { id: userID } = req.user
+        const { toolId } = req.params
+        try {
+            const tools = await toolCallService.toggleUserTool(userID, toolId)
+            
+            return res.status(200).json(tools);
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
+
+    setBackgroundImage: async (req: Request, res: Response, next:NextFunction) => {
+        const { id: userID } = req.user
+        const { bgId } = req.body
+        try {
+            const fileService = FileService.getInstance();
+            const result = await fileService.assignBackgroundImageToUser(userID, bgId)
+            
+            return res.status(200).json(result);
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
 }

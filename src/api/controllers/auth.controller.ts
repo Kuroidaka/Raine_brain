@@ -56,5 +56,15 @@ export const AuthController = {
             // Rethrow the error to be caught by the errorHandler middleware
             next(error);
         }
-    }
+    },
+    verifyToken: async (req: Request, res: Response, next:NextFunction) => {       
+
+        try {
+            return res.status(200).json(req.user)
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
 }

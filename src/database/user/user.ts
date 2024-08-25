@@ -1,6 +1,6 @@
 import { dbClient } from "~/config";
 import { userServiceProps } from "./user.interface";
-import { User } from "@prisma/client";
+import { backgroundImage, User } from "@prisma/client";
 
 export class UserService {
     private static instance: UserService;
@@ -14,14 +14,17 @@ export class UserService {
         return UserService.instance;
     }
     
-    public async getUser({ id, username }: { id?: string; username?: string }):Promise<User | null> {
+    public async getUser({ id, username }: { id?: string; username?: string }):Promise<User & { backgroundImage: backgroundImage | null } | null> {
         try {
-            const query = id ? { id } : username ? { username } : null;
+            let query = id ? { id } : username ? { username } : null;
             
             if (!query) return null
 
             const user = await dbClient.user.findUnique({
-                where: query
+                where: query,
+                include: {
+                    backgroundImage: true
+                }
             });
             return user
 

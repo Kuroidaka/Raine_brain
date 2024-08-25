@@ -1,5 +1,6 @@
 import { dbClient } from "~/config";
-import { conversationModifyProps, conversationProps, msgProps } from "./conversation.interface";
+import { conversationModifyProps, conversationProps, msgFuncProps, msgProps } from "./conversation.interface";
+import { Prisma } from "@prisma/client";
 
 export class ConversationService {
     private static instance: ConversationService;
@@ -30,6 +31,9 @@ export class ConversationService {
                     messages: {
                         orderBy: {
                             createdAt: 'asc'
+                        },
+                        include: {
+                            functionData: true
                         }
                     },
                 },
@@ -49,6 +53,9 @@ export class ConversationService {
                   messages: {
                     orderBy: {
                         createdAt: 'asc'
+                    },
+                    include: {
+                        functionData: true
                     }
                   },
                 },
@@ -85,16 +92,37 @@ export class ConversationService {
             throw error
         }
     }
-    async deleteMsgInConversation(id:string) {
+    async deleteMsgInConversation(id: string) {
         try {
-            await dbClient.message.deleteMany({
-                where: {
-                  conversationId: id,
-                },
+            await dbClient.$transaction(async (prisma) => {
+                // Delete ImageFiles related to the Messages in the Conversation
+                await prisma.imageFile.deleteMany({
+                    where: {
+                        message: {
+                            conversationId: id,
+                        },
+                    },
+                });
+    
+                // Delete MessageFunctions related to the Messages in the Conversation
+                await prisma.messageFuntion.deleteMany({
+                    where: {
+                        message: {
+                            conversationId: id,
+                        },
+                    },
+                });
+    
+                // Delete Messages in the Conversation
+                await prisma.message.deleteMany({
+                    where: {
+                        conversationId: id,
+                    },
+                });
             });
         } catch (error) {
-            console.log('Error getting conversation:', error)
-            throw error
+            console.log('Error deleting messages in conversation:', error);
+            throw error;
         }
     }
 
@@ -107,18 +135,40 @@ export class ConversationService {
         }
     }
 
-    async getMsg(conversationId:string) {
+    async getMsg(conversationId:string, take?: number) {
         try {
-            const messages = await dbClient.message.findMany({
+
+            const query:Prisma.MessageFindManyArgs  = {
                 where: { conversationId },
                 orderBy: {
-                    createdAt: 'asc',
+                    createdAt: take ? 'desc' : 'asc',
                 },
-            })
+                include: {
+                    functionData: true
+                }
+            }
+
+            if(take) query.take = take
+            let messages = await dbClient.message.findMany(query)
+
+            if (take && messages.length > 0) {
+                messages = messages.reverse(); // Reverse the array to get the oldest first
+            }
 
             return messages
         } catch (error) {
             console.error('Error getting message:', error);
+            throw error;
+        }
+    }
+
+    async addMsgFunction(messageId: string, data: msgFuncProps) {
+        try {
+            return await dbClient.messageFuntion.create({ data: {
+                ...data, messageId
+            } });
+        } catch (error) {
+            console.error('Error adding message:', error);
             throw error;
         }
     }

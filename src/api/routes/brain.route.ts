@@ -9,14 +9,17 @@ import { TestDto } from '~/dto/test.dto';
 import { BrainController } from '../controllers/brain.controller';
 import { ChatDto } from '~/dto/chat.dto';
 import validateToken from '../middlewares/validate_token';
-import upload from '~/common/multer';
+import { upload } from '~/common/multer';
 
 const router = Router();
 
 router.post('/chat', validateToken, validateDto(ChatDto), BrainController.chat);
+router.post('/chat/video', validateToken, upload.single('file'), validateDto(ChatDto), BrainController.videoChat);
 router.post('/stt', validateToken, upload.single('file'), BrainController.stt);
 router.post('/tts', validateToken, BrainController.tts);
-router.post('/test', validateToken, upload.single('file'), BrainController.test);
+router.post('/describe_img', validateToken, upload.single('file'), BrainController.describeImg);
+router.post('/rs_memo', validateToken, BrainController.resetLTMemo);
+// router.post('/test', validateToken, upload.single('file'), BrainController.test);
 
 
 export default router;

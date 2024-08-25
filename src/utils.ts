@@ -5,6 +5,8 @@ import pako from 'pako';
 import base64js from 'base64-js';
 import sharp from 'sharp';
 import { ChatCompletionContentPartImage } from './services/llm/llm.interface';
+import { tools } from './database/toolCall/toolCall.interface';
+import { toolsDefined, ToolsDefinedType } from './services/llm/tool';
 
 
 export function isObject(value: any): boolean {
@@ -144,7 +146,7 @@ return await sharp(imageBuffer).png().toBuffer();
 }
   
 
-export async function processImage(filePath: string, maxSize: number): Promise<{ encodedImage: string, maxDim: number }> {
+export async function processImage(filePath: string, maxSize = 6480): Promise<{ encodedImage: string, maxDim: number }> {
     const imageBuffer = fs.readFileSync(filePath);
     const image = sharp(imageBuffer);
     const metadata = await image.metadata();
@@ -169,7 +171,7 @@ export async function processImage(filePath: string, maxSize: number): Promise<{
     }
 }
   
-export function createImageContent(image: string, maxdim: number, detailThreshold: number) {
+export function createImageContent(image: string, maxdim: number, detailThreshold = 700) {
     type DetailLevel = "auto" | "low" | "high" | undefined;
 
     const detail:DetailLevel = maxdim < detailThreshold ? 'low' : 'high';
@@ -178,4 +180,42 @@ export function createImageContent(image: string, maxdim: number, detailThreshol
         image_url: { url: `data:image/jpeg;base64,${image}`, detail: detail }
     } as ChatCompletionContentPartImage
 }
-  
+
+export function formatDateTime(date = new Date()): string {
+    const now = new Date(date);
+    const options: Intl.DateTimeFormatOptions = {
+        weekday: 'short',
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    };
+
+    return now.toLocaleString('en-GB', options).replace(',', '');
+}
+
+// console.log(formatDateTime());  // Example output: "Sun 11 Aug 22:51"
+
+export function readTextFile(filePath: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+        fs.readFile(filePath, 'utf8', (err, data) => {
+            if (err) {
+                reject(`Error reading the file: ${err.message}`);
+                return;
+            }
+            resolve(data);
+        });
+    });
+}
+
+export function filterTools(dataArray: tools[], toolsArray: ToolsDefinedType[]): ToolsDefinedType[] {
+    return dataArray.reduce((acc: ToolsDefinedType[], item) => {
+        const matchedTool = toolsArray.find(tool => tool.function.name === item.aiTool.name);
+        if (matchedTool) {
+            acc.push(matchedTool);
+        }
+        return acc;
+    }, []);
+}
+

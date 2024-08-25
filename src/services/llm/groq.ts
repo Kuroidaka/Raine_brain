@@ -12,11 +12,37 @@ The user will give you TEXT to analyze.
 The user will give you analysis INSTRUCTIONS copied twice, at both the beginning and the end.
 You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested.`
 
+
+const tools = [
+  {
+      type: "function",
+      function: {
+          name: "ReminderChatService",
+          description: "This tool processes task management queries. It can fetch tasks based on specific criteria (e.g., tasks in a particular area) and optionally include related subtasks. For example, if the user asks to 'search task with area in work with its subtask,' the tool will process this by setting 'q' to 'search task with area in work' and 'includeSubTask' to true.",
+          parameters: {
+              type: "object",
+              properties: {
+                "q": {
+                  "description": "The query string provided by the user. This string defines the criteria for searching tasks (e.g., 'search task with area in work').",
+                  "type": "string",
+                },
+                "includeSubTask": {
+                  "description": "A boolean flag indicating whether to include subtasks in the processing. If true, the tool will retrieve and include related subtasks in the result.",
+                  "type": "boolean",
+                }
+              },
+              required: ["expression", "includeSubTask"],
+          },
+      },
+  }
+];
+
 export const GroqService = {
   chat: async (
     messages: MsgListParams[] | string,
     isEnableStream = false,
-    res?: Response
+    res?: Response,
+    toolEnable = false,
   ):Promise<outputInter> => {
 
     // This way allow us to send message as a string or and array object
@@ -28,10 +54,22 @@ export const GroqService = {
     if (isEnableStream && res) return GroqService.stream(res, data);
   
     try {
+      let queryObject = {}
+
+      if(toolEnable) {
+        queryObject = {
+          tool_choice: 'auto',
+          tools
+        }
+      }
+      
       const { choices } = await groqClient.chat.completions.create({
         messages: data as MsgListParams[],
         model: "llama3-70b-8192",
+        ...queryObject
       });
+
+      console.log(choices)
       return {
         content: choices[0].message.content
       }
@@ -103,15 +141,15 @@ export const GroqService = {
       throw error;
     }
   },
-  stt: async (audioPath: string) => {
+  stt: async (audioPath: string , lang = 'en') => {
     try {
       const transcription = await groqClient.audio.transcriptions.create({
         file: fs.createReadStream(audioPath),
         model: "whisper-large-v3",
-        // prompt: "Specify context or spelling",
+        prompt: "Raine, Cảnh",
         // response_format: "json", // Optional
-        language: "en", // Optional
-        temperature: 0.0, // Optional
+        language: lang, // Optional
+        temperature: .7, // Optional
       });
       console.log(transcription.text);
 
@@ -125,26 +163,26 @@ export const GroqService = {
       }
     }
   },
-  tts: async (audioPath: string) => {
-    try {
-      const transcription = await groqClient.audio.transcriptions.create({
-        file: fs.createReadStream(audioPath),
-        model: "whisper-large-v3",
-        // prompt: "Specify context or spelling",
-        // response_format: "json", // Optional
-        language: "en", // Optional
-        temperature: 0.0, // Optional
-      });
-      console.log(transcription.text);
+  // tts: async (audioPath: string) => {
+  //   try {
+  //     const transcription = await groqClient.audio.transcriptions.create({
+  //       file: fs.createReadStream(audioPath),
+  //       model: "whisper-large-v3",
+  //       // prompt: "Specify context or spelling",
+  //       // response_format: "json", // Optional
+  //       language: "vi", // Optional
+  //       temperature: 0.0, // Optional
+  //     });
+  //     console.log(transcription.text);
 
-      return {
-        content: transcription.text
-      }
-    } catch (error) {
-      console.error(error);
-      return {
-        content: "Give me a quick breather; I'll be back in a few minutes, fresher than ever!"
-      }
-    }
-  }
+  //     return {
+  //       content: transcription.text
+  //     }
+  //   } catch (error) {
+  //     console.error(error);
+  //     return {
+  //       content: "Give me a quick breather; I'll be back in a few minutes, fresher than ever!"
+  //     }
+  //   }
+  // }
 }

@@ -8,14 +8,41 @@ import { ConversationService } from '~/database/conversation/conversation';
 import { STMemoStore } from '~/services/STMemo';
 import { ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions';
 import { messagesInter, MsgListParams } from '~/services/llm/llm.interface';
-import { ChatOpenAI } from "@langchain/openai";
 import { ConversationSummaryMemory } from "langchain/memory";
+
+import { DataSource } from "typeorm";
+import { SqlDatabase } from "langchain/sql_db";
+import { ChatOpenAI } from "@langchain/openai";
+import { PromptTemplate } from "@langchain/core/prompts";
+import { RunnableSequence } from "@langchain/core/runnables";
+import { StringOutputParser } from "@langchain/core/output_parsers";
+import { ReminderChatService } from '~/services/chat/reminder';
 
 const conversationService = ConversationService.getInstance()
 export class TestController {
+
+  static async do(req: Request, res: Response, next:NextFunction) {
+    try {
+      const { q, includeSubTask } = req.body
+
+      const reminderChatService = new ReminderChatService()
+
+      const tasks = await reminderChatService.getTaskDataBaseOnText(q)
+
+      const result = await reminderChatService.processTaskData(tasks)
+
+      const cmt = await reminderChatService.cmtTaskData(q, result)
+      return res.status(200).json({ message: cmt, data: result });
+      
+    } catch (error) {
+      console.log(error);
+      // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  }
   static async ping(req: Request, res: Response, next:NextFunction) {
     try {
-      return res.status(200).json({ data: `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` });
+      return res.status(200).json({ data: `` });
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware
@@ -106,24 +133,6 @@ export class TestController {
       next(error);
     }
   }
-
-  static async do(req: Request, res: Response, next:NextFunction) {
-    try {
-      const prompt = req.body.prompt
-      
-      const STMemo = new STMemoStore("canh", "78f5cfe3-2553-49bc-ac8f-e28e0708d840")
-      const history:MsgListParams[] = await STMemo.process(prompt, prompt, true)
-      const result = await STMemo.summaryConversation(history)
-      // await memory.clear()
-      // const history = await memory.loadMemoryVariables({})
-      return res.status(200).json({ data: result });
-    } catch (error) {
-      console.log(error);
-      // Rethrow the error to be caught by the errorHandler middleware
-      next(error);
-    }
-  }
-
   static async rsConversation(req: Request, res: Response, next:NextFunction) {
     try {
       const id = req.params.id

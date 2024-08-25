@@ -16,7 +16,8 @@ import {
     ChatCompletionSystemMessageParam as GroqChatCompletionSystemMessageParam,
     ChatCompletionAssistantMessageParam as GroqChatCompletionAssistantMessageParam,
     ChatCompletionToolMessageParam as GroqChatCompletionToolMessageParam,
-    ChatCompletionFunctionMessageParam as GroqChatCompletionFunctionMessageParam
+    ChatCompletionFunctionMessageParam as GroqChatCompletionFunctionMessageParam,
+    ChatCompletionContentPartText as GroqChatCompletionContentPartText
     
  } from "groq-sdk/resources/chat/completions";
 
@@ -27,8 +28,23 @@ export interface messagesInter {
 }
 
 export interface outputInter {
-    content: string | null
+    content: string | null,
+    data?: outputInterData[]
 }
+
+export interface outputInterData {
+    name: string,
+    data?: any,
+    comment?: string
+}
+
+
+
+export interface outputInterEnsureContent {
+    content: string,
+    data?: any[]
+}
+
 
 export interface analyzeOutputInter {
     content: string | null
@@ -36,10 +52,11 @@ export interface analyzeOutputInter {
 
 
 export type MsgListParams = |
-OpenAIChatCompletionSystemMessageParam |  GroqChatCompletionSystemMessageParam | 
-Omit<OpenAIChatCompletionAssistantMessageParam, 'function_call'> & {
-    function_call?: OpenAIChatCompletionAssistantMessageParam.FunctionCall
-} | GroqChatCompletionAssistantMessageParam |
+GroqChatCompletionSystemMessageParam | 
+Omit<OpenAIChatCompletionSystemMessageParam, 'content'> & {
+    content: string 
+} |
+OpenAIChatCompletionAssistantMessageParam| GroqChatCompletionAssistantMessageParam |
 OpenAIChatCompletionToolMessageParam | GroqChatCompletionToolMessageParam |
 OpenAIChatCompletionUserMessageParam | GroqChatCompletionUserMessageParam | 
 OpenAIChatCompletionFunctionMessageParam | GroqChatCompletionFunctionMessageParam
@@ -57,4 +74,13 @@ export interface DataMemo {
     output_text:string,
     distance: number,
     createdAt: string
+}
+
+export interface ToolCallCus {
+    id: string;
+    type: "function";
+    function: {
+        name: string;
+        arguments: string;
+    };
 }

@@ -1,40 +1,40 @@
 import { Prisma } from "@prisma/client";
 
-export interface TaskProps {
+export type TaskProps = {
     title: string;
     color?: string;
-    time: Date;
+    deadline: Date | string | null;
     note?: string;
     userId: string;
 }
 
-export interface UpdateTaskProps {
+export type UpdateTaskProps = {
     title?: string;
     color?: string;
-    time?: Date;
+    deadline?: Date | string | null;
     note?: string;
 }
 
-export interface TaskWithCateProps extends TaskProps {
-    categories?: Prisma.TaskCategoryCreateNestedManyWithoutTaskInput
+export interface TaskWithAreaProps extends TaskProps {
+    area?: Prisma.TaskAreasCreateNestedManyWithoutTaskInput
 }
 
 export interface UpdateTaskWithCateProps extends UpdateTaskProps {
-    categories?: Prisma.TaskCategoryCreateNestedManyWithoutTaskInput
+    area?: Prisma.TaskAreasCreateNestedManyWithoutTaskInput
 }
 
   
-export interface SubTaskProps {
+export type SubTaskProps = {
     title: string;
     taskId: string;
 }
 
-export interface UpdateSubTaskProps {
+export type UpdateSubTaskProps = {
     title?: string;
     status: boolean;
 }
   
-enum Categories {
+enum Area {
     HEALTH = "health",
     PLAY = "play",
     SPIRITUALITY = "spirituality",

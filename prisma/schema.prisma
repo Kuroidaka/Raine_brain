@@ -8,39 +8,58 @@ datasource db {
 }
 
 model Task {
-  id          String           @id @default(uuid())
-  title       String           @db.LongText
-  color       String?
-  time        DateTime?
-  note        String?          @db.LongText
-  categories  TaskCategory[]
-  subTask     SubTask[]
-  userId      String
-  status      Boolean          @default(false)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id        String    @id @default(uuid())
+  title     String    @db.LongText
+  color     String?
+  deadline  DateTime?
+  note      String?   @db.LongText
+  status    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  user      User  @relation(fields: [userId], references: [id])
+  area    TaskAreas[]
+  subTask SubTask[]
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 }
 
 model SubTask {
-  id        String           @id @default(uuid())
-  title     String           @db.LongText
-  status    Boolean          @default(false)
+  id        String   @id @default(uuid())
+  title     String   @db.LongText
+  status    Boolean  @default(false)
   taskId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  task      Task  @relation(fields: [taskId], references: [id])
+  task Task @relation(fields: [taskId], references: [id])
 }
 
-model TaskCategory {
-  taskId     String
-  category   Categories
-  task       Task    @relation(fields: [taskId], references: [id])
+model TaskAreas {
+  taskId String
+  area   Areas
+  task   Task   @relation(fields: [taskId], references: [id])
 
-  @@id([taskId, category])
+  @@id([taskId, area])
 }
 
-enum Categories {
+model GoalAreas {
+  goalId String
+  area   Areas
+  goal   Goal   @relation(fields: [goalId], references: [id])
+
+  @@id([goalId, area])
+}
+
+model RoutineAreas {
+  routineId String
+  area      Areas
+  routine   Routine @relation(fields: [routineId], references: [id])
+
+  @@id([routineId, area])
+}
+
+enum Areas {
   health
   play
   spirituality
@@ -49,6 +68,47 @@ enum Categories {
   finance
   development
   relationships
+}
+
+model Routine {
+  id       String         @id @default(uuid())
+  title    String         @db.LongText
+  color    String?
+  note     String?        @db.LongText
+  area     RoutineAreas[]
+  userId   String
+  isActive Boolean        @default(true)
+
+  routineTime String // Store time as "HH:mm"
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  routineDate RoutineDate[]
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Goal {
+  id        String      @id @default(uuid())
+  title     String      @db.LongText
+  color     String?
+  note      String?     @db.LongText
+  area      GoalAreas[]
+  userId    String
+  percent   Decimal
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model RoutineDate {
+  id              String   @id @default(uuid())
+  routineID       String
+  completion_date DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  routine Routine @relation(fields: [routineID], references: [id])
 }
 
 model File {
@@ -63,24 +123,31 @@ model File {
 }
 
 model Role {
-  id             String           @id @default(uuid())
-  name           String           @unique
-  created_at     DateTime         @default(now())
-  updated_at     DateTime         @default(now())
-  User           User[]
+  id         String   @id @default(uuid())
+  name       String   @unique
+  created_at DateTime @default(now())
+  updated_at DateTime @default(now())
+  User       User[]
 }
 
 model User {
-  id            String   @id @default(uuid())
-  display_name  String?
-  username      String   @unique
-  password      String
-  created_at    DateTime @default(now())
-  updated_at    DateTime @default(now())
-  role_id       String?
-  Role          Role?    @relation(fields: [role_id], references: [id])
+  id           String   @id @default(uuid())
+  display_name String?
+  username     String   @unique
+  password     String
+  created_at   DateTime @default(now())
+  updated_at   DateTime @default(now())
+  role_id      String?
+  bg_id        String?
+
+  Role           Role?            @relation(fields: [role_id], references: [id])
+  backgroundImage backgroundImage? @relation(fields: [bg_id], references: [id])
+
   conversations Conversation[]
   Task          Task[]
+  Routine       Routine[]
+  Goal          Goal[]
+  aiTools       UserOnAiTools[]
 
   @@index([role_id], map: "Role_role_id_fkey")
 }
@@ -91,30 +158,77 @@ model Conversation {
   from          String?
   summarize     String?   @db.LongText
   lastMessage   String?   @db.LongText
-  lastMessageAt DateTime?  @default(now())
+  lastMessageAt DateTime? @default(now())
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   messages      Message[]
   userID        String
-  user          User       @relation(fields: [userID], references: [id])
+  user          User      @relation(fields: [userID], references: [id])
 
   @@index([userID], map: "Conversation_userID_fkey")
-
 }
 
 model Message {
-  id             String       @id @default(uuid())
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  text           String       @db.LongText
+  id             String           @id @default(uuid())
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  text           String           @db.LongText
   isBot          Boolean
   userID         String
-  functionList   String?      @db.LongText
   conversationId String
   imgList        ImageFile[]
-  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  functionData   MessageFuntion[]
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
 
   @@index([conversationId], map: "Message_conversationId_fkey")
+}
+
+model MessageFuntion {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name    String
+  data    String? @db.LongText
+  comment String? @db.LongText
+
+  messageId String
+  message   Message @relation(fields: [messageId], references: [id])
+}
+
+model AiTool {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String
+  description String @db.LongText
+
+  users UserOnAiTools[]
+}
+
+model UserOnAiTools {
+  userId     String
+  aiToolId   String
+  assignedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aiTool AiTool @relation(fields: [aiToolId], references: [id], onDelete: Cascade)
+
+  @@id([userId, aiToolId])
+}
+
+model backgroundImage {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name    String
+  urlPath String? @db.LongText
+  extname String 
+
+  users User[]
 }
 
 model ImageFile {
