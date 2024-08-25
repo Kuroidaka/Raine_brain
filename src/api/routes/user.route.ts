@@ -13,6 +13,7 @@ const router = Router();
 
 router.post('/set-background-img', validateToken, validateDto(setBGImgDto), UserController.setBackgroundImage);
 router.get('/tools', validateToken, UserController.getTools);
+router.patch('/tools/:toolId', validateToken, UserController.toggleUserTool);
 router.delete('/tools/:toolId', validateToken, UserController.removeTools);
 router.put('/tools/:toolId', validateToken, UserController.updateTools);
 router.get('/:id',  UserController.getUser);

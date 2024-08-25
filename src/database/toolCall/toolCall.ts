@@ -83,4 +83,59 @@ export class ToolCallService {
             throw error;
         }
     }
+
+    async getAllToolsWithUserStatus(userId:string) {
+        try {
+          const allTools = await dbClient.aiTool.findMany({
+            include: {
+              users: {
+                where: {
+                  userId: userId,
+                },
+              },
+            },
+          });
+      
+          return allTools.map((tool) => ({
+            id: tool.id,
+            name: tool.name,
+            description: tool.description,
+            assigned: tool.users.length > 0, // Check if this tool is assigned to the user
+          }));
+        } catch (error) {
+          console.error('Error fetching tools with user status:', error);
+          throw error;
+        }
+    }
+    async toggleUserTool(userId: string, toolId:string) {
+        try {
+          const existingAssignment = await dbClient.userOnAiTools.findUnique({
+            where: {
+              userId_aiToolId: { userId, aiToolId: toolId },
+            },
+          });
+      
+          if (existingAssignment) {
+            // If the tool is already assigned, remove it
+            const result = await dbClient.userOnAiTools.delete({
+              where: {
+                userId_aiToolId: { userId, aiToolId: toolId },
+              },
+            });
+            return result;
+          } else {
+            // If the tool is not assigned, add it
+            const result = await dbClient.userOnAiTools.create({
+              data: {
+                userId: userId,
+                aiToolId: toolId,
+              },
+            });
+            return result;
+          }
+        } catch (error) {
+          console.error('Error toggling tool assignment:', error);
+          throw error;
+        }
+      }
 }

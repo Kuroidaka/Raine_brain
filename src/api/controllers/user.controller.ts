@@ -39,11 +39,23 @@ export const UserController = {
             next(error);
         }
     },
+    // getTools: async (req: Request, res: Response, next:NextFunction) => {
+    //     const { id: userID } = req.user
+    //     console.log("userID", userID)
+    //     try {
+    //         const tools = await toolCallService.getToolsByUser(userID)
+            
+    //         return res.status(200).json(tools);
+    //     } catch (error) {
+    //         console.log(error);
+    //         // Rethrow the error to be caught by the errorHandler middleware
+    //         next(error);
+    //     }
+    // },
     getTools: async (req: Request, res: Response, next:NextFunction) => {
         const { id: userID } = req.user
-        console.log("userID", userID)
         try {
-            const tools = await toolCallService.getToolsByUser(userID)
+            const tools = await toolCallService.getAllToolsWithUserStatus(userID)
             
             return res.status(200).json(tools);
         } catch (error) {
@@ -78,6 +90,20 @@ export const UserController = {
             next(error);
         }
     },
+    toggleUserTool: async (req: Request, res: Response, next:NextFunction) => {
+        const { id: userID } = req.user
+        const { toolId } = req.params
+        try {
+            const tools = await toolCallService.toggleUserTool(userID, toolId)
+            
+            return res.status(200).json(tools);
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
+
     setBackgroundImage: async (req: Request, res: Response, next:NextFunction) => {
         const { id: userID } = req.user
         const { bgId } = req.body
