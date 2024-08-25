@@ -42,7 +42,7 @@ export class TestController {
   }
   static async ping(req: Request, res: Response, next:NextFunction) {
     try {
-      return res.status(200).json({ data: `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` });
+      return res.status(200).json({ data: `` });
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware
