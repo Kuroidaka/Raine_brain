@@ -23,16 +23,8 @@ export class TestController {
 
   static async do(req: Request, res: Response, next:NextFunction) {
     try {
-      const { q, includeSubTask } = req.body
-
-      const reminderChatService = new ReminderChatService()
-
-      const tasks = await reminderChatService.getTaskDataBaseOnText(q)
-
-      const result = await reminderChatService.processTaskData(tasks)
-
-      const cmt = await reminderChatService.cmtTaskData(q, result)
-      return res.status(200).json({ message: cmt, data: result });
+    
+      return res.status(200).json({ });
       
     } catch (error) {
       console.log(error);

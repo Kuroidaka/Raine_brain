@@ -13,12 +13,12 @@ import { Stream } from 'openai/streaming';
 import chalk from 'chalk';
 import { tools } from '~/database/toolCall/toolCall.interface'
 import { filterTools } from '~/utils';
+import { uploadFilePath } from '~/constant';
 
 const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
 The user will give you analysis INSTRUCTIONS copied twice, at both the beginning and the end.
 You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested.`
-const audioPath = 'src/assets/file/audio';
 
 
 const MODEL = "gpt-4o"
@@ -353,7 +353,7 @@ export const OpenaiService = {
   },
   tts: async (text:string) => {
     try {
-      const outputFile = path.join(audioPath, `output_${Date.now()}.mp3`)
+      const outputFile = path.join(uploadFilePath.audioPath, `output_${Date.now()}.mp3`)
 
       const response = await openAIClient.audio.speech.create({
         model: "tts-1",
