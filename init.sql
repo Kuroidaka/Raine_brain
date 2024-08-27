@@ -12,3 +12,4 @@ INSERT INTO AiTool (id, createdAt, updatedAt, name, description) VALUES
 INSERT INTO UserOnAiTools (userId, aiToolId, assignedAt) VALUES
 ('3969d671-6d6d-4d94-a2d8-1a30168c9476', '3f1dbef6-d69b-4c97-b4c1-f729f04b728a', NOW()),
 ('3969d671-6d6d-4d94-a2d8-1a30168c9476', 'b16f9f7e-7f61-4977-bf34-6fbcfa01f0db', NOW());
+

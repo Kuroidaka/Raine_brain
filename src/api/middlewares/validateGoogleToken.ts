@@ -1,33 +1,40 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { ForbiddenException, UnauthorizedException } from '~/common/error';
-import * as fs from 'fs';
-import path from 'path';
-import { uploadFilePath } from '~/constant';
+import { NextFunction, Request, Response } from 'express';
+import { google } from 'googleapis';
 import { googleOAuth2Client } from '~/config';
+import { UserService } from '~/database/user/user';
 
-const SECRET_KEY:string = process.env.JWT_SECRET || "";
+const userService = UserService.getInstance();
 
-export interface JwtPayload {
-    id: string;
-    username: string;
-    // Add other properties as needed
-}
-
-
-export const validateGoogleToken = (req: Request, res: Response, next: NextFunction) => {
+export const validateGoogleToken = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tokenPath = path.join(uploadFilePath.token, 'token.json');
-        
-        if (fs.existsSync(tokenPath)) {
-            const token = fs.readFileSync(tokenPath, 'utf8');
-            googleOAuth2Client.setCredentials(JSON.parse(token));
+        // Retrieve the user from the database using the ID from JWT
+        const user = await userService.getUser({ id: req.user.id });
+
+        if (!user || !user.googleCredentials) {
+            throw new Error('Google token not found. Please link your Google account.');
         }
-        next();  // Proceed to the next middleware or route handler
+
+        // Parse the stored token
+        const credentials = JSON.parse(user.googleCredentials);
+        
+        // Set the credentials using the stored token
+        googleOAuth2Client.setCredentials(credentials);
+
+        // Check if the token is expired
+        const currentTime = new Date().getTime();
+        if (!credentials.expiry_date || credentials.expiry_date <= currentTime) {
+            // If the token is expiring or has expired, refresh it
+            const refreshedTokens = await googleOAuth2Client.refreshAccessToken();
+            googleOAuth2Client.setCredentials(refreshedTokens.credentials);
+
+            // Update the user's token in the database with the refreshed token
+            await userService.updateUser(user.id, {
+                googleCredentials: JSON.stringify(refreshedTokens.credentials),
+            });
+        }
+        next(); // Proceed to the next middleware or route handler
     } catch (error) {
-        console.error('Error loading token:', error);
-        next(error);  // Pass the error to the error handler middleware
+        console.error('Failed to validate Google token:', error);
+        res.status(401).json({ error: 'Failed to validate Google token. Please re-link your Google account.' });
     }
 };
-
-export default validateGoogleToken;
