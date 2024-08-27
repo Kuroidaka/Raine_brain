@@ -11,5 +11,6 @@ export interface userUpdateProps {
     password?: string;
     role_id?: string;
     gmail?: string | null, 
-    googleCredentials?: string | null
+    googleCredentials?: string | null,
+    eventListId?: string | null
 }

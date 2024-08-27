@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import * as fs from 'fs';
 import { google } from 'googleapis';
 import * as path from 'path';
-import { UnauthorizedException } from '~/common/error';
+import { BadRequestException, NotFoundException, NotImplementedException, UnauthorizedException } from '~/common/error';
 import { googleOAuth2Client } from '~/config';
 import { uploadFilePath } from '~/constant';
 import { UserService } from '~/database/user/user';
@@ -22,7 +22,11 @@ export const googleController = {
     
             const authUrl = googleOAuth2Client.generateAuthUrl({
                 access_type: 'offline',
-                scope: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/userinfo.email'],
+                scope: [
+                    'https://www.googleapis.com/auth/calendar',
+                    'https://www.googleapis.com/auth/userinfo.email',
+                    'https://www.googleapis.com/auth/tasks'
+                ],
                 state: state, // Include the state parameter
             });
     
@@ -45,15 +49,18 @@ export const googleController = {
             // Fetch the user to check if there's an associated Gmail account
             const user = await userService.getUser({id: userId});
             
-            if (!user || !user.gmail) {
+            if (!user || !user.gmail || !user?.eventListId) {
                 throw new Error("No Gmail account linked to this user");
             }
     
             // Update the user's record to remove the Gmail account and credentials
             await userService.updateUser(userId, {
                 gmail: null,
-                googleCredentials: null
+                googleCredentials: null,
+                eventListId: null
             });
+
+            await GoogleService.deleteCalendarEvent(user.eventListId)
     
             res.status(200).json({
                 message: 'Gmail unlinked successfully!'
@@ -84,21 +91,25 @@ export const googleController = {
             const userInfo = await oauth2.userinfo.get({ auth: googleOAuth2Client });
     
             const gmail = userInfo.data.email;
+
+            const { id: eventListId } = await GoogleService.createEventList("Raine reminder")
     
+            
             const userService = UserService.getInstance();
             await userService.updateUser(userId, {
                 gmail,
-                googleCredentials: JSON.stringify(tokens)
+                googleCredentials: JSON.stringify(tokens),
+                eventListId: eventListId
             });
     
-            res.send('Gmail linked successfully! You can close this window.');
+            res.send('Gmail linked successfully! Please close this window.');
         } catch (error) {
             console.error(error);
             next(error);
         }
     },
     // Create an event in Google Calendar
-    updateTask: async (req: Request, res: Response, next: NextFunction) => {
+    updateEvent: async (req: Request, res: Response, next: NextFunction) => {
         try {
 
             const { id } = req.params
@@ -127,7 +138,7 @@ export const googleController = {
             next(error);
         }
     },
-    createTask: async (req: Request, res: Response, next: NextFunction) => {
+    createEvent: async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { 
                 summary = "", 
@@ -139,11 +150,20 @@ export const googleController = {
             } = req.body
 
             const { isRoutine } = req.query
+            const { eventListId } = req.user
             const isEnableRoutine = isRoutine === "true"
 
-            const result = await GoogleService.createCalendar({
-                summary,description,colorId, startDateTime, endDateTime,timeZone,
-            }, isEnableRoutine)
+            if(!eventListId) {
+                throw new NotImplementedException("Please link your google account to process create event calendar")
+            }
+
+            const result = await GoogleService.createEvent(
+                eventListId,
+                {
+                    summary,description,colorId, startDateTime, endDateTime,timeZone,
+                },
+                isEnableRoutine
+            )
             res.status(200).json(result);
         } catch (error) {
             console.error('Error creating event:', error);
@@ -189,8 +209,52 @@ export const googleController = {
             next(error);
         }
     },
+    initEventList: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await GoogleService.createEventList("Raine reminder")
+            res.status(200).json(result);
+        } catch (error) {
+            console.error('Error creating event:', error);
+            next(error);
+        }
+    },
 
+    initTaskList: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const result = await GoogleService.createTaskList("Raine reminder")
+            res.status(200).json(result);
+        } catch (error) {
+            console.error('Error creating event:', error);
+            next(error);
+        }
+    },
+    createTask: async (req: Request, res: Response, next: NextFunction) => {
+        const {
+            note,
+            status,
+            title,
+            due,
+        } = req.body
+        try {
+            const { id: userID } = req.user
 
+            const userService = UserService.getInstance();
+            const user = await userService.getUser({ id: userID})
+            
+            if(!user?.eventListId) {
+                throw new NotImplementedException("Please link with your google account")
+            }
+            const eventListId = user.eventListId
 
-    
+            const result = await GoogleService.createTask(
+                eventListId,
+                { note, status, title, due }
+            )
+            
+            res.status(200).json(result);
+        } catch (error) {
+            console.error('Error creating event:', error);
+            next(error);
+        }
+    },
 }

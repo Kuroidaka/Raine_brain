@@ -7,13 +7,14 @@ const SECRET_KEY:string = process.env.JWT_SECRET || "";
 export interface JwtPayload {
     id: string;
     username: string;
+    eventListId: string | null
+    googleCredentials: string | null
     // Add other properties as needed
 }
 
 const validateToken = (req: Request, res: Response, next: NextFunction) => {
     let token: string | undefined;
 
-    console.log("req.cookies.authToken;", req.cookies.authToken)
     // First, check the Authorization header
     const authHeader = req.headers.authorization;
     if (authHeader) {

@@ -7,7 +7,6 @@ export const uploadFilePath = {
 
 
 export const colorList = [
-  null,
   "#AC725E",
   "#D06B64",
   "#F83A22",

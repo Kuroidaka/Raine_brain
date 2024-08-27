@@ -1,10 +1,10 @@
 import { InternalServerErrorException } from "~/common/error";
 import { google } from 'googleapis';
 import { googleOAuth2Client } from '~/config';
-import { calendarCreate, calendarUpdate } from "./google.type";
+import { calendarCreate, calendarUpdate, taskCreate } from "./google.type";
 
 export const GoogleService = {
-  createCalendar: async ({
+  createEvent: async (eventListId: string, {
     summary, 
     description,
     colorId,
@@ -45,7 +45,7 @@ export const GoogleService = {
 
         const eventResponse = await calendar.events.insert({
             auth: googleOAuth2Client,
-            calendarId: 'primary',
+            calendarId: eventListId,
             sendUpdates: "all",
             requestBody: event,
         });
@@ -162,5 +162,95 @@ export const GoogleService = {
       console.error(error);
       throw new InternalServerErrorException("Error occurred while processing the deletion of a Google Calendar event");
     }
-  }
+  },
+  createEventList: async (title: string, timeZone="Asia/Ho_Chi_Minh") => {
+    try {
+      const calendar = google.calendar({ version: 'v3', auth: googleOAuth2Client });
+
+      const calendarResponse = await calendar.calendars.insert({
+        requestBody: {
+          summary: title, // The name of the calendar
+          timeZone: timeZone
+        },
+      });
+  
+      return {
+          message: 'Event list created successfully',
+          data: calendarResponse.data,
+          id: calendarResponse.data.id
+      };
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException("error occur while process creating google calendar")
+    }
+  },
+  deleteEventList: async (eventListId: string) => {
+    try {
+      const calendar = google.calendar({ version: 'v3', auth: googleOAuth2Client });
+
+      const calendarResponse = await calendar.calendars.delete({
+        calendarId: eventListId
+      });
+  
+      return {
+          message: 'Event list deleted successfully',
+          data: calendarResponse.data
+      };
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException("error occur while process creating google calendar")
+    }
+  },
+
+  createTaskList: async (title: string, ) => {
+
+    try {
+      const task = google.tasks({ version: 'v1', auth: googleOAuth2Client });
+
+      const eventResponse = await task.tasklists.insert({
+          requestBody: {
+            title: title
+          },
+      });
+
+      return {
+          message: 'Task list created successfully',
+          data: eventResponse.data,
+          id: eventResponse.data.id
+      };
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException("error occur while process creating google calendar")
+    }
+  },
+  createTask: async (eventListId: string,{
+    note,
+    status,
+    title,
+    due
+  }:taskCreate) => {
+
+    try {
+        const task = google.tasks({ version: 'v1', auth: googleOAuth2Client });
+
+        const taskData = {
+          note: note,
+          status: status,
+          title: title,
+          due: due,
+        };
+
+        await task.tasks.insert({
+          tasklist: eventListId,
+          requestBody: taskData,
+        });
+
+        return {
+          message: "Google Task created successfully"
+        }
+    } catch (error) {
+      console.error(error);
+      throw new InternalServerErrorException("error occur while process creating google calendar")
+    }
+  },
 }

@@ -13,6 +13,7 @@ export type UpdateTaskProps = {
     color?: string;
     deadline?: Date | string | null;
     note?: string;
+    googleEventId?: string
 }
 
 export interface TaskWithAreaProps extends TaskProps {
