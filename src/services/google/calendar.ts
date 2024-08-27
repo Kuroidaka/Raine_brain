@@ -105,7 +105,7 @@ export const GoogleService = {
       throw new InternalServerErrorException("Error occurred while retrieving the calendar list from Google Calendar");
     }
   },
-  updateEvent: async (id: string, eventListId: string, dataUpdate: calendarUpdate) => {
+  updateEvent: async (id: string, eventListId: string, dataUpdate: calendarCreate) => {
     try {
       const calendar = google.calendar({ version: 'v3', auth: googleOAuth2Client });
       const { startDateTime, endDateTime, ...rest } = dataUpdate

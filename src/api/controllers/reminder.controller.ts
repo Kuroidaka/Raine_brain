@@ -92,19 +92,20 @@ export const reminderController = {
             if(eventListId && googleCredentials) {// If account link with google
                 // await GoogleService.createTask(eventListId, googleTaskData)  
                 if(task.googleEventId) {
-                    const googleEventData = {
+                       const googleEventData:calendarCreate = {
+                        summary: data.title || task.title,
+                        description: data.note || task.note,
+                        colorId: null, 
+                        startDateTime: data.deadline || task.deadline, 
+                        endDateTime: data.deadline || task.deadline,
                         timeZone: 'Asia/Ho_Chi_Minh',
-                    } as calendarUpdate
-        
-                    if(data?.title) googleEventData.summary = data.title
-                    if(data?.note) googleEventData.description = data.note
-                    if(data?.deadline) {
-                        googleEventData.startDateTime = data.deadline
-                        googleEventData.endDateTime = data.deadline
                     }
         
                     if(data?.color) {
                         let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === data.color)
+                        googleEventData.colorId = String(colorIdIndex + 1)
+                    } else {
+                        let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === task.color)
                         googleEventData.colorId = String(colorIdIndex + 1)
                     }
                     await GoogleService.updateEvent(task.googleEventId as string, eventListId, googleEventData)
@@ -193,25 +194,6 @@ export const reminderController = {
         try {
             await taskService.deleteSubTask(subId)
             return res.status(200).json({ msg: "Deleted"})
-        } catch (error) {
-            console.log(error);
-            // Rethrow the error to be caught by the errorHandler middleware
-            next(error);
-        }
-    },
-
-    // ROUTINE
-    createRoutine: async (req: Request, res: Response, next:NextFunction) => {       
-        const { 
-            data,
-            area = []
-         } = req.body;
-
-        const { id: userId } = req.user
-        
-        try {
-            await taskService.addNewTask({...data, userId}, area)
-            return res.status(200).json({})
         } catch (error) {
             console.log(error);
             // Rethrow the error to be caught by the errorHandler middleware

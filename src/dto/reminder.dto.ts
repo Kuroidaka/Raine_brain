@@ -24,6 +24,7 @@ export class CreateTaskDto {
 
 export class UpdateTaskDto {
   @IsString()
+  @IsOptional()
   title?: string;
 
   @IsString()
@@ -31,6 +32,7 @@ export class UpdateTaskDto {
   color?: string;
 
   @IsString()
+  @IsOptional()
   deadline?: string | null;
 
   @IsString()

@@ -2,7 +2,7 @@ import { $Enums } from '@prisma/client';
 import { IsString, IsOptional, IsDateString, IsEnum, IsArray, IsBoolean } from 'class-validator';
 import { UpdateRoutineDateProps } from '~/database/reminder/routine.type';
 
-class RoutineData {
+export class CreateRoutineDto {
   @IsString()
   title: string;
 
@@ -20,9 +20,14 @@ class RoutineData {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsArray()
+  @IsEnum($Enums.Areas, { each: true })
+  @IsOptional()
+  area: $Enums.Areas[];
 }
 
-class UpdateRoutineData {
+export class UpdateRoutineDto {
   @IsString()
   @IsOptional()
   title?: string;
@@ -42,19 +47,6 @@ class UpdateRoutineData {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
-}
-
-export class CreateRoutineDto {
-  data: RoutineData;
-
-  @IsArray()
-  @IsEnum($Enums.Areas, { each: true })
-  @IsOptional()
-  area: $Enums.Areas[];
-}
-
-export class UpdateRoutineDto {
-  data?: UpdateRoutineData;
 
   @IsArray()
   @IsEnum($Enums.Areas, { each: true })

@@ -5,7 +5,7 @@ const routineService = RoutineService.getInstance();
 
 export const routineController = {
     createRoutine: async (req: Request, res: Response, next: NextFunction) => {
-        const { data, area = [] } = req.body;
+        const { area = [], ...data } = req.body;
         const { id: userId } = req.user;
 
         try {
@@ -40,7 +40,7 @@ export const routineController = {
     },
     updateRoutine: async (req: Request, res: Response, next: NextFunction) => {
         const { id: routineID } = req.params;
-        const { data, area = [], dates = []} = req.body;
+        const { area = [], dates = [], ...data} = req.body;
 
         try {
             const result = await routineService.updateRoutine(routineID, data, area, dates);
