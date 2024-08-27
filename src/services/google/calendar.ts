@@ -105,18 +105,19 @@ export const GoogleService = {
       throw new InternalServerErrorException("Error occurred while retrieving the calendar list from Google Calendar");
     }
   },
-  updateEvent: async (id: string, dataUpdate: calendarUpdate) => {
+  updateEvent: async (id: string, eventListId: string, dataUpdate: calendarUpdate) => {
     try {
       const calendar = google.calendar({ version: 'v3', auth: googleOAuth2Client });
+      const { startDateTime, endDateTime, ...rest } = dataUpdate
 
       const event = {
-        ...dataUpdate,
+        ...rest,
         start: {
-            dateTime: new Date(dataUpdate.startDateTime).toISOString(), // Expecting date-time format 'YYYY-MM-DDTHH:MM:SSZ'
+            dateTime: new Date(startDateTime).toISOString(), // Expecting date-time format 'YYYY-MM-DDTHH:MM:SSZ'
             timeZone: dataUpdate?.timeZone || "Asia/Ho_Chi_Minh"
         },
         end: {
-            dateTime: new Date(dataUpdate.endDateTime).toISOString(), // Expecting date-time format 'YYYY-MM-DDTHH:MM:SSZ'
+            dateTime: new Date(endDateTime).toISOString(), // Expecting date-time format 'YYYY-MM-DDTHH:MM:SSZ'
             timeZone: dataUpdate?.timeZone || "Asia/Ho_Chi_Minh"
         },
         reminders: {
@@ -130,7 +131,7 @@ export const GoogleService = {
 
       const calendarListResponse = await calendar.events.update({
         auth: googleOAuth2Client,
-        calendarId: "primary",
+        calendarId: eventListId,
         eventId: id,
         requestBody: event
       });

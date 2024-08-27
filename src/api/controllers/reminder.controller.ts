@@ -3,7 +3,7 @@ import { BadRequestException, ConflictException, NotFoundException, Unauthorized
 import { colorList } from '~/constant';
 import { TaskService } from '~/database/reminder/task';
 import { GoogleService } from '~/services/google/calendar';
-import { calendarCreate, taskCreate } from '~/services/google/google.type';
+import { calendarCreate, calendarUpdate, taskCreate } from '~/services/google/google.type';
 
 const taskService = TaskService.getInstance()
 export const reminderController = {
@@ -13,7 +13,7 @@ export const reminderController = {
             ...data
          } = req.body;
 
-        const { id: userId, eventListId } = req.user
+        const { id: userId, eventListId, googleCredentials } = req.user
         
         try {
             const task = await taskService.addNewTask({...data, userId}, area)
@@ -36,9 +36,9 @@ export const reminderController = {
 
             if(data?.color) {
                 let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === data.color)
-                googleEventData.colorId = String(colorIdIndex)
+                googleEventData.colorId = String(colorIdIndex + 1)
             }
-            if(eventListId) {
+            if(eventListId && googleCredentials) {// If account link with google
                 // await GoogleService.createTask(eventListId, googleTaskData)
                 const isEnableRoutine = false
     
@@ -84,10 +84,53 @@ export const reminderController = {
     updateTask: async (req: Request, res: Response, next:NextFunction) => {       
         const { id:taskID } = req.params;
         const { area = [], ...data } = req.body;
+        const { id: userId, eventListId, googleCredentials } = req.user
         
         try {
-            const result = await taskService.updateTask(taskID, data, area)
-            return res.status(200).json(result)
+            const task = await taskService.updateTask(taskID, data, area)
+
+            if(eventListId && googleCredentials) {// If account link with google
+                // await GoogleService.createTask(eventListId, googleTaskData)  
+                if(task.googleEventId) {
+                    const googleEventData = {
+                        timeZone: 'Asia/Ho_Chi_Minh',
+                    } as calendarUpdate
+        
+                    if(data?.title) googleEventData.summary = data.title
+                    if(data?.note) googleEventData.description = data.note
+                    if(data?.deadline) {
+                        googleEventData.startDateTime = data.deadline
+                        googleEventData.endDateTime = data.deadline
+                    }
+        
+                    if(data?.color) {
+                        let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === data.color)
+                        googleEventData.colorId = String(colorIdIndex + 1)
+                    }
+                    await GoogleService.updateEvent(task.googleEventId as string, eventListId, googleEventData)
+                } else {
+                    const googleEventData:calendarCreate = {
+                        summary: data.title,
+                        description: data.note,
+                        colorId: null, 
+                        startDateTime: data.deadline, 
+                        endDateTime: data.deadline,
+                        timeZone: 'Asia/Ho_Chi_Minh',
+                    }
+        
+                    if(data?.color) {
+                        let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === data.color)
+                        googleEventData.colorId = String(colorIdIndex + 1) 
+                    }
+
+                    const isEnableRoutine = false
+    
+                    const { id: eventID } = await GoogleService.createEvent(eventListId, googleEventData, isEnableRoutine)
+                    eventID && await taskService.updateTaskDataWithoutArea(task.id, { googleEventId: eventID })
+                }
+            }
+
+            return res.status(200).json(task)
         } catch (error) {
             console.log(error);
             // Rethrow the error to be caught by the errorHandler middleware

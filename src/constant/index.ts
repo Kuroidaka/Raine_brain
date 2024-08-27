@@ -6,29 +6,16 @@ export const uploadFilePath = {
 };
 
 
-export const colorList = [
-  "#AC725E",
-  "#D06B64",
-  "#F83A22",
-  "#FA573C",
-  "#FF7537",
-  "#FFAD46",
-  "#42D692",
-  "#16A765",
-  "#7BD148",
-  "#B3DC6C",
-  "#FBE983",
-  "#FAD165",
-  "#92E1C0",
-  "#9FE1E7",
-  "#9FC6E7",
-  "#4986E7",
-  "#9A9CFF",
-  "#B99AFF",
-  "#C2C2C2",
-  "#CABDBF",
-  "#CCA6AC",
-  "#F691B2",
-  "#CD74E6",
-  "#A47AE2"
+export const colorList =  [
+  "#A4BDFC",
+  "#7AE7BF",
+  "#DBADFF",
+  "#FF887C",
+  "#FBD75B",
+  "#FFB878",
+  "#46D6DB",
+  "#E1E1E1",
+  "#5484ED",
+  "#51B749",
+  "#DC2127"
 ]
