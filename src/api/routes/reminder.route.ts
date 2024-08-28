@@ -14,7 +14,7 @@ router.get('/get', validateToken, reminderController.getTask);
 router.get('/get/:id', validateToken, reminderController.getTaskById);
 router.patch('/update/:id', validateToken, validateGgTokenOptional, validateDto(UpdateTaskDto), reminderController.updateTask);
 router.patch('/check/:id', validateToken, reminderController.checkTask);
-router.delete('/delete/:id', validateToken, reminderController.deleteTask);
+router.delete('/delete/:id', validateToken, validateGgTokenOptional, reminderController.deleteTask);
 router.post('/update/:id/sub', validateToken, validateDto(SubTaskCreateDto), reminderController.addSubTask);
 router.patch('/update/sub/:subId', validateToken, validateDto(SubTaskUpdateDto), reminderController.updateSubTask);
 router.delete('/delete/sub/:subId', validateToken, reminderController.deleteSubTask);

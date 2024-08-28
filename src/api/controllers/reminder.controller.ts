@@ -152,9 +152,14 @@ export const reminderController = {
     },
     deleteTask: async (req: Request, res: Response, next:NextFunction) => {       
         const { id:taskID } = req.params;
-        
+        const { id: userId, eventListId, googleCredentials } = req.user
         try {
+            const task = await taskService.getTasksById(taskID)
             await taskService.deleteTask(taskID)
+
+            if(googleCredentials && eventListId && task?.googleEventId) {
+                await GoogleService.deleteCalendarEvent(task?.googleEventId, eventListId)
+            }
             return res.status(200).json({ msg : "Deleted successful"})
         } catch (error) {
             console.log(error);

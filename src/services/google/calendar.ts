@@ -105,7 +105,7 @@ export const GoogleService = {
       throw new InternalServerErrorException("Error occurred while retrieving the calendar list from Google Calendar");
     }
   },
-  updateEvent: async (id: string, eventListId: string, dataUpdate: calendarCreate) => {
+  updateEvent: async (id: string, eventListId: string, dataUpdate: calendarCreate, isEnableRoutine?: boolean) => {
     try {
       const calendar = google.calendar({ version: 'v3', auth: googleOAuth2Client });
       const { startDateTime, endDateTime, ...rest } = dataUpdate
@@ -120,6 +120,11 @@ export const GoogleService = {
             dateTime: new Date(endDateTime).toISOString(), // Expecting date-time format 'YYYY-MM-DDTHH:MM:SSZ'
             timeZone: dataUpdate?.timeZone || "Asia/Ho_Chi_Minh"
         },
+        ...(isEnableRoutine && {
+          recurrence: [
+              'RRULE:FREQ=DAILY'
+          ],
+        }),
         reminders: {
           useDefault: false,
           overrides: [
@@ -146,13 +151,13 @@ export const GoogleService = {
       throw new InternalServerErrorException("Error occurred while retrieving the calendar list from Google Calendar");
     }
   },
-  deleteCalendarEvent: async (eventId: string) => {
+  deleteCalendarEvent: async (eventId: string, eventListId: string) => {
     try {
       const calendar = google.calendar({ version: 'v3', auth: googleOAuth2Client });
 
       await calendar.events.delete({
         auth: googleOAuth2Client,
-        calendarId: 'primary',
+        calendarId: eventListId,
         eventId: eventId,
       });
 

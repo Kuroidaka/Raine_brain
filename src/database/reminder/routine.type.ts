@@ -15,6 +15,7 @@ export type UpdateRoutineProps = {
     note?: string;
     routineTime?: string;
     isActive?: boolean;
+    googleEventId?: string
 }
 
 export interface RoutineWithAreaProps extends RoutineProps {

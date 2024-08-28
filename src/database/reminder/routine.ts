@@ -135,6 +135,18 @@ export class RoutineService {
         }
     }
 
+    async updateRoutineDataWithoutArea(routineID: string, data:UpdateRoutineProps){
+        try {
+            return await dbClient.routine.update({
+                where: { id: routineID },
+                data: data
+            });
+        } catch (error) {
+            console.log('Error updating task:', error);
+            throw error;
+        }
+    }
+
     async toggleRoutineStatus(routineId: string) {
         try {
             const routine = await dbClient.routine.findUnique({

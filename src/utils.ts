@@ -219,3 +219,15 @@ export function filterTools(dataArray: tools[], toolsArray: ToolsDefinedType[]):
     }, []);
 }
 
+
+export function convertTimeHHmmToDateTime(timeString: string, startDateTime: Date): Date {
+    // Extract hours and minutes from the time string
+    const [hours, minutes] = timeString.split(":").map(Number);
+  
+    // Set the time on the startDateTime
+    const dateTime = new Date(startDateTime);
+    dateTime.setHours(hours, minutes, 0, 0);
+  
+    return dateTime;
+  }
+  
