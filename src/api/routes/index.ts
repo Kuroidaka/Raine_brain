@@ -8,6 +8,7 @@ import reminderRoutes from './reminder.route';
 import routineRoutes from './routine.route';
 import goalRoutes from './goal.route';
 import fileRoutes from './file.route';
+import googleRoutes from './google.route';
 
 const router = Router();
 
@@ -20,6 +21,9 @@ router.use('/reminder', reminderRoutes);
 router.use('/routine', routineRoutes);
 router.use('/goal', goalRoutes);
 router.use('/file', fileRoutes);
+router.use('/google', googleRoutes);
+
+
 
 
 

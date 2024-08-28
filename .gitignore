@@ -131,5 +131,8 @@ chroma.log
 src/assets/tmp/*
 src/assets/file/audio/*
 src/assets/file/image/*
+src/assets/google
 localhost+1-key.pem
 localhost+1.pem
+
+credentials.json

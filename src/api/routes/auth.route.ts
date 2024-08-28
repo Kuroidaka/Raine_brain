@@ -11,5 +11,6 @@ const router = Router();
 router.post('/register', validateDto(RegisterDto), AuthController.register);
 router.post('/login', validateDto(LoginDto), AuthController.login);
 router.post('/verify_token', validateToken, AuthController.verifyToken);
+router.post('/regenerate_token', validateToken, AuthController.reGenToken);
 
 export default router;

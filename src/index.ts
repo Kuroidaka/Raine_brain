@@ -35,6 +35,7 @@ export const io = new Server(server, {
 });
 
 export const start = async (): Promise<void> => {
+
     io.on('connection', (socket) => {
         console.log('a user connected');
         socket.on('disconnect', () => {

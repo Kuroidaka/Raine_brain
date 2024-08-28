@@ -118,4 +118,16 @@ export const UserController = {
             next(error);
         }
     },
+    getBackgroundImage: async (req: Request, res: Response, next:NextFunction) => {
+        const { id: userID } = req.user
+        try {
+            const result = await userService.getUserBGImg({id: userID})
+            
+            return res.status(200).json(result);
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
 }

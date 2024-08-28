@@ -27,7 +27,10 @@ export const AuthController = {
                 password: hashedPassword
             })
             
-            const token = jwt.sign({ id: newUser.id, username }, SECRET_KEY);
+            const token = jwt.sign({ 
+                id: newUser.id, 
+                username 
+            }, SECRET_KEY);
 
             return res.status(200).json({token})
         } catch (error) {
@@ -48,7 +51,49 @@ export const AuthController = {
                 throw new UnauthorizedException("Password or Username is not correct")
             }
 
-            const token = jwt.sign({ id: user.id, username }, SECRET_KEY);
+            const token = jwt.sign({ 
+                id: user.id,
+                username,
+                googleCredentials: user.googleCredentials || null,
+                eventListId: user.eventListId || null
+            }, SECRET_KEY);
+
+            // Set the token as a secure, HTTP-only cookie
+            res.cookie('authToken', token, {
+                httpOnly: true,  // Prevents JavaScript access to the cookie
+                secure: true,    // Ensures the cookie is sent only over HTTPS
+                sameSite: 'strict', // Helps protect against CSRF
+                maxAge: 3600000   // 1 hour expiry
+            });
+
+            return res.status(200).json({token})
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
+    reGenToken: async(req: Request, res: Response, next:NextFunction) => {       
+        const { id } = req.user;
+        try {
+            const user = await userService.getUser({ id })
+            if(!user) throw new NotFoundException("Username not found")
+            
+        
+            const token = jwt.sign({ 
+                id: user.id,
+                username: user.username,
+                googleCredentials: user.googleCredentials,
+                eventListId: user.eventListId || null
+            }, SECRET_KEY);
+
+            // Set the token as a secure, HTTP-only cookie
+            res.cookie('authToken', token, {
+                httpOnly: true,  // Prevents JavaScript access to the cookie
+                secure: true,    // Ensures the cookie is sent only over HTTPS
+                sameSite: 'strict', // Helps protect against CSRF
+                maxAge: 3600000   // 1 hour expiry
+            });
 
             return res.status(200).json({token})
         } catch (error) {

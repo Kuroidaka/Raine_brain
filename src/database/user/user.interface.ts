@@ -5,3 +5,12 @@ export interface userServiceProps {
     password: string;
     role_id?: string;
 }
+
+export interface userUpdateProps {
+    display_name?: string;
+    password?: string;
+    role_id?: string;
+    gmail?: string | null, 
+    googleCredentials?: string | null,
+    eventListId?: string | null
+}

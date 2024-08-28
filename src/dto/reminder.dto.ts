@@ -1,7 +1,7 @@
 import { $Enums } from '@prisma/client';
 import { IsString, IsInt, MinLength, IsEmail, IsOptional, IsDateString, IsEnum, IsArray, IsBoolean } from 'class-validator';
 
-class TaskData {
+export class CreateTaskDto {
   @IsString()
   title: string;
 
@@ -9,32 +9,12 @@ class TaskData {
   @IsOptional()
   color?: string;
 
-  @IsDateString()
-  deadline: Date | string | null;
+  @IsString()
+  deadline: string | null;
 
   @IsString()
   @IsOptional()
   note?: string;
-}
-
-class UpdateTaskData {
-  @IsString()
-  title?: string;
-
-  @IsString()
-  @IsOptional()
-  color?: string;
-
-  @IsDateString()
-  deadline?: Date | string | null;
-
-  @IsString()
-  @IsOptional()
-  note?: string;
-}
-
-export class CreateTaskDto {
-  data: TaskData;
 
   @IsArray()
   @IsEnum($Enums.Areas, { each: true })
@@ -43,7 +23,21 @@ export class CreateTaskDto {
 }
 
 export class UpdateTaskDto {
-  data: UpdateTaskData;
+  @IsString()
+  @IsOptional()
+  title?: string;
+
+  @IsString()
+  @IsOptional()
+  color?: string;
+
+  @IsString()
+  @IsOptional()
+  deadline?: string | null;
+
+  @IsString()
+  @IsOptional()
+  note?: string;
 
   @IsArray()
   @IsEnum($Enums.Areas, { each: true })

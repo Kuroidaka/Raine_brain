@@ -102,6 +102,18 @@ export class TaskService {
             throw error;
         }
     }
+
+    async updateTaskDataWithoutArea(taskId: string, data:UpdateTaskProps){
+        try {
+            return await dbClient.task.update({
+                where: { id: taskId },
+                data: data
+            });
+        } catch (error) {
+            console.log('Error updating task:', error);
+            throw error;
+        }
+    }
     
     async checkTask(taskId: string){
         try {

@@ -11,6 +11,7 @@ import { setBGImgDto } from '~/dto/file.dto';
 const router = Router();
 
 
+router.get('/get-background-img', validateToken, UserController.getBackgroundImage);
 router.post('/set-background-img', validateToken, validateDto(setBGImgDto), UserController.setBackgroundImage);
 router.get('/tools', validateToken, UserController.getTools);
 router.patch('/tools/:toolId', validateToken, UserController.toggleUserTool);
