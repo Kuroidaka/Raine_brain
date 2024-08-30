@@ -68,27 +68,49 @@ export class RoutineService {
         }
     }
 
-    async updateRoutine(routineId: string, data: UpdateRoutineProps, area: Areas[], dates: UpdateRoutineDateProps[]) {
+    async updateRoutine(routineId: string, data: UpdateRoutineProps, area?: Areas[], dates?: UpdateRoutineDateProps[]) {
         try {
             return await dbClient.$transaction(async (tx) => {
                 const dataObject: RoutineUpdateWithAreaProps = data;
     
-                // Remove all the old areas
-                await tx.routineAreas.deleteMany({
-                    where: {
-                        routineId: routineId
+                if(area){
+                    // Remove all the old areas
+                    await tx.routineAreas.deleteMany({where: { routineId: routineId }});
+                    if (area.length > 0) {
+                        dataObject.area = this.mapAreaToPrisma(area);
                     }
-                });
-    
-                await tx.routineDate.deleteMany({
-                    where: {
-                        routineID: routineId
-                    }
-                });
-    
+        
+                }
+                if(dates) {
+                    await tx.routineDate.deleteMany({where: { routineID: routineId }});
+                    // Handle RoutineDate logic
+                    if(dates.length > 0) {
+                        for (const date of dates) {
 
-                if (area.length > 0) {
-                    dataObject.area = this.mapAreaToPrisma(area);
+                            const dateISO = new Date(date.completion_date).toISOString()
+                            const existingDate = await tx.routineDate.findFirst({
+                                where: {
+                                    routineID: routineId,
+                                    completion_date: dateISO,
+                                },
+                            });
+            
+                            if (existingDate) {
+                                // If the date already exists, delete it
+                                await tx.routineDate.delete({
+                                    where: { id: existingDate.id },
+                                });
+                            } else {
+                                // If the date does not exist, create a new RoutineDate
+                                await tx.routineDate.create({
+                                    data: {
+                                        routineID: routineId,
+                                        completion_date: dateISO,
+                                    },
+                                });
+                            }
+                        }
+                    }
                 }
     
                 // Update Routine
@@ -96,36 +118,6 @@ export class RoutineService {
                     where: { id: routineId },
                     data: dataObject,
                 });
-    
-                // Handle RoutineDate logic
-
-                if(dates.length > 0) {
-                    for (const date of dates) {
-
-                        const dateISO = new Date(date.completion_date).toISOString()
-                        const existingDate = await tx.routineDate.findFirst({
-                            where: {
-                                routineID: routineId,
-                                completion_date: dateISO,
-                            },
-                        });
-        
-                        if (existingDate) {
-                            // If the date already exists, delete it
-                            await tx.routineDate.delete({
-                                where: { id: existingDate.id },
-                            });
-                        } else {
-                            // If the date does not exist, create a new RoutineDate
-                            await tx.routineDate.create({
-                                data: {
-                                    routineID: routineId,
-                                    completion_date: dateISO,
-                                },
-                            });
-                        }
-                    }
-                }
     
                 return updatedRoutine;
             });

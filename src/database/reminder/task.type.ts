@@ -2,18 +2,18 @@ import { Prisma } from "@prisma/client";
 
 export type TaskProps = {
     title: string;
-    color?: string;
-    deadline: Date | string | null;
-    note?: string;
+    color?: string | null;
+    deadline: Date | string;
+    note?: string | null;
     userId: string;
 }
 
 export type UpdateTaskProps = {
     title?: string;
     color?: string;
-    deadline?: Date | string | null;
+    deadline?: Date | string;
     note?: string;
-    googleEventId?: string
+    googleEventId?: string | null
 }
 
 export interface TaskWithAreaProps extends TaskProps {

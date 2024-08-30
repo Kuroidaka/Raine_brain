@@ -14,7 +14,7 @@ model Task {
 
   title         String    @db.LongText
   color         String?
-  deadline      DateTime?
+  deadline      DateTime
   note          String?   @db.LongText
   status        Boolean   @default(false)
   googleEventId String?    @db.LongText

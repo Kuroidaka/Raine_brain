@@ -1,11 +1,13 @@
 import { NextFunction, Request, Response } from 'express';
 import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '~/common/error';
 import { colorList } from '~/constant';
+import { ReminderService } from '~/database/reminder/reminder.service';
 import { TaskService } from '~/database/reminder/task';
 import { GoogleService } from '~/services/google/calendar';
 import { calendarCreate, calendarUpdate, taskCreate } from '~/services/google/google.type';
 
 const taskService = TaskService.getInstance()
+const reminderService = ReminderService.getInstance()
 export const reminderController = {
     createTask: async (req: Request, res: Response, next:NextFunction) => {       
         const { 
@@ -18,34 +20,12 @@ export const reminderController = {
         try {
             const task = await taskService.addNewTask({...data, userId}, area)
 
-            // const googleTaskData:taskCreate = {
-            //     note: data.note,
-            //     status: "needsAction",
-            //     title: data.title,
-            //     due: new Date(data.deadline).toISOString(),
-            // }
- 
-            const googleEventData:calendarCreate = {
-                summary: data.title,
-                description: data.note,
-                colorId: null, 
-                startDateTime: data.deadline, 
-                endDateTime: data.deadline,
-                timeZone: 'Asia/Ho_Chi_Minh',
+            const isLinkGoogle = !!googleCredentials
+
+            if(isLinkGoogle && eventListId) {
+                await reminderService.TaskAddSyncGoogle(task.id, data, eventListId)
             }
 
-            if(data?.color) {
-                let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === data.color)
-                googleEventData.colorId = String(colorIdIndex + 1)
-            }
-            if(eventListId && googleCredentials) {// If account link with google
-                // await GoogleService.createTask(eventListId, googleTaskData)
-                const isEnableRoutine = false
-    
-                const { id: eventID } = await GoogleService.createEvent(eventListId, googleEventData, isEnableRoutine)
-
-                eventID && await taskService.updateTaskDataWithoutArea(task.id, { googleEventId: eventID })
-            }
             return res.status(200).json({
                 message: "Task created successfully"
             })
@@ -83,54 +63,15 @@ export const reminderController = {
     },
     updateTask: async (req: Request, res: Response, next:NextFunction) => {       
         const { id:taskID } = req.params;
-        const { area = [], ...data } = req.body;
+        const { area, ...data } = req.body;
         const { id: userId, eventListId, googleCredentials } = req.user
         
         try {
             const task = await taskService.updateTask(taskID, data, area)
-
-            if(eventListId && googleCredentials) {// If account link with google
-                // await GoogleService.createTask(eventListId, googleTaskData)  
-                if(task.googleEventId) {
-                       const googleEventData:calendarCreate = {
-                        summary: data.title || task.title,
-                        description: data.note || task.note,
-                        colorId: null, 
-                        startDateTime: data.deadline || task.deadline, 
-                        endDateTime: data.deadline || task.deadline,
-                        timeZone: 'Asia/Ho_Chi_Minh',
-                    }
-        
-                    if(data?.color) {
-                        let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === data.color)
-                        googleEventData.colorId = String(colorIdIndex + 1)
-                    } else {
-                        let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === task.color)
-                        googleEventData.colorId = String(colorIdIndex + 1)
-                    }
-                    await GoogleService.updateEvent(task.googleEventId as string, eventListId, googleEventData)
-                } else {
-                    const googleEventData:calendarCreate = {
-                        summary: data.title,
-                        description: data.note,
-                        colorId: null, 
-                        startDateTime: data.deadline, 
-                        endDateTime: data.deadline,
-                        timeZone: 'Asia/Ho_Chi_Minh',
-                    }
-        
-                    if(data?.color) {
-                        let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === data.color)
-                        googleEventData.colorId = String(colorIdIndex + 1) 
-                    }
-
-                    const isEnableRoutine = false
-    
-                    const { id: eventID } = await GoogleService.createEvent(eventListId, googleEventData, isEnableRoutine)
-                    eventID && await taskService.updateTaskDataWithoutArea(task.id, { googleEventId: eventID })
-                }
+            const isLinkGoogle = !!googleCredentials
+            if(eventListId && isLinkGoogle) {// If account link with google
+                await reminderService.TaskUpdateSyncGoogle(task.googleEventId, eventListId, task)
             }
-
             return res.status(200).json(task)
         } catch (error) {
             console.log(error);
@@ -140,10 +81,20 @@ export const reminderController = {
     },
     checkTask: async (req: Request, res: Response, next:NextFunction) => {       
         const { id:taskID } = req.params;
-        
+        const { id: userId, eventListId, googleCredentials } = req.user
         try {
-            const result = await taskService.checkTask(taskID)
-            return res.status(200).json(result)
+            const task = await taskService.checkTask(taskID)
+
+            const isLinkGoogle = !!googleCredentials
+            if(isLinkGoogle && eventListId) {
+                if(task.status && task?.googleEventId) {
+                    await reminderService.TaskOffSyncGoogle(task.id, task.googleEventId, eventListId)
+                }else {
+                    await reminderService.TaskAddSyncGoogle(task.id, task, eventListId)
+                }
+
+            }
+            return res.status(200).json(task)
         } catch (error) {
             console.log(error);
             // Rethrow the error to be caught by the errorHandler middleware

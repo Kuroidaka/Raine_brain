@@ -5,6 +5,9 @@ import * as path from 'path';
 import { BadRequestException, NotFoundException, NotImplementedException, UnauthorizedException } from '~/common/error';
 import { googleOAuth2Client } from '~/config';
 import { uploadFilePath } from '~/constant';
+import { ReminderService } from '~/database/reminder/reminder.service';
+import { RoutineService } from '~/database/reminder/routine';
+import { TaskService } from '~/database/reminder/task';
 import { UserService } from '~/database/user/user';
 import { GoogleService } from '~/services/google/calendar';
 import { calendarUpdate } from '~/services/google/google.type';
@@ -59,12 +62,18 @@ export const googleController = {
                 googleCredentials: null,
                 eventListId: null
             });
-
-            await GoogleService.deleteCalendarEvent(user.eventListId)
     
             res.status(200).json({
                 message: 'Gmail unlinked successfully!'
             })
+            const reminderService = ReminderService.getInstance()
+
+            await Promise.all([
+                reminderService.syncDelAllTasks(userId, user.eventListId as string),
+                reminderService.syncDelAllRoutines(userId, user.eventListId as string)
+            ]);
+            await GoogleService.deleteEventList(user.eventListId)
+
         } catch (error) {
             console.error(error);
             next(error);
@@ -101,6 +110,13 @@ export const googleController = {
                 googleCredentials: JSON.stringify(tokens),
                 eventListId: eventListId
             });
+
+            const reminderService = ReminderService.getInstance()
+
+            await Promise.all([
+                reminderService.syncAddAllTasks(userId, eventListId as string),
+                reminderService.syncAddAllRoutines(userId, eventListId as string)
+            ]);
     
             res.send('Gmail linked successfully! Please close this window.');
         } catch (error) {
@@ -109,35 +125,30 @@ export const googleController = {
         }
     },
     // Create an event in Google Calendar
-    updateEvent: async (req: Request, res: Response, next: NextFunction) => {
-        try {
-
-            const { id } = req.params
-            // const { 
-            //     summary, 
-            //     description,
-            //     colorId ,
-            //     startDateTime,
-            //     endDateTime,
-            //     timeZone
-            // } = req.body
-
-            const requestBody: calendarUpdate = Object.keys(req.body).reduce((obj, key) => {
-                const value = req.body[key as keyof calendarUpdate];
-                if (value !== undefined) {
-                    obj[key as keyof calendarUpdate] = value;
-                }
-                return obj;
-            }, {} as calendarUpdate);
+    // updateEvent: async (req: Request, res: Response, next: NextFunction) => {
+    //     try {
+    //         const { id: userId, eventListId, googleCredentials } = req.user
+    //         const { id } = req.params
+            
+    //         if(!eventListId ||!googleCredentials) {
+    //             throw new NotImplementedException("please link your google account")
+    //         }
+    //         const requestBody: calendarUpdate = Object.keys(req.body).reduce((obj, key) => {
+    //             const value = req.body[key as keyof calendarUpdate];
+    //             if (value !== undefined) {
+    //                 obj[key as keyof calendarUpdate] = value;
+    //             }
+    //             return obj;
+    //         }, {} as calendarUpdate);
             
 
-            const result = await GoogleService.updateEvent(id, requestBody)
-            res.status(200).json(result);
-        } catch (error) {
-            console.error('Error updating event:', error);
-            next(error);
-        }
-    },
+    //         const result = await GoogleService.updateEvent(id, eventListId, requestBody)
+    //         res.status(200).json(result);
+    //     } catch (error) {
+    //         console.error('Error updating event:', error);
+    //         next(error);
+    //     }
+    // },
     createEvent: async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { 
@@ -191,10 +202,14 @@ export const googleController = {
     },
     deleteEvent: async (req: Request, res: Response, next: NextFunction) => {
         const { id } = req.params
+        const { id: userId, eventListId, googleCredentials } = req.user
         try {
-            const result = await GoogleService.deleteCalendarEvent(id)
+            if(!eventListId || !googleCredentials) {
+                throw new NotImplementedException("Please link your google account")
+            }
+            const result = await GoogleService.deleteCalendarEvent(id, eventListId)
             res.status(200).json(result);
-        } catch (error) {
+        } catch (error) {  
             console.error('Error delete event:', error);
             next(error);
         }

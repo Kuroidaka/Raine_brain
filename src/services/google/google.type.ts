@@ -1,6 +1,6 @@
 export type calendarCreate = {
     summary: string, 
-    description: string,
+    description: string ,
     colorId: string | null,
     startDateTime: string | Date,
     endDateTime: string | Date,

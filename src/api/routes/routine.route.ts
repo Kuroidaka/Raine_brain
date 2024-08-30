@@ -11,7 +11,7 @@ router.post('/create', validateToken, validateGgTokenOptional, validateDto(Creat
 router.get('/get', validateToken, routineController.getRoutines);
 router.get('/get/:id', validateToken, routineController.getRoutineById);
 router.patch('/update/:id', validateToken, validateGgTokenOptional, validateDto(UpdateRoutineDto), routineController.updateRoutine);
-router.patch('/toggle-status/:id', validateToken, routineController.toggleRoutineStatus);
+router.patch('/toggle-status/:id', validateToken, validateGgTokenOptional, routineController.toggleRoutineStatus);
 router.delete('/delete/:id', validateToken, validateGgTokenOptional, routineController.deleteRoutine);
 
 export default router;
