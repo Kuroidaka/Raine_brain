@@ -75,24 +75,25 @@ export class TaskService {
         }
     }
 
-    async updateTask(taskId: string, data:UpdateTaskProps, area: Areas[]){
+    async updateTask(taskId: string, data:UpdateTaskProps, area?: Areas[]){
         try {
             const dataObject: UpdateTaskWithCateProps = data;
             if(dataObject.deadline){
                 dataObject.deadline = this.preprocessDeadlineTime(dataObject.deadline)
             }
-            // Remove all the old list
-            await dbClient.taskAreas.deleteMany({
-                where: {
-                    taskId: taskId
-                }
-            });
-
-            if (area.length > 0) {
-                // If Area are provided, update the Area
-                dataObject.area = this.mapAreaToPrisma(area);
-            }
+            if(area) {
+                // Remove all the old list
+                await dbClient.taskAreas.deleteMany({
+                    where: {
+                        taskId: taskId
+                    }
+                });
     
+                if (area.length > 0) {
+                    // If Area are provided, update the Area
+                    dataObject.area = this.mapAreaToPrisma(area);
+                }
+            }
             return await dbClient.task.update({
                 where: { id: taskId },
                 data: dataObject

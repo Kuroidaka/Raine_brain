@@ -1,12 +1,13 @@
 import { NextFunction, Request, Response } from 'express';
 import { colorList } from '~/constant';
+import { ReminderService } from '~/database/reminder/reminder.service';
 import { RoutineService } from '~/database/reminder/routine';
 import { GoogleService } from '~/services/google/calendar';
 import { calendarCreate } from '~/services/google/google.type';
 import { convertTimeHHmmToDateTime } from '~/utils';
 
 const routineService = RoutineService.getInstance();
-
+const reminderService = ReminderService.getInstance()
 export const routineController = {
     createRoutine: async (req: Request, res: Response, next: NextFunction) => {
         const { area = [], ...data } = req.body;
@@ -14,36 +15,16 @@ export const routineController = {
 
         try {
             const routine = await routineService.addNewRoutine({ ...data, userId }, area);
-                    // const googleTaskData:taskCreate = {
-                    //     note: data.note,
-                    //     status: "needsAction",
-                    //     title: data.title,
-                    //     due: new Date(data.deadline).toISOString(),
-                    // }
-            
-                    const googleEventData:calendarCreate = {
-                        summary: data.title,
-                        description: data.note,
-                        colorId: null, 
-                        startDateTime: convertTimeHHmmToDateTime(routine.routineTime, new Date()), 
-                        endDateTime: convertTimeHHmmToDateTime(routine.routineTime, new Date()),
-                        timeZone: 'Asia/Ho_Chi_Minh',
-                    }
 
-                    if(data?.color) {
-                        let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === data.color)
-                        googleEventData.colorId = String(colorIdIndex + 1)
-                    }
-                    if(eventListId && googleCredentials) {// If account link with google
-                        // await GoogleService.createTask(eventListId, googleTaskData)
-                        const isEnableRoutine = true
-            
-                        const { id: eventID } = await GoogleService.createEvent(eventListId, googleEventData, isEnableRoutine)
+            const isLinkGoogle = !!googleCredentials
 
-                        eventID && await routineService.updateRoutineDataWithoutArea(routine.id, { googleEventId: eventID })
-                    }
-            
-            return res.status(200).json({});
+            if(isLinkGoogle && eventListId) {
+                await reminderService.RoutineAddSyncGoogle(routine.id, data, eventListId)
+            }
+
+            return res.status(200).json({
+                message: "Routine created successfully"
+            });
         } catch (error) {
             console.log(error);
             next(error);

@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 export type RoutineProps = {
     title: string;
     color?: string;
-    note?: string;
+    note?: string | null;
     userId: string;
     routineTime: string;
     isActive?: boolean;

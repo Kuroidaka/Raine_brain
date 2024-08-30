@@ -190,6 +190,7 @@ export const GoogleService = {
       throw new InternalServerErrorException("error occur while process creating google calendar")
     }
   },
+
   deleteEventList: async (eventListId: string) => {
     try {
       const calendar = google.calendar({ version: 'v3', auth: googleOAuth2Client });
