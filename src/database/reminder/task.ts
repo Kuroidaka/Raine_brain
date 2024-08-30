@@ -1,6 +1,6 @@
 import { dbClient } from "~/config";
 import { SubTaskProps, TaskProps, TaskWithAreaProps, UpdateSubTaskProps, UpdateTaskProps, UpdateTaskWithCateProps } from "./task.type";
-import { Areas, Prisma } from "@prisma/client";
+import { Areas, Prisma, Task } from "@prisma/client";
 
 export class TaskService {
     private static instance: TaskService;
@@ -21,9 +21,8 @@ export class TaskService {
         };
     };
 
-    private preprocessDeadlineTime(deadline: Date | string | null) {
-        if(deadline === "someday") return null
-        else if(deadline !== null) return new Date(deadline).toISOString()
+    private preprocessDeadlineTime(deadline: Date | string) {
+        if (deadline !== null) return new Date(deadline).toISOString()
         else return deadline
     }
     
@@ -75,7 +74,7 @@ export class TaskService {
         }
     }
 
-    async updateTask(taskId: string, data:UpdateTaskProps, area?: Areas[]){
+    async updateTask(taskId: string, data:UpdateTaskProps, area?: Areas[]):Promise<Task>{
         try {
             const dataObject: UpdateTaskWithCateProps = data;
             if(dataObject.deadline){

@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { NotFoundException } from '~/common/error';
 import { colorList } from '~/constant';
 import { ReminderService } from '~/database/reminder/reminder.service';
 import { RoutineService } from '~/database/reminder/routine';
@@ -60,44 +61,17 @@ export const routineController = {
         try {
             const dataBody = {...data}
 
-            const foundRoutine = await routineService.getRoutineById(routineID);
+            const routine = await routineService.getRoutineById(routineID);
 
-            if(data?.isActive === false)  {
-                dataBody.googleEventId = null
-            }
-            const routine = await routineService.updateRoutine(routineID, dataBody, area, dates);
+            if(!routine) throw new NotFoundException("Routine Not Found")
+
+            const updatedRoutine = await routineService.updateRoutine(routineID, dataBody, area, dates);
 
             if (eventListId && googleCredentials) { // If account linked with Google
-                const googleEventData: calendarCreate = {
-                    summary: data.title || routine.title,
-                    description: data.note || routine.note,
-                    colorId: null,
-                    startDateTime: convertTimeHHmmToDateTime(routine.routineTime, new Date()),
-                    endDateTime: convertTimeHHmmToDateTime(routine.routineTime, new Date()),
-                    timeZone: 'Asia/Ho_Chi_Minh',
-                };
-    
-                if (data?.color || routine.color) {
-                    const colorToFind = data?.color || routine.color;
-                    const colorIdIndex = colorList.findIndex(i => i.toLowerCase() === colorToFind);
-                    googleEventData.colorId = String(colorIdIndex + 1);
-                }
-    
-                if (foundRoutine?.googleEventId) {
-                    if (data.isActive === false) {
-                        await GoogleService.deleteCalendarEvent(foundRoutine.googleEventId, eventListId);
-                    } else {
-                        await GoogleService.updateEvent(foundRoutine.googleEventId as string, eventListId, googleEventData, true);
-                    }
-                } else if (data.isActive !== false) {
-                    const { id: eventID } = await GoogleService.createEvent(eventListId, googleEventData, true);
-                    if (eventID) {
-                        await routineService.updateRoutineDataWithoutArea(routine.id, { googleEventId: eventID });
-                    }
-                }
+                await reminderService.RoutineUpdateSyncGoogle(routine.googleEventId, eventListId, updatedRoutine)
             }
     
-            return res.status(200).json(routine);
+            return res.status(200).json(updatedRoutine);
         } catch (error) {
             console.log(error);
             next(error);
@@ -105,10 +79,18 @@ export const routineController = {
     },
     toggleRoutineStatus: async (req: Request, res: Response, next: NextFunction) => {
         const { id: routineID } = req.params;
+        const { id: userId, eventListId, googleCredentials } = req.user
 
         try {
-            const result = await routineService.toggleRoutineStatus(routineID);
-            return res.status(200).json(result);
+            const routine = await routineService.toggleRoutineStatus(routineID);
+            
+            const isLinkGoogle = !!googleCredentials
+
+            if(isLinkGoogle && eventListId) {
+                await reminderService.RoutineUpdateSyncGoogle(routine.googleEventId, eventListId, routine)
+            }
+
+            return res.status(200).json(routine);
         } catch (error) {
             console.log(error);
             next(error);

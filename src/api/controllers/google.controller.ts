@@ -5,6 +5,9 @@ import * as path from 'path';
 import { BadRequestException, NotFoundException, NotImplementedException, UnauthorizedException } from '~/common/error';
 import { googleOAuth2Client } from '~/config';
 import { uploadFilePath } from '~/constant';
+import { ReminderService } from '~/database/reminder/reminder.service';
+import { RoutineService } from '~/database/reminder/routine';
+import { TaskService } from '~/database/reminder/task';
 import { UserService } from '~/database/user/user';
 import { GoogleService } from '~/services/google/calendar';
 import { calendarUpdate } from '~/services/google/google.type';
@@ -59,12 +62,18 @@ export const googleController = {
                 googleCredentials: null,
                 eventListId: null
             });
-
-            await GoogleService.deleteEventList(user.eventListId)
     
             res.status(200).json({
                 message: 'Gmail unlinked successfully!'
             })
+            const reminderService = ReminderService.getInstance()
+
+            await Promise.all([
+                reminderService.syncDelAllTasks(userId, user.eventListId as string),
+                reminderService.syncDelAllRoutines(userId, user.eventListId as string)
+            ]);
+            await GoogleService.deleteEventList(user.eventListId)
+
         } catch (error) {
             console.error(error);
             next(error);
@@ -101,6 +110,13 @@ export const googleController = {
                 googleCredentials: JSON.stringify(tokens),
                 eventListId: eventListId
             });
+
+            const reminderService = ReminderService.getInstance()
+
+            await Promise.all([
+                reminderService.syncAddAllTasks(userId, eventListId as string),
+                reminderService.syncAddAllRoutines(userId, eventListId as string)
+            ]);
     
             res.send('Gmail linked successfully! Please close this window.');
         } catch (error) {

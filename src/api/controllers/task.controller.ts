@@ -63,33 +63,14 @@ export const reminderController = {
     },
     updateTask: async (req: Request, res: Response, next:NextFunction) => {       
         const { id:taskID } = req.params;
-        const { area = [], ...data } = req.body;
+        const { area, ...data } = req.body;
         const { id: userId, eventListId, googleCredentials } = req.user
         
         try {
             const task = await taskService.updateTask(taskID, data, area)
             const isLinkGoogle = !!googleCredentials
             if(eventListId && isLinkGoogle) {// If account link with google
-                // await GoogleService.createTask(eventListId, googleTaskData)  
-                if(task.googleEventId) {
-                       const googleEventData:calendarCreate = {
-                        summary: data.title || task.title,
-                        description: data.note || task.note,
-                        colorId: null, 
-                        startDateTime: data.deadline || task.deadline, 
-                        endDateTime: data.deadline || task.deadline,
-                        timeZone: 'Asia/Ho_Chi_Minh',
-                    }
-        
-                    if(data?.color) {
-                        let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === data.color)
-                        googleEventData.colorId = String(colorIdIndex + 1)
-                    } else {
-                        let colorIdIndex = colorList.findIndex(i => i.toLowerCase() === task.color)
-                        googleEventData.colorId = String(colorIdIndex + 1)
-                    }
-                    await GoogleService.updateEvent(task.googleEventId as string, eventListId, googleEventData)
-                } else await reminderService.TaskAddSyncGoogle(task.id, data, eventListId)
+                await reminderService.TaskUpdateSyncGoogle(task.googleEventId, eventListId, task)
             }
             return res.status(200).json(task)
         } catch (error) {
@@ -107,7 +88,7 @@ export const reminderController = {
             const isLinkGoogle = !!googleCredentials
             if(isLinkGoogle && eventListId) {
                 if(task.status && task?.googleEventId) {
-                    await reminderService.TaskDeleteSyncGoogle(task.id, task.googleEventId, eventListId)
+                    await reminderService.TaskOffSyncGoogle(task.id, task.googleEventId, eventListId)
                 }else {
                     await reminderService.TaskAddSyncGoogle(task.id, task, eventListId)
                 }

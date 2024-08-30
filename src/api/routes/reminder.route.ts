@@ -4,7 +4,7 @@ import { validateDto } from '~/api/middlewares';
 import { TestDto } from '~/dto/test.dto';
 import { CreateTaskDto, SubTaskCreateDto, SubTaskUpdateDto, UpdateTaskDto } from '~/dto/reminder.dto';
 import validateToken from '../middlewares/validate_token';
-import { reminderController } from '../controllers/reminder.controller';
+import { reminderController } from '../controllers/task.controller';
 import { validateGgTokenOptional } from '../middlewares/validateGoogleTokenOp';
 
 const router = Router();

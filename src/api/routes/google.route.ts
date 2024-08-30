@@ -11,7 +11,7 @@ import { validateGoogleToken } from '../middlewares/validateGoogleToken';
 const router = Router();
 
 router.get('/link-gmail', googleController.linkGmail);
-router.post('/unlink-gmail', validateToken, googleController.unlinkGmail);
+router.post('/unlink-gmail', validateToken, validateGoogleToken, googleController.unlinkGmail);
 router.get('/oauth2callback', googleController.oauth2callback);
 
 router.post('/calendar/task', validateToken, validateGoogleToken, googleController.createTask);
@@ -21,7 +21,7 @@ router.post('/calendar/event/init', validateToken, validateGoogleToken, googleCo
 router.get('/calendar/event/:id', validateToken, validateGoogleToken, googleController.getEvent);
 router.get('/calendar/event', validateToken, validateGoogleToken, googleController.getEventList);
 router.post('/calendar/event', validateToken, validateGoogleToken, validateDto(CreateCalendarDto), googleController.createEvent);
-router.put('/calendar/event/:id', validateToken, validateGoogleToken, validateDto(UpdateCalendarDto), googleController.updateEvent);
+// router.put('/calendar/event/:id', validateToken, validateGoogleToken, validateDto(UpdateCalendarDto), googleController.updateEvent);
 router.delete('/calendar/event/:id', validateToken, validateGoogleToken, googleController.deleteEvent);
 router.post('/auth/verify_token', validateToken, validateGoogleToken, googleController.validateUserToken);
 

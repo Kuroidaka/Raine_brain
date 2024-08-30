@@ -71,7 +71,7 @@
     "function-bind": "^1.1.2",
     "get-intrinsic": "^1.2.4",
     "glob-parent": "^5.1.2",
-    "googleapis": "^142.0.0",
+    "googleapis": "^126.0.1",
     "gopd": "^1.0.1",
     "groq-sdk": "^0.4.0",
     "has-flag": "^3.0.0",

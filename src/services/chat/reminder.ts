@@ -214,6 +214,9 @@ export class ReminderChatService  {
     }
   }
 
+
+
+
   public async run(q: string) {
     try {
       const tasks = await this.getTaskDataBaseOnText(q)
@@ -249,4 +252,17 @@ export class ReminderChatService  {
     }
   }
 
+  public async runCreateTask(q: string) {
+    try {
+    
+      // return {
+      //   data: result,
+      //   comment: cmt
+      // }
+    } catch (error) {
+      return{
+        comment: "Error occur while get data from database"
+      }
+    }
+  }
 }
