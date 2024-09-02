@@ -5,7 +5,7 @@ import { TeachableService } from "~/services/techable";
 import { STMemoStore } from "~/services/STMemo";
 import { DataMemo, MsgListParams, outputInter } from "../llm/llm.interface";
 import { GroqService } from "../llm/groq";
-import { Debug, historyChatProcessingParams } from './chat.interface';
+import { chatClassInit, Debug, historyChatProcessingParams } from './chat.interface';
 import chalk from "chalk";
 import { ConversationService } from "~/database/conversation/conversation";
 import { InternalServerErrorException } from "~/common/error";
@@ -23,19 +23,25 @@ export class ChatService  {
   private STMemo: STMemoStore;
   private teachableAgent: TeachableService
   private lang: string
+  private eventListId?: string
+  private isLinkGoogle?: boolean
 
-  constructor(
-    userID: string,
-    conversationID: string,
-    isEnableVision: boolean,
-    isEnableStream: boolean,
-    lang = 'en'
-  ) {
+  constructor({
+    userID,
+    conversationID,
+    isEnableVision,
+    isEnableStream,
+    lang = 'en',
+    eventListId,
+    isLinkGoogle
+  }:chatClassInit) {
     this.userID = userID;
     this.conversationID = conversationID;
     this.isEnableVision = isEnableVision;
     this.isEnableStream = isEnableStream;
-    this.lang = lang
+    this.lang = lang;
+    eventListId && (this.eventListId = eventListId);
+    isLinkGoogle && (this.isLinkGoogle = isLinkGoogle)
   }
 
   public async processChat(debug: Debug, res: Response, prompt: string, imgFilePath?: string) :Promise<{
@@ -62,10 +68,15 @@ export class ChatService  {
       console.log("messages", messages);
 
       // Asking
-
       const toolCallService = ToolCallService.getInstance();
       const tools = await toolCallService.getToolsByUser(this.userID)
-      const output = await OpenaiService.chat(messages, this.isEnableStream, tools, res, debugChat);
+      const openAiService = new OpenaiService({ 
+        userId: this.userID,
+        ...(this.eventListId && { eventListId: this.eventListId }),
+        ...(this.isLinkGoogle && { isLinkGoogle: this.isLinkGoogle }),
+      });
+      
+      const output = await openAiService.chat(messages, this.isEnableStream, tools, res, debugChat);
 
       return {
         output: output,

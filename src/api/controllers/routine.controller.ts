@@ -55,7 +55,7 @@ export const routineController = {
     },
     updateRoutine: async (req: Request, res: Response, next: NextFunction) => {
         const { id: routineID } = req.params;
-        const { area = [], dates = [], ...data} = req.body;
+        const { area, dates, ...data} = req.body;
         const { id: userId, eventListId, googleCredentials } = req.user
 
         try {

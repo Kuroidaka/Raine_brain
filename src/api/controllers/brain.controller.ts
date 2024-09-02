@@ -16,6 +16,7 @@ import { createImageContent, processImage, splitText } from "~/utils";
 import { OpenaiService } from "~/services/llm/openai";
 import { MemoStore } from "~/services/LTMemo";
 import { outputInter } from '~/services/llm/llm.interface'
+import { chatClassInit } from "~/services/chat/chat.interface";
 
 const conversationService = ConversationService.getInstance()
 export const BrainController = {
@@ -24,7 +25,7 @@ export const BrainController = {
     console.clear();
     const { prompt, conversationID, imgURL } = req.body;
     console.log("body", req.body)
-    const { id: userID } = req.user;
+    const { id: userID, eventListId, googleCredentials } = req.user;
     const { isStream = "false"} = req.query;
     const isEnableStream = isStream === "true";
 
@@ -37,12 +38,18 @@ export const BrainController = {
     try {
 
       const isVision = false
-      const chatService = new ChatService(
+      const isLinkGoogle = !!googleCredentials
+
+      const initChatParams: chatClassInit = {
         userID,
         conversationID,
-        isVision,
-        isEnableStream
-      )
+        isEnableVision: isVision,
+        isEnableStream,
+        lang: 'en',
+        ...(eventListId && isLinkGoogle && { eventListId, isLinkGoogle }),
+      };
+
+      const chatService = new ChatService(initChatParams)
       const debugOptions = {
         debugChat: 1,
         debugMemo: 0
@@ -94,12 +101,13 @@ export const BrainController = {
 
     try {
       const isVision = true
-      const chatService = new ChatService(
-        userID,
-        conversationID,
-        isVision,
-        isEnableStream,
-      )
+      const chatService = new ChatService({
+        userID: userID,
+        conversationID: conversationID,
+        isEnableVision: isVision,
+        isEnableStream: isEnableStream,
+        lang: 'en'
+      })
 
       const debugOptions = {
         debugChat: 1,

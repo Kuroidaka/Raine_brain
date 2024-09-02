@@ -1,5 +1,5 @@
 import { ConversationService } from "~/database/conversation/conversation";
-import { InternalServerErrorException } from "~/common/error";
+import { InternalServerErrorException, NotFoundException } from "~/common/error";
 
 import { DataSource } from "typeorm";
 import { SqlDatabase } from "langchain/sql_db";
@@ -11,10 +11,9 @@ import { RoutineFullIncluded, RoutineSQL, SubTaskSQL, TaskFullIncluded, TaskSQL,
 import { TaskService } from "~/database/reminder/task";
 import { SubTask, Task, TaskAreas } from "@prisma/client";
 import { RoutineService } from "~/database/reminder/routine";
+import { ReminderService } from "~/database/reminder/reminder.service";
 
 
-const taskService = TaskService.getInstance()
-const routineService = RoutineService.getInstance()
 export class ReminderChatService  {
 
   prompt = PromptTemplate.fromTemplate(`Based on the provided SQL table schema below, write a SQL query that would answer the user's question, always select id.(only response with SQL)
@@ -32,8 +31,30 @@ export class ReminderChatService  {
   });
 
   llm = new ChatOpenAI();
+  private taskService;
+  private routineService;
+  private reminderService
 
-  constructor() {}
+  private userID?: string;
+  private isLinkGoogle: boolean = false;
+  private eventListId?: string;
+
+  constructor(userId?: string, isLinkGoogle: boolean = false, eventListId?: string) {
+    this.taskService = TaskService.getInstance()
+    this.routineService = RoutineService.getInstance()
+    this.reminderService = ReminderService.getInstance()
+
+    if (this.isLinkGoogle && !this.eventListId) {
+      throw new Error("eventListId must be provided when isLinkGoogle is true");
+    }
+    if(userId) {
+      this.userID = userId
+    }
+    if(isLinkGoogle && eventListId) {
+      this.isLinkGoogle = isLinkGoogle
+      this.eventListId = eventListId
+    }
+  }
 
   public async getTaskDataBaseOnText(q: string) {
     try {          
@@ -81,7 +102,7 @@ export class ReminderChatService  {
             customDescription: {
               "Routine": "The Routine table stores routine information, including title, color, notes, and whether the routine is currently active. Each routine is associated with a user and can be linked to multiple areas and routine dates.",
               "RoutineAreas": "The RoutineAreas table links routines to specific areas, as defined by the Areas enum. This allows routines to be categorized into different life areas, such as health, work, or development. This table have to query joined with Task table otherwise error will occur",
-              "RoutineDate": "The RoutineDate table tracks the completion dates for routines, storing information on when each routine was completed along with a reference to the associated routine."
+              "RoutineDate": "The RoutineDate table tracks just for the completed dates for routines, storing information on when each routine was completed along with a reference to the associated routine."
             }
           });
           
@@ -116,7 +137,7 @@ export class ReminderChatService  {
         tasks.map(async task => {
           let result
           if(task.id) {
-            result = await taskService.getTasksById(task.id);
+            result = await this.taskService.getTasksById(task.id);
           }
           else {
             result = task
@@ -140,7 +161,7 @@ export class ReminderChatService  {
       const data = await Promise.all(routines.map(async routine => {
         let result
         if(routine.id) {
-          result = await routineService.getRoutineById(routine.id);
+          result = await this.routineService.getRoutineById(routine.id);
         }
         else {
           result = routine
@@ -252,16 +273,32 @@ export class ReminderChatService  {
     }
   }
 
-  public async runCreateTask(q: string) {
+  public async runCreateTask({title, deadline, note}: {title: string, deadline: string, note?: string}) {
     try {
-    
-      // return {
-      //   data: result,
-      //   comment: cmt
-      // }
+
+      if(!this.userID) throw new NotFoundException("userId not founded")
+      const data = {
+        title: title,
+        color: "1",
+        deadline: deadline,
+        note: note || "",
+        userId: this.userID
+      }
+
+      const task = await this.taskService.addNewTask(data)
+
+
+      if(this.isLinkGoogle && this.eventListId) {
+        await this.reminderService.TaskAddSyncGoogle(task.id, data, this.eventListId)
+      }
+
+      return {
+        data: task,
+        comment: "Task created successfully"
+      }
     } catch (error) {
       return{
-        comment: "Error occur while get data from database"
+        comment: "Error while creating task"
       }
     }
   }

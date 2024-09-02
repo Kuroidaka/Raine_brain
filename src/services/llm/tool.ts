@@ -1,6 +1,20 @@
 import { ReminderChatService } from "../chat/reminder"
 
+export type otherArgs = {
+    userId?: string,
+    eventListId?: string,
+    isLinkGoogle: boolean,
+}
+
 export const llmTools = {
+    ReminderCreateChatService: async (args: { title: string, deadline: string, note: string }, other: otherArgs) => {
+        const { title, deadline, note } = args
+        const { userId, eventListId, isLinkGoogle } = other
+
+        const func = new ReminderChatService(userId, isLinkGoogle, eventListId)
+
+        return func.runCreateTask({title, deadline, note})
+    },
     ReminderChatService: async (args: { q: string }) => {
         const { q  } = args
 
@@ -19,6 +33,35 @@ export const llmTools = {
 
 
 export const toolsDefined = [
+    {
+        type: "function",
+        function: {
+            name: "ReminderCreateChatService",
+            description: "This tool creates a reminder task based on the provided title, deadline, and note. It utilizes the user's information to link the task to their Google account if enabled.",
+            parameters: {
+                type: "object",
+                properties: {
+                    "title": {
+                        "type": "string",
+                        "description": "The title of the task to be created."
+                    },
+                    "deadline": {
+                        "type": "string",
+                        "description": `
+                        - The specific time that user want to remind. 
+                        - Must be GMT+0700 (Indochina Time) base on current GMT+0700 (Indochina Time): ${new Date()}, example 'Sat Nov 25 2023 00:08:02 GMT+0700 (Indochina Time)'
+                        - If user request to remind after a period of time, please convert into GMT+0700 (Indochina Time): base on the current time: : ${new Date()} example 'Sat Nov 25 2023 00:08:02 GMT+0700 (Indochina Time)
+                        `
+                    },
+                    "note": {
+                        "type": "string",
+                        "description": "Additional notes or details related to the task."
+                    }
+                },
+                required: ["title", "deadline"]
+            }
+        }
+    },    
     {
         type: "function",
         function: {
@@ -64,7 +107,7 @@ export type ToolsDefinedType = {
             properties: {
                 [key: string]: {
                     description: string;
-                };
+                } | undefined;
             };
             required: string[];
         };

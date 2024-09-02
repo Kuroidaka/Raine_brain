@@ -11,7 +11,7 @@ const reminderService = ReminderService.getInstance()
 export const reminderController = {
     createTask: async (req: Request, res: Response, next:NextFunction) => {       
         const { 
-            area = [],
+            area,
             ...data
          } = req.body;
 

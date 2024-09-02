@@ -26,12 +26,12 @@ export class TaskService {
         else return deadline
     }
     
-    async addNewTask(data:TaskProps, area: Areas[]){
+    async addNewTask(data:TaskProps, area?: Areas[]){
         try {
 
             const dataObject: TaskWithAreaProps = data
             dataObject.deadline = this.preprocessDeadlineTime(dataObject.deadline)
-            if(area.length > 0) {
+            if(area && area.length > 0) {
                 dataObject.area = this.mapAreaToPrisma(area)
             }
 
