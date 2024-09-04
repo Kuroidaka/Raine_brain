@@ -141,12 +141,7 @@ export class STMemoStore {
             list.push({ role: "system", content: frameGuidePersona })
         }
 
-        // if(toolCall) {
-        //     list.push({ role: "system", content: `
-        //     Whenever a user request involves tasks or task management: Call the ReminderChatServiceTool
-        //     Whenever a user request involves routines: Call the RoutineChatServiceTool:
-        //     `})
-        // }
+        list.push({ role: "system", content: `If there is a task that is beyond your ability, just say you cannot do it.`})
 
         return list
     }
@@ -191,8 +186,13 @@ export class STMemoStore {
         
         const content: ChatCompletionContentPart[] = [{ text: uploadedImagesText, type: "text" }];
 
-        content.push(...base64Images.map(({ encodedImage, maxDim }) => createImageContent(encodedImage, maxDim, detailThreshold)));
-
+        const imageContents = await Promise.all(
+            base64Images.map(async ({ encodedImage, maxDim }) => {
+                return await createImageContent(encodedImage, maxDim, detailThreshold);
+            })
+        );
+        
+        content.push(...imageContents);
         return [{ role: 'user' as "user", content }];
     } 
 
@@ -276,8 +276,10 @@ export class STMemoStore {
 
         if(includeImage && imgFilePath) {
 
+            // process base64 image
             const { encodedImage, maxDim } = await processImage(imgFilePath);
-            const imgContent = createImageContent(encodedImage, maxDim, 700)
+
+            const imgContent = await createImageContent(encodedImage, maxDim, 700)
 
             history.push({
                 "role": "user",

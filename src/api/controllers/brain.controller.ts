@@ -80,6 +80,7 @@ export const BrainController = {
     // preprocess data params
     // console.clear();
     const { prompt, conversationID } = req.body;
+    const { id: userID, eventListId, googleCredentials } = req.user;
 
     let filePath
     if (req.file) {
@@ -87,9 +88,6 @@ export const BrainController = {
       console.log("filePath", filePath)
     }
   
-   
-    console.log("body", req.body)
-    const { id: userID } = req.user;
     const { isStream = "false", isVision = "false" } = req.query;
     const isEnableStream = isStream === "true";
 
@@ -101,13 +99,18 @@ export const BrainController = {
 
     try {
       const isVision = true
-      const chatService = new ChatService({
-        userID: userID,
-        conversationID: conversationID,
+      const isLinkGoogle = !!googleCredentials
+
+      const initChatParams: chatClassInit = {
+        userID,
+        conversationID,
         isEnableVision: isVision,
-        isEnableStream: isEnableStream,
-        lang: 'en'
-      })
+        isEnableStream,
+        lang: 'en',
+        ...(eventListId && isLinkGoogle && { eventListId, isLinkGoogle }),
+      };
+
+      const chatService = new ChatService(initChatParams)
 
       const debugOptions = {
         debugChat: 1,

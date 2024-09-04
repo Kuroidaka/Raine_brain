@@ -171,13 +171,20 @@ export async function processImage(filePath: string, maxSize = 6480): Promise<{ 
     }
 }
   
-export function createImageContent(image: string, maxdim: number, detailThreshold = 700) {
+export async function createImageContent(image: string, maxdim?: number, detailThreshold = 700) {
     type DetailLevel = "auto" | "low" | "high" | undefined;
 
-    const detail:DetailLevel = maxdim < detailThreshold ? 'low' : 'high';
+    const detail:DetailLevel = maxdim && maxdim < detailThreshold ? 'low' : 'high';
+    const base64Url = `data:image/jpeg;base64,${image}`
+    const tmpFileUrl = await hostImages(base64Url)
+    console.log("tmpFileUrl", tmpFileUrl)
+
     return {
         type: 'image_url',
-        image_url: { url: `data:image/jpeg;base64,${image}`, detail: detail }
+        image_url: { 
+            url: tmpFileUrl, 
+            ...(detail && { detail: detail } )
+        }
     } as ChatCompletionContentPartImage
 }
 
@@ -229,5 +236,39 @@ export function convertTimeHHmmToDateTime(timeString: string, startDateTime: Dat
     dateTime.setHours(hours, minutes, 0, 0);
   
     return dateTime;
-  }
-  
+}
+
+export const formatTimeToHHMM = (date: Date): string => {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+
+    const formattedHours = hours < 10 ? `0${hours}` : hours.toString();
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes.toString();
+
+    return `${formattedHours}:${formattedMinutes}`;
+};
+
+export const base64ToBlob = (base64: string, mimeType: string): Blob => {
+    const byteCharacters = atob(base64.split(",")[1]);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+}
+
+export const hostImages = async (base64Image: string): Promise<string> => {
+    const blob = base64ToBlob(base64Image, "image/jpeg");
+    const formData = new FormData();
+    formData.append("file", blob, "image.jpg");
+
+    const response = await fetch("https://tmpfiles.org/api/v1/upload", {
+        method: "POST",
+        body: formData,
+    });
+
+    const { data } = await response.json();
+
+    return data.url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/");
+}

@@ -23,10 +23,10 @@ export class RoutineService {
     }
 
     // Routine CRUD operations
-    async addNewRoutine(data: RoutineProps, area: Areas[]) {
+    async addNewRoutine(data: RoutineProps, area?: Areas[]) {
         try {
             const dataObject: RoutineWithAreaProps = data;
-            if (area.length > 0) {
+            if (area && area.length > 0) {
                 dataObject.area = this.mapAreaToPrisma(area);
             }
 

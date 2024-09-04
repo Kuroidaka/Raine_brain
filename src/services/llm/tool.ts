@@ -15,6 +15,14 @@ export const llmTools = {
 
         return func.runCreateTask({title, deadline, note})
     },
+    RoutineCreateChatService: async (args: { title: string, routineTime: string, note: string }, other: otherArgs) => {
+        const { title, routineTime, note } = args
+        const { userId, eventListId, isLinkGoogle } = other
+
+        const func = new ReminderChatService(userId, isLinkGoogle, eventListId)
+
+        return func.runCreateRoutine({title, routineTime, note})
+    },
     ReminderChatService: async (args: { q: string }) => {
         const { q  } = args
 
@@ -62,6 +70,33 @@ export const toolsDefined = [
             }
         }
     },    
+    {
+        "type": "function",
+        "function": {
+            "name": "RoutineCreateChatService",
+            "description": "This tool creates a routine based on the provided title, routine time, and note. It utilizes the user's information to link the routine to their Google account if enabled.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "type": "string",
+                        "description": "The title of the routine to be created."
+                    },
+                    "routineTime": {
+                        "type": "string",
+                        "description": `
+                        - The time for the routine
+                        - Must be GMT+0700 (Indochina Time) base on current GMT+0700 (Indochina Time): ${new Date()}, example 'Sat Nov 25 2023 00:08:02 GMT+0700 (Indochina Time)'`
+                    },
+                    "note": {
+                        "type": "string",
+                        "description": "Additional notes or details related to the routine."
+                    }
+                },
+                "required": ["title", "routineTime"]
+            }
+        }
+    },
     {
         type: "function",
         function: {

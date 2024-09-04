@@ -12,6 +12,7 @@ import { TaskService } from "~/database/reminder/task";
 import { SubTask, Task, TaskAreas } from "@prisma/client";
 import { RoutineService } from "~/database/reminder/routine";
 import { ReminderService } from "~/database/reminder/reminder.service";
+import { formatTimeToHHMM } from "~/utils";
 
 
 export class ReminderChatService  {
@@ -237,7 +238,6 @@ export class ReminderChatService  {
 
 
 
-
   public async run(q: string) {
     try {
       const tasks = await this.getTaskDataBaseOnText(q)
@@ -287,7 +287,6 @@ export class ReminderChatService  {
 
       const task = await this.taskService.addNewTask(data)
 
-
       if(this.isLinkGoogle && this.eventListId) {
         await this.reminderService.TaskAddSyncGoogle(task.id, data, this.eventListId)
       }
@@ -299,6 +298,37 @@ export class ReminderChatService  {
     } catch (error) {
       return{
         comment: "Error while creating task"
+      }
+    }
+  }
+
+  public async runCreateRoutine({title, routineTime, note}: {title: string, routineTime: string, note?: string}) {
+    try {
+
+      if(!this.userID) throw new NotFoundException("userId not founded")
+      const data = {
+        title: title,
+        color: "1",
+        note: note || "",
+        userId: this.userID,
+        routineTime: formatTimeToHHMM(new Date(routineTime)),
+        isActive: true,
+      }
+
+      const routine = await this.routineService.addNewRoutine(data);
+
+      if(this.isLinkGoogle && this.eventListId) {
+        await this.reminderService.RoutineAddSyncGoogle(routine.id, data, this.eventListId)
+      }
+
+      return {
+        data: routine,
+        comment: "Routine created successfully"
+      }
+    } catch (error) {
+      console.log("runCreateRoutine", error)
+      return{
+        comment: "Error while creating routine"
       }
     }
   }

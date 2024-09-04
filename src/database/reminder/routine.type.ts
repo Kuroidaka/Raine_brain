@@ -5,7 +5,7 @@ export type RoutineProps = {
     color?: string | null;
     note?: string | null;
     userId: string;
-    routineTime: string;
+    routineTime: string; // hh:MM (eg:17:00)
     isActive?: boolean;
 }
 
@@ -13,7 +13,7 @@ export type UpdateRoutineProps = {
     title?: string;
     color?: string;
     note?: string;
-    routineTime?: string;
+    routineTime?: string; // hh:MM (eg:17:00)
     isActive?: boolean;
     googleEventId?: string | null
 }
