@@ -117,7 +117,6 @@ export class ChatService  {
         summarize: historySummarized,
       });
 
-
       // Consider storing into LTMemo
       await this.teachableAgent.considerMemoStorage(prompt, memoryDetail, this.STMemo.summaryChat);
     }
