@@ -84,3 +84,10 @@ export interface ToolCallCus {
         arguments: string;
     };
 }
+
+
+export type initClassOpenAI = {
+    userId?: string,
+    eventListId?: string
+    isLinkGoogle?: boolean
+}

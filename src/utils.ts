@@ -1,4 +1,5 @@
 import * as fs from 'fs';
+import fsPromise from 'fs/promises';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import pako from 'pako';
@@ -7,6 +8,7 @@ import sharp from 'sharp';
 import { ChatCompletionContentPartImage } from './services/llm/llm.interface';
 import { tools } from './database/toolCall/toolCall.interface';
 import { toolsDefined, ToolsDefinedType } from './services/llm/tool';
+import { ChatCompletionTool } from "openai/resources/chat/completions"
 
 
 export function isObject(value: any): boolean {
@@ -171,13 +173,20 @@ export async function processImage(filePath: string, maxSize = 6480): Promise<{ 
     }
 }
   
-export function createImageContent(image: string, maxdim: number, detailThreshold = 700) {
+export async function createImageContent(image: string, maxdim?: number, detailThreshold = 700) {
     type DetailLevel = "auto" | "low" | "high" | undefined;
 
-    const detail:DetailLevel = maxdim < detailThreshold ? 'low' : 'high';
+    // const detail:DetailLevel = maxdim && maxdim < detailThreshold ? 'low' : 'high';
+    const base64Url = `data:image/jpeg;base64,${image}`
+    const tmpFileUrl = await hostImages(base64Url)
+    console.log("tmpFileUrl", tmpFileUrl)
+
     return {
         type: 'image_url',
-        image_url: { url: `data:image/jpeg;base64,${image}`, detail: detail }
+        image_url: { 
+            url: tmpFileUrl, 
+            // ...(detail && { detail: detail } )
+        }
     } as ChatCompletionContentPartImage
 }
 
@@ -209,8 +218,8 @@ export function readTextFile(filePath: string): Promise<string> {
     });
 }
 
-export function filterTools(dataArray: tools[], toolsArray: ToolsDefinedType[]): ToolsDefinedType[] {
-    return dataArray.reduce((acc: ToolsDefinedType[], item) => {
+export function filterTools(dataArray: tools[], toolsArray: ChatCompletionTool[]): ChatCompletionTool[] {
+    return dataArray.reduce((acc: ChatCompletionTool[], item) => {
         const matchedTool = toolsArray.find(tool => tool.function.name === item.aiTool.name);
         if (matchedTool) {
             acc.push(matchedTool);
@@ -229,5 +238,96 @@ export function convertTimeHHmmToDateTime(timeString: string, startDateTime: Dat
     dateTime.setHours(hours, minutes, 0, 0);
   
     return dateTime;
+}
+
+export const formatTimeToHHMM = (date: Date): string => {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+
+    const formattedHours = hours < 10 ? `0${hours}` : hours.toString();
+    const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes.toString();
+
+    return `${formattedHours}:${formattedMinutes}`;
+};
+
+export const base64ToBlob = (base64: string, mimeType: string): Blob => {
+    const byteCharacters = atob(base64.split(",")[1]);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: mimeType });
+}
+
+export const hostImages = async (base64Image: string): Promise<string> => {
+    const blob = base64ToBlob(base64Image, "image/jpeg");
+    const formData = new FormData();
+    formData.append("file", blob, "image.jpg");
+
+    const response = await fetch("https://tmpfiles.org/api/v1/upload", {
+        method: "POST",
+        body: formData,
+    });
+
+    const { data } = await response.json();
+
+    return data.url.replace("https://tmpfiles.org/", "https://tmpfiles.org/dl/");
+}
+
+
+
+interface ResizeImageOptions {
+    inputPath: string;
+    maxSizeInMB?: number; // Optional, default to 20MB
   }
   
+export const resizeImageToMaxSizeBase64 = async ({
+    inputPath,
+    maxSizeInMB = 20 // Default max size is 20MB
+}: ResizeImageOptions): Promise<string | null> => {
+try {
+    // Maximum file size in bytes
+    const maxFileSize = maxSizeInMB * 1024 * 1024;
+
+    // Read the image metadata to get the original dimensions
+    const metadata = await sharp(inputPath).metadata();
+
+    let width = metadata.width || 1920; // Default width in case metadata is missing
+    let height = metadata.height || 1080; // Default height in case metadata is missing
+
+    let quality = 90; // Start with 90% quality
+    let resizedBuffer: Buffer;
+
+    // Resize and compress the image until it's under the target size
+    while (true) {
+    resizedBuffer = await sharp(inputPath)
+        .resize({ width, height, fit: sharp.fit.inside }) // Maintain aspect ratio
+        .jpeg({ quality }) // Adjust the quality
+        .toBuffer();
+
+    // Check if the resized image is under the max size limit
+    if (resizedBuffer.length < maxFileSize || quality < 20) {
+        break;
+    }
+
+    // Reduce quality by 10% for next iteration
+    quality -= 10;
+
+    // Optionally reduce dimensions slightly each time
+    width = Math.floor(width * 0.9);
+    height = Math.floor(height * 0.9);
+    }
+
+    // Convert buffer to base64
+    const base64String = resizedBuffer.toString('base64');
+    return base64String
+    // const base64Image = `data:image/jpeg;base64,${base64String}`;
+    // console.log(`Image resized successfully. Base64 size: ${base64Image.length} characters`);
+    
+    // return base64Image;
+} catch (error) {
+    console.error('Error resizing image:', error);
+    return null;
+}
+};

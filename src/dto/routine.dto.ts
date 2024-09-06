@@ -59,3 +59,11 @@ export class UpdateRoutineDto {
   dates?: UpdateRoutineDateProps[];
 
 }
+
+
+export class UpdateRoutineDatesDto {
+
+  @IsArray()
+  dates: UpdateRoutineDateProps[];
+
+}

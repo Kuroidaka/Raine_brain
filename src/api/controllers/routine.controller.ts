@@ -55,7 +55,7 @@ export const routineController = {
     },
     updateRoutine: async (req: Request, res: Response, next: NextFunction) => {
         const { id: routineID } = req.params;
-        const { area = [], dates = [], ...data} = req.body;
+        const { area, dates, ...data } = req.body;
         const { id: userId, eventListId, googleCredentials } = req.user
 
         try {
@@ -72,6 +72,31 @@ export const routineController = {
             }
     
             return res.status(200).json(updatedRoutine);
+        } catch (error) {
+            console.log(error);
+            next(error);
+        }
+    },
+    updateRoutineDate: async (req: Request, res: Response, next: NextFunction) => {
+        const { id: routineID } = req.params;
+        const { dates } = req.body;
+        // const { id: userId, eventListId, googleCredentials } = req.user
+
+        try {
+
+            const routine = await routineService.getRoutineById(routineID);
+
+            if(!routine) throw new NotFoundException("Routine Not Found")
+
+            await routineService.updateRoutineDates(routineID, dates);
+
+            // if (eventListId && googleCredentials) { // If account linked with Google
+            //     await reminderService.RoutineUpdateSyncGoogle(routine.googleEventId, eventListId, updatedRoutine)
+            // }
+    
+            return res.status(200).json({
+                message: "Updated dates successfully"
+            });
         } catch (error) {
             console.log(error);
             next(error);

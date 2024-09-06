@@ -1,5 +1,5 @@
 import { dbClient } from "~/config";
-import { Prisma } from "@prisma/client";
+import { Prisma, Routine } from "@prisma/client";
 import { RoutineProps, UpdateRoutineProps, RoutineWithAreaProps, RoutineUpdateWithAreaProps, RoutineDateProps, UpdateRoutineDateProps } from "./routine.type";
 import { Areas } from "@prisma/client";
 
@@ -23,10 +23,10 @@ export class RoutineService {
     }
 
     // Routine CRUD operations
-    async addNewRoutine(data: RoutineProps, area: Areas[]) {
+    async addNewRoutine(data: RoutineProps, area?: Areas[]) {
         try {
             const dataObject: RoutineWithAreaProps = data;
-            if (area.length > 0) {
+            if (area && area.length > 0) {
                 dataObject.area = this.mapAreaToPrisma(area);
             }
 
@@ -38,17 +38,23 @@ export class RoutineService {
         }
     }
 
-    async getRoutineById(id: string) {
+    async getRoutineById(id: string): Promise<Routine> {
         try {
-            return await dbClient.routine.findUnique({
+            const routine = await dbClient.routine.findUnique({
                 where: { id },
                 include: {
                     area: true,
-                    routineDate: true
-                }
+                    routineDate: true,
+                },
             });
+    
+            if (!routine) {
+                throw new Error(`Routine with id ${id} not found`);
+            }
+    
+            return routine;
         } catch (error) {
-            console.log('Error getting routine:', error);
+            console.error('Error getting routine:', error);
             throw error;
         }
     }
@@ -68,7 +74,7 @@ export class RoutineService {
         }
     }
 
-    async updateRoutine(routineId: string, data: UpdateRoutineProps, area?: Areas[], dates?: UpdateRoutineDateProps[]) {
+    async updateRoutine(routineId: string, data: UpdateRoutineProps, area?: Areas[], dates?: UpdateRoutineDateProps[]):Promise<Routine> {
         try {
             return await dbClient.$transaction(async (tx) => {
                 const dataObject: RoutineUpdateWithAreaProps = data;
@@ -112,14 +118,57 @@ export class RoutineService {
                         }
                     }
                 }
-    
-                // Update Routine
-                const updatedRoutine = await tx.routine.update({
-                    where: { id: routineId },
-                    data: dataObject,
-                });
-    
-                return updatedRoutine;
+                
+                if(data) {
+                    // Update Routine
+                    const updatedRoutine = await tx.routine.update({
+                        where: { id: routineId },
+                        data: dataObject,
+                    });
+                    return updatedRoutine;
+                } else {
+                    return this.getRoutineById(routineId)
+                }
+            });
+        } catch (error) {
+            console.log('Error updating routine:', error);
+            throw error;
+        }
+    }
+    async updateRoutineDates(routineId: string, dates?: UpdateRoutineDateProps[]):Promise<void> {
+        try {
+            await dbClient.$transaction(async (tx) => {
+                if(dates) {
+                    await tx.routineDate.deleteMany({where: { routineID: routineId }});
+                    // Handle RoutineDate logic
+                    if(dates.length > 0) {
+                        for (const date of dates) {
+
+                            const dateISO = new Date(date.completion_date).toISOString()
+                            const existingDate = await tx.routineDate.findFirst({
+                                where: {
+                                    routineID: routineId,
+                                    completion_date: dateISO,
+                                },
+                            });
+            
+                            if (existingDate) {
+                                // If the date already exists, delete it
+                                await tx.routineDate.delete({
+                                    where: { id: existingDate.id },
+                                });
+                            } else {
+                                // If the date does not exist, create a new RoutineDate
+                                await tx.routineDate.create({
+                                    data: {
+                                        routineID: routineId,
+                                        completion_date: dateISO,
+                                    },
+                                });
+                            }
+                        }
+                    }
+                }
             });
         } catch (error) {
             console.log('Error updating routine:', error);

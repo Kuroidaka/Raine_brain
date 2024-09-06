@@ -46,3 +46,14 @@ export type Debug = {
     debugChat: number, 
     debugMemo: number, 
 }
+
+
+export type chatClassInit = {
+    userID: string,
+    conversationID: string,
+    isEnableVision: boolean,
+    isEnableStream: boolean,
+    lang: string,
+    eventListId?: string,
+    isLinkGoogle?: boolean
+}

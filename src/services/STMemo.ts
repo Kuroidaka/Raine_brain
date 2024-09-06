@@ -9,7 +9,7 @@ import { ConversationSummaryMemory, MemoryVariables } from "langchain/memory";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { ChatCompletionUserMessageParam } from 'groq-sdk/resources/chat/completions';
 import path from 'path';
-import { createImageContent, formatDateTime, processImage, readTextFile } from '~/utils';
+import { createImageContent, formatDateTime, processImage, readTextFile, resizeImageToMaxSizeBase64 } from '~/utils';
 import { msgFuncProps } from '~/database/conversation/conversation.interface';
 
 const describeImgInstruction = `
@@ -141,12 +141,7 @@ export class STMemoStore {
             list.push({ role: "system", content: frameGuidePersona })
         }
 
-        // if(toolCall) {
-        //     list.push({ role: "system", content: `
-        //     Whenever a user request involves tasks or task management: Call the ReminderChatServiceTool
-        //     Whenever a user request involves routines: Call the RoutineChatServiceTool:
-        //     `})
-        // }
+        list.push({ role: "system", content: `If there is a task that is beyond your ability, just say you cannot do it.`})
 
         return list
     }
@@ -191,8 +186,13 @@ export class STMemoStore {
         
         const content: ChatCompletionContentPart[] = [{ text: uploadedImagesText, type: "text" }];
 
-        content.push(...base64Images.map(({ encodedImage, maxDim }) => createImageContent(encodedImage, maxDim, detailThreshold)));
-
+        const imageContents = await Promise.all(
+            base64Images.map(async ({ encodedImage, maxDim }) => {
+                return await createImageContent(encodedImage, maxDim, detailThreshold);
+            })
+        );
+        
+        content.push(...imageContents);
         return [{ role: 'user' as "user", content }];
     } 
 
@@ -271,13 +271,18 @@ export class STMemoStore {
 
         this.summaryChat = conversation.summarize as string
 
-        const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize, 4)
+        const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize, 0)
         await this.addMessage(originalPrompt, false, this.conversation_id)
 
         if(includeImage && imgFilePath) {
 
-            const { encodedImage, maxDim } = await processImage(imgFilePath);
-            const imgContent = createImageContent(encodedImage, maxDim, 700)
+            // process base64 image
+            // const { encodedImage, maxDim } = await processImage(imgFilePath);
+            const encodedImage  = await resizeImageToMaxSizeBase64({
+                inputPath: imgFilePath,
+            })
+
+            const imgContent = await createImageContent(encodedImage as string, undefined, 700)
 
             history.push({
                 "role": "user",
