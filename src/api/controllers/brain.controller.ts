@@ -164,8 +164,8 @@ export const BrainController = {
       const chunks = splitText(text, 2000);
 
       for (const chunk of chunks) {
-        // const file = await DeepGramService.tts(chunk);
-        const file = await OpenaiService.tts(chunk);
+        const file = await DeepGramService.tts(chunk);
+        // const file = await OpenaiService.tts(chunk);
         const absolutePath = path.resolve(file);
 
         const fileBuffer = await fs.readFile(absolutePath);

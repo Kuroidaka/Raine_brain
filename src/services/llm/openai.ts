@@ -19,7 +19,7 @@ import { uploadFilePath } from '~/constant';
 // The user will give you TEXT to analyze.
 // The user will give you analysis INSTRUCTIONS copied twice, at both the beginning and the end.
 // You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested.`
-const MODEL = "gpt-4o";
+const MODEL = "gpt-4-turbo-2024-04-09";
 
 export class OpenaiService {
 
@@ -95,6 +95,8 @@ export class OpenaiService {
           tools: enableTools,
         };
       }
+
+      console.log("messages before send", messages)
 
       const stream = await openAIClient.chat.completions.create({
         messages: messages,

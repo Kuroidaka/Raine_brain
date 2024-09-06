@@ -1,3 +1,4 @@
+import { ChatCompletionTool } from "openai/resources/chat/completions"
 import { ReminderChatService } from "../chat/reminder"
 
 export type otherArgs = {
@@ -40,7 +41,7 @@ export const llmTools = {
 }
 
 
-export const toolsDefined = [
+export const toolsDefined:ChatCompletionTool[] = [
     {
         type: "function",
         function: {

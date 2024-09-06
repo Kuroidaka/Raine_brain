@@ -9,7 +9,7 @@ import { ConversationSummaryMemory, MemoryVariables } from "langchain/memory";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { ChatCompletionUserMessageParam } from 'groq-sdk/resources/chat/completions';
 import path from 'path';
-import { createImageContent, formatDateTime, processImage, readTextFile } from '~/utils';
+import { createImageContent, formatDateTime, processImage, readTextFile, resizeImageToMaxSizeBase64 } from '~/utils';
 import { msgFuncProps } from '~/database/conversation/conversation.interface';
 
 const describeImgInstruction = `
@@ -271,15 +271,18 @@ export class STMemoStore {
 
         this.summaryChat = conversation.summarize as string
 
-        const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize, 4)
+        const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize, 0)
         await this.addMessage(originalPrompt, false, this.conversation_id)
 
         if(includeImage && imgFilePath) {
 
             // process base64 image
-            const { encodedImage, maxDim } = await processImage(imgFilePath);
+            // const { encodedImage, maxDim } = await processImage(imgFilePath);
+            const encodedImage  = await resizeImageToMaxSizeBase64({
+                inputPath: imgFilePath,
+            })
 
-            const imgContent = await createImageContent(encodedImage, maxDim, 700)
+            const imgContent = await createImageContent(encodedImage as string, undefined, 700)
 
             history.push({
                 "role": "user",
