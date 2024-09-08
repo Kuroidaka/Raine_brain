@@ -16,6 +16,7 @@ dotenv.config();
 import { errorHandler, routeNotFoundHandler, validateDto } from '~/api/middlewares';
 import apiRoutes from '~/api/routes';
 
+
 const app = express();
 const PORT = process.env.SERVER_PORT || 8001;
 const API_PREFIX = '/api/v2'; // Adjust as necessary
@@ -63,6 +64,7 @@ export const start = async (): Promise<void> => {
 
     app.use(errorHandler);
     app.use(routeNotFoundHandler);
+
 
     server.listen(PORT, () => {
         console.log('Server:', chalk.blue(PORT), chalk.green('connected'));

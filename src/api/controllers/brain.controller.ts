@@ -145,7 +145,7 @@ export const BrainController = {
     const filePath = req.file.path;
     console.log("filePath", filePath)
     try {
-      const output = await GroqService.stt(filePath, 'ja');
+      const output = await GroqService.stt(filePath, 'en');
 
       return res.status(200).json(output)
     } catch (error) {
