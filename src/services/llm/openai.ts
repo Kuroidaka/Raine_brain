@@ -2,11 +2,11 @@ import { NotImplementedException } from '../../common/error';
 import { NextFunction, Request, Response } from "express";
 import { traceable } from "langsmith/traceable";
 import { openAIClient } from '../../config/openai';
-import { MsgListParams, outputInter, outputInterData, ToolCallCus, initClassOpenAI } from './llm.interface';
+import { MsgListParams, outputInter, outputInterData, ToolCallCus, initClassOpenAI, analyzeOutputInter } from './llm.interface';
 import { io } from '~/index';
 import * as fs from 'fs';
 import path from 'path';
-import { ChatCompletion, ChatCompletionAssistantMessageParam, ChatCompletionChunk, ChatCompletionMessage, ChatCompletionMessageToolCall } from 'openai/resources/chat/completions';
+import { ChatCompletion, ChatCompletionAssistantMessageParam, ChatCompletionChunk, ChatCompletionMessage, ChatCompletionMessageToolCall, ChatCompletionTool } from 'openai/resources/chat/completions';
 import { ReminderChatService } from '../chat/reminder';
 import { llmTools, otherArgs, toolsDefined, ToolsDefinedType } from './tool';
 import { Stream } from 'openai/streaming';
@@ -19,7 +19,18 @@ import { uploadFilePath } from '~/constant';
 // The user will give you TEXT to analyze.
 // The user will give you analysis INSTRUCTIONS copied twice, at both the beginning and the end.
 // You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested.`
-const MODEL = "gpt-4-turbo-2024-04-09";
+const MODEL = "gpt-4o-mini-2024-07-18";
+const ANALYZER_MODEL = "gpt-4o-mini";
+
+
+const analyzeSystem = `You are an expert in text analysis.
+The user will give you TEXT to analyze.
+The user will give you analysis INSTRUCTIONS copied twice, at both the beginning and the end.
+Your analysis should focus on identifying and categorizing the following types of information from the TEXT:
+1. Personal Details: Recognize and extract any mention of people, including names and relevant personal details (e.g., job titles, relationships, contact information).
+2. Task-Related Information: Detect if the TEXT involves tasks or problems. Extract and summarize tasks, advice, and solutions, keeping in mind future applicability and generalization.
+3. Question-Answer Pairs: Identify information that answers specific questions. Extract these pairs for memory storage, focusing on clear, concise answers to potential user queries.
+You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested.`
 
 export class OpenaiService {
 
@@ -82,7 +93,7 @@ export class OpenaiService {
     debugChat: number,
     res: Response,
     messages: MsgListParams[],
-    enableTools: ToolsDefinedType[]
+    enableTools: ChatCompletionTool[]
   ): Promise<outputInter> {
     let content = "";
     const errorMsg = "Someone call Canh, there are some Bug with my program";
@@ -369,5 +380,40 @@ export class OpenaiService {
     }
 
     return { content };
+  }
+
+
+  async analyzer(textToAnalyze:string, analysisInstructions:string, debug?:number): Promise<analyzeOutputInter> {
+    try {
+
+      const text_to_analyze = "# TEXT\n" + textToAnalyze + "\n"
+      const analysis_instructions = "# INSTRUCTIONS\n" + analysisInstructions + "\n"
+
+      const msgText = [analysis_instructions, text_to_analyze, analysis_instructions].join("\n");
+      const data:MsgListParams[] = [
+        { role: "system", content: analyzeSystem},
+        { role: "user", content: msgText }
+      ]
+
+      const { choices } = await openAIClient.chat.completions.create({
+        messages: data,
+        model: ANALYZER_MODEL,
+      });
+
+      const content = "# RESULT\n" + choices[0].message.content + "\n"
+
+      if(debug && debug === 1) {
+        console.log(analysis_instructions)
+        console.log(text_to_analyze)
+        console.log(content)
+      }
+
+      return {
+        content: choices[0].message.content
+      }
+    } catch (error) {
+      console.log(">>OpenAIService>>analyzer", error);
+      throw error;
+    }
   }
 }
