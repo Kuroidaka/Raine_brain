@@ -5,5 +5,3 @@ export class setBGImgDto {
   @IsOptional()
   bgId: string | null;
 }
-
-

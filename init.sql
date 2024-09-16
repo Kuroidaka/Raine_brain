@@ -8,7 +8,9 @@ INSERT INTO AiTool (id, createdAt, updatedAt, name, description) VALUES
 ('b16f9f7e-7f61-4977-bf34-6fbcfa01f0db', NOW(), NOW(), 'ReminderChatService', 'This tool processes task management queries. It can fetch tasks based on specific criteria (e.g., tasks in a particular area). For example, if the user asks to ''search task with area in work with its subtask,'' the tool will process this by setting ''q'' to ''search task with area in work''.'),
 ('3f1dbef6-d69b-4c97-b4c1-f729f04b728a', NOW(), NOW(), 'RoutineChatService', 'This tool processes routine management queries. It can fetch routines based on specific criteria (e.g., routines in a particular area) or routines that completed recently. For example, if the user asks to ''search routine with area in work'' the tool will process this by setting ''q'' to ''search routine with area in work''.'),
 ('a47c9f8d-9f72-4a7b-8f4a-71a2fa9d0f0e', NOW(), NOW(), 'ReminderCreateChatService', 'This tool creates a reminder task based on the provided title, deadline, and note. It utilizes the user''s information to link the task to their Google account if enabled.'),
-('d3f7c9e1-89b4-4c2a-a9a6-8f7c8b1b1234', NOW(), NOW(), 'RoutineCreateChatService', 'This tool creates a routine based on the provided title, routine time, and note. It utilizes the user\''s information to link the routine to their Google account if enabled.');
+('d3f7c9e1-89b4-4c2a-a9a6-8f7c8b1b1234', NOW(), NOW(), 'RoutineCreateChatService', 'This tool creates a routine based on the provided title, routine time, and note. It utilizes the user''s information to link the routine to their Google account if enabled.'),
+-- different ID for the below tool
+('g5f6c9w1-69d4-6c3a-a6a4-8f6c8s1b1632', NOW(), NOW(), 'FileAskChatService', 'This tool retrieves relevant documents from a specified knowledge base from a uploaded file, then generates a response based on the retrieved content. The knowledge base is a vector store that stores the content of a uploaded file.');
 
 -- Insert into UserOnAiTools table
 INSERT INTO UserOnAiTools (userId, aiToolId, assignedAt) VALUES

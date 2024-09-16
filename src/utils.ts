@@ -9,6 +9,7 @@ import { ChatCompletionContentPartImage } from './services/llm/llm.interface';
 import { tools } from './database/toolCall/toolCall.interface';
 import { toolsDefined, ToolsDefinedType } from './services/llm/tool';
 import { ChatCompletionTool } from "openai/resources/chat/completions"
+import { conversationFileProps } from './database/conversation/conversation.interface'
 
 
 export function isObject(value: any): boolean {
@@ -218,7 +219,7 @@ export function readTextFile(filePath: string): Promise<string> {
     });
 }
 
-export function filterTools(dataArray: tools[], toolsArray: ChatCompletionTool[]): ChatCompletionTool[] {
+export function filterTools(dataArray: tools[], toolsArray: ChatCompletionTool[], conversationFile?: conversationFileProps[]): ChatCompletionTool[] {
     return dataArray.reduce((acc: ChatCompletionTool[], item) => {
         const matchedTool = toolsArray.find(tool => tool.function.name === item.aiTool.name);
         if (matchedTool) {

@@ -50,11 +50,10 @@ export class OpenaiService {
   public async chat(
     messages: MsgListParams[],
     isEnableStream = false,
-    tools: tools[],
+    enableTools: ChatCompletionTool[],
     res?: Response,
     debugChat = 0
   ): Promise<outputInter> {
-    const enableTools = filterTools(tools, toolsDefined);
 
     const dataMsg: MsgListParams[] = typeof messages === "string" 
       ? [{ role: "user", content: messages }]
@@ -107,7 +106,6 @@ export class OpenaiService {
         };
       }
 
-      console.log("messages before send", messages)
 
       const stream = await openAIClient.chat.completions.create({
         messages: messages,
@@ -139,6 +137,7 @@ export class OpenaiService {
         "RoutineChatService": llmTools.RoutineChatService,
         "ReminderCreateChatService": llmTools.ReminderCreateChatService,
         "RoutineCreateChatService": llmTools.RoutineCreateChatService,
+        "FileAskChatService":llmTools.FileAskChatService
       };
 
       messages.push(responseMessage);

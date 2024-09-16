@@ -1,5 +1,5 @@
 import { dbClient } from "~/config";
-import { conversationModifyProps, conversationProps, msgFuncProps, msgProps } from "./conversation.interface";
+import { conversationFileProps, conversationModifyProps, conversationProps, msgFuncProps, msgProps } from "./conversation.interface";
 import { Prisma } from "@prisma/client";
 
 export class ConversationService {
@@ -84,6 +84,11 @@ export class ConversationService {
     async deleteConversation(id:string) {
         try {
             await this.deleteMsgInConversation(id)
+            await dbClient.file.deleteMany({
+                where: {
+                    conversationId: id
+                }
+            })
             await dbClient.conversation.delete({
                 where: { id },
             });
@@ -125,10 +130,14 @@ export class ConversationService {
             throw error;
         }
     }
-
+    
     async addMsg(data: msgProps) {
         try {
-            return await dbClient.message.create({ data });
+            const formattedData = {
+                ...data,
+                relatedMemo: data.relatedMemo ? JSON.stringify(data.relatedMemo) : undefined
+            };
+            return await dbClient.message.create({ data: formattedData });
         } catch (error) {
             console.error('Error adding message:', error);
             throw error;
@@ -173,4 +182,16 @@ export class ConversationService {
         }
     }
 
+    // get conversation file 
+    async getConversationFile(conversationId: string): Promise<conversationFileProps[]> {
+        try {
+            if(!conversationId) return []
+            return await dbClient.file.findMany({
+                where: { conversationId }
+            })
+        } catch (error) {
+            console.error('Error getting conversation file:', error);
+            throw error;
+        }
+    }
 }

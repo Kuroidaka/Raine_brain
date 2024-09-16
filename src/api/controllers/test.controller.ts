@@ -21,6 +21,7 @@ import * as fs from "fs";
 import { ToolCallService } from "~/database/toolCall/toolCall";
 import { createImageContent, filterTools, processImage, resizeImageToMaxSizeBase64 } from "~/utils";
 import { toolsDefined } from "~/services/llm/tool";
+import { ChromaClient } from "chromadb";
 
 const conversationService = ConversationService.getInstance();
 export class TestController {
@@ -213,6 +214,16 @@ export class TestController {
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware
+      next(error);
+    }
+  }
+  static async getCollection(req: Request, res: Response, next: NextFunction) {
+    try {
+      const chromaClient = new ChromaClient()
+      const collections = await chromaClient.listCollections()
+      return res.status(200).json({ data: collections });
+    } catch (error) {
+      console.log(error);
       next(error);
     }
   }

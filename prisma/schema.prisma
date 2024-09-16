@@ -112,14 +112,23 @@ model RoutineDate {
 }
 
 model File {
-  id        String   @id
+  id        String   @id @default(uuid())
   name      String   @unique
+  originalname String
   path      String
   extension String
   size      Int
   url       String   @db.LongText
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  vectorDBIds Json?
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId], map: "File_userId_fkey")
 }
 
 model Role {
@@ -142,7 +151,8 @@ model User {
   gmail             String?
   googleCredentials String?  @db.LongText
   eventListId       String?
-
+  
+  files             File[]
   conversations Conversation[]
   Goal          Goal[]
   Routine       Routine[]
@@ -168,6 +178,7 @@ model Conversation {
   userID        String
   user          User      @relation(fields: [userID], references: [id])
   messages      Message[]
+  files         File[]
 
   @@index([userID], map: "Conversation_userID_fkey")
 }
@@ -183,6 +194,7 @@ model Message {
   imgList        ImageFile[]
   conversation   Conversation     @relation(fields: [conversationId], references: [id])
   functionData   MessageFuntion[]
+  relatedMemo    Json?
 
   @@index([conversationId], map: "Message_conversationId_fkey")
 }
@@ -231,7 +243,7 @@ model backgroundImage {
 }
 
 model ImageFile {
-  id        String   @id
+  id        String   @id @default(uuid())
   url       String   @db.LongText
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

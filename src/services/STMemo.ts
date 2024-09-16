@@ -1,4 +1,4 @@
-import { ChatCompletionContentPart, ChatCompletionContentPartImage, ChatCompletionUserMessageParams, messagesInter, MsgListParams, outputInterData } from './llm/llm.interface'
+import { ChatCompletionContentPart, ChatCompletionContentPartImage, ChatCompletionUserMessageParams, DataMemo, messagesInter, MsgListParams, outputInterData } from './llm/llm.interface'
 import { ConversationService } from '~/database/conversation/conversation';
 import { Message, Conversation } from '@prisma/client';
 import { UserService } from '~/database/user/user';
@@ -7,10 +7,12 @@ import { OpenaiService } from './llm/openai';
 import { ChatOpenAI } from '@langchain/openai';
 import { ConversationSummaryMemory, MemoryVariables } from "langchain/memory";
 import { PromptTemplate } from "@langchain/core/prompts";
-import { ChatCompletionUserMessageParam } from 'groq-sdk/resources/chat/completions';
+import { ChatCompletionTool, ChatCompletionUserMessageParam } from 'openai/resources/chat/completions';
 import path from 'path';
 import { createImageContent, formatDateTime, processImage, readTextFile, resizeImageToMaxSizeBase64 } from '~/utils';
-import { msgFuncProps } from '~/database/conversation/conversation.interface';
+import { conversationFileProps, msgFuncProps } from '~/database/conversation/conversation.interface';
+import { toolsDefined } from './llm/tool';
+import { tools } from '~/database/toolCall/toolCall.interface';
 
 const describeImgInstruction = `
 Input: Grid images of the video chat between human and AI
@@ -43,12 +45,16 @@ export class STMemoStore {
     summaryChat:string;
     isEnableVision:boolean; 
     lang: string
+    tools?: ChatCompletionTool[]
+    conversationFile?: conversationFileProps[]
 
-    constructor(userID:string, conversation_id?:string, isEnableVision=false, lang='en') {
+    constructor(userID:string, conversation_id?:string, isEnableVision=false, lang='en', tools?: ChatCompletionTool[], conversationFile?: conversationFileProps[]) {
         this.userID = userID;
         this.conversation_id = conversation_id || undefined,
         this.isEnableVision = isEnableVision,
         this.lang = lang
+        this.tools = tools
+        this.conversationFile = conversationFile
     }
 
     async convertMessagesFormat(messages: Message[]): Promise<MsgListParams[]> {
@@ -79,7 +85,8 @@ export class STMemoStore {
         message: string, 
         isBot: boolean, 
         conversationId: string, 
-        listDataFunc?: outputInterData[]
+        listDataFunc?: outputInterData[],
+        memoryDetail?: DataMemo[]
     ): Promise<void> {
         try {
             // Simultaneously add the message and modify the conversation
@@ -88,7 +95,8 @@ export class STMemoStore {
                     text: message,
                     isBot: isBot,
                     userID: this.userID,
-                    conversationId: conversationId
+                    conversationId: conversationId,
+                    relatedMemo: memoryDetail
                 }),
                 conversationService.modifyConversation(conversationId, {
                     lastMessage: message
@@ -141,7 +149,18 @@ export class STMemoStore {
             list.push({ role: "system", content: frameGuidePersona })
         }
 
-        list.push({ role: "system", content: `If there is a task that is beyond your ability, just say you cannot do it.`})
+
+        // add ability of the AI
+        list.push({ role: "system", content: `If there is a task that is beyond your ability below, just say you cannot do it.
+        # Ability:
+        ${this.tools?.map(tool => {
+            return `
+            - Name: ${tool.function.name}
+            - Description: ${tool.function.description}
+            `
+            }).join("\n")}
+            `})
+
 
         return list
     }
@@ -254,7 +273,8 @@ export class STMemoStore {
         originalPrompt:string , 
         promptWithRelatedMemory:string,
         includeImage = false,
-        imgFilePath?: string
+        imgFilePath?: string,
+        memoryDetail?: string[]
     ):Promise<MsgListParams[]> {
         let conversation:Conversation | null = this.conversation_id
         ? await conversationService.getConversation(this.conversation_id)
@@ -273,6 +293,20 @@ export class STMemoStore {
 
         const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize, 4)
         await this.addMessage(originalPrompt, false, this.conversation_id)
+
+
+        if(this.conversationFile) {
+            history.push({ role: "user", content: `The uploaded file:
+                ${this.conversationFile.length > 0 ? this.conversationFile.map(file => {
+                    return `
+                    name: ${file.originalname}
+                    type: ${file.extension}
+                    uploaded_at: ${file.createdAt}
+                    `
+                }).join("\n") : "No file uploaded"}
+
+            ` })
+        }
 
         if(includeImage && imgFilePath) {
 

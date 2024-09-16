@@ -3,6 +3,7 @@ import { GroqService } from "./llm/groq"
 import { analyzeOutputInter, DataMemo } from "./llm/llm.interface"
 import { MemoStore } from "./LTMemo";
 import chalk from "chalk";
+import { io } from "~/index";
 
 
 export class TeachableService {
@@ -38,6 +39,7 @@ export class TeachableService {
 
   public async considerMemoStorage(prompt:string, relateMemo: DataMemo[], additionalPrompt?:string) {
     try {
+      
       let customPrompt = prompt
       let explainAddRule = ""
       if(additionalPrompt) {
@@ -128,6 +130,8 @@ export class TeachableService {
 
   public async considerMemoRetrieval(prompt:string):Promise<{ relateMemory:string[], memoryDetail: DataMemo[] }> {
     try {
+
+      io.emit("chatResMemo", { active: true });
       //  analyze task and relevance relationship
       const [analyzeResult, isRelateResult] = await Promise.all([
         GroqService.analyzer(prompt, "Does any part of the TEXT ask you to perform a task or solve a problem or try to remember something? Answer with just one word, yes or no.", this.debug),
@@ -157,6 +161,7 @@ export class TeachableService {
       
       this.debug === 0 && console.log("Related memory list", memoOutputList)
 
+      io.emit("chatResMemo", { memoryDetail: memoList });
       return { 
         relateMemory: memoOutputList,
         memoryDetail: memoList
