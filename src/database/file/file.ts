@@ -1,5 +1,5 @@
 import { dbClient } from "~/config";
-import { backgroundImageProps, backgroundImageModifyProps } from "./file.interface";
+import { backgroundImageProps, backgroundImageModifyProps, fileProps } from "./file.interface";
 
 export class FileService {
     private static instance: FileService;
@@ -12,7 +12,7 @@ export class FileService {
         }
         return FileService.instance;
     }
-
+// BACKGROUND IMAGE
     // Add a new Background Image
     async addNewBackgroundImage(data: backgroundImageProps) {
         try {
@@ -100,6 +100,64 @@ export class FileService {
             });
         } catch (error) {
             console.error('Error removing Background Image from User:', error);
+            throw error;
+        }
+    }
+// FILE Uploaded
+
+    // Add a new File
+    async addNewFile(data: fileProps) {
+        try {
+            return await dbClient.file.create({ data });
+        } catch (error) {
+            console.error('Error adding File:', error);
+            throw error;
+        }
+    }
+
+    // Get File by ID
+    async getFile(id: string) {
+        try {
+            return await dbClient.file.findUnique({
+                where: { id }
+            });
+        } catch (error) {
+            console.error('Error getting File:', error);
+            throw error;
+        }
+    }
+
+    // Get all Files
+    async getAllFiles() {
+        try {
+            return await dbClient.file.findMany();
+        } catch (error) {
+            console.error('Error getting Files:', error);
+            throw error;
+        }
+    }
+
+    // Update a File
+    async updateFile(id: string, data: fileProps) {
+        try {
+            return await dbClient.file.update({
+                where: { id },
+                data,
+            });
+        } catch (error) {
+            console.error('Error updating File:', error);
+            throw error;
+        }
+    }
+
+    // Delete a File
+    async deleteFile(id: string) {
+        try {
+            return await dbClient.file.delete({
+                where: { id },
+            });
+        } catch (error) {
+            console.error('Error deleting File:', error);
             throw error;
         }
     }

@@ -11,6 +11,8 @@ import { ConversationService } from "~/database/conversation/conversation";
 import { InternalServerErrorException } from "~/common/error";
 import { OpenaiService } from "../llm/openai";
 import { ToolCallService } from "~/database/toolCall/toolCall";
+import { filterTools } from "~/utils";
+import { toolsDefined } from "../llm/tool";
 
 const conversationService = ConversationService.getInstance()
 export class ChatService  {
@@ -47,7 +49,8 @@ export class ChatService  {
   public async processChat(debug: Debug, res: Response, prompt: string, imgFilePath?: string) :Promise<{
     output: outputInter,
     conversationID: string,
-    memoryDetail: DataMemo[]
+    memoryDetail: DataMemo[] | [],
+    memoStorage: DataMemo[] | []
   }>{
     try {
       const { debugChat = 0, debugMemo = 0 } = debug
@@ -55,33 +58,53 @@ export class ChatService  {
       // Long term memory process
       const pathMemo = path.join("src", "assets", "tmp", "memos", this.userID);
       this.teachableAgent = new TeachableService(debugMemo, pathMemo);
-
       const { relateMemory, memoryDetail } = await this.teachableAgent.considerMemoRetrieval(prompt);
-
       let promptWithRelatedMemory = prompt + this.teachableAgent.concatenateMemoTexts(relateMemory)
 
+
+      // get conversation file
+      const conversationFile = await conversationService.getConversationFile(this.conversationID)
+
+      // Get tools
+       const toolCallService = ToolCallService.getInstance();
+       const tools = await toolCallService.getToolsByUser(this.userID)
+       const enableTools = filterTools(tools, toolsDefined, conversationFile);
+
       // Short term memory process,
-      this.STMemo = new STMemoStore(this.userID, this.conversationID, this.isEnableVision, this.lang);
-
-      const messages = await this.STMemo.process(prompt, promptWithRelatedMemory, Boolean(imgFilePath), imgFilePath);
-
+      this.STMemo = new STMemoStore(
+        this.userID,
+        this.conversationID,
+        this.isEnableVision,
+        this.lang,
+        enableTools,
+        conversationFile,
+      );
+      const messages = await this.STMemo.process(
+        prompt, 
+        promptWithRelatedMemory, 
+        Boolean(imgFilePath), 
+        imgFilePath,
+      );
       console.log("messages", messages);
 
       // Asking
-      const toolCallService = ToolCallService.getInstance();
-      const tools = await toolCallService.getToolsByUser(this.userID)
-      const openAiService = new OpenaiService({ 
+      const openAiService = new OpenaiService({
         userId: this.userID,
         ...(this.eventListId && { eventListId: this.eventListId }),
         ...(this.isLinkGoogle && { isLinkGoogle: this.isLinkGoogle }),
       });
       
-      const output = await openAiService.chat(messages, this.isEnableStream, tools, res, debugChat);
+       // Consider storing into LTMemo and promise all with chat response
+       const [output, memoStorage] = await Promise.all([
+        openAiService.chat(messages, this.isEnableStream, enableTools, res, debugChat),
+        this.teachableAgent.considerMemoStorage(prompt, memoryDetail, this.STMemo.summaryChat)
+       ])
 
       return {
         output: output,
         conversationID: this.STMemo.conversation_id as string,
-        memoryDetail: memoryDetail
+        memoryDetail: memoryDetail,
+        memoStorage: memoStorage ? memoStorage : []
       }
     } catch (error) {
       console.error("Error in processChat:", error);
@@ -102,12 +125,12 @@ export class ChatService  {
   //   }
   // }
 
-  public async handleProcessAfterChat(output: outputInter, prompt: string, memoryDetail: DataMemo[]) {
+  public async handleProcessAfterChat(output: outputInter, prompt: string, memoryDetail: DataMemo[], memoStorage: DataMemo[]) {
     // Add AI response into DB
     if (output.content && this.STMemo.conversation_id) {
       const listDataFunc = output.data
 
-      await this.STMemo.addMessage(output.content, true, this.STMemo.conversation_id, listDataFunc);
+      await this.STMemo.addMessage(output.content, true, this.STMemo.conversation_id, listDataFunc, memoryDetail, memoStorage);
 
       // Summarize the conversation
       const historySummarized = await this.STMemo.processSummaryConversation(this.STMemo.conversation_id as string);
@@ -116,9 +139,6 @@ export class ChatService  {
       await conversationService.modifyConversation(this.STMemo.conversation_id as string, {
         summarize: historySummarized,
       });
-
-      // Consider storing into LTMemo
-      await this.teachableAgent.considerMemoStorage(prompt, memoryDetail, this.STMemo.summaryChat);
     }
   }
 }

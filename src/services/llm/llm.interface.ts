@@ -68,11 +68,21 @@ export type ChatCompletionContentPart = OpenAIChatCompletionContentPart | GroqCh
 
 export type ChatCompletionContentPartImage = OpenAIChatCompletionContentPartImage | GroqChatCompletionContentPartImage
 
+export interface CriteriaMemo {
+    "personal detail": boolean,
+    "relationship": boolean,
+    "favorite": boolean,
+    "time-sensitive": boolean,
+    "context-relevant": boolean,
+    "actionable": boolean,
+    "frequently-mentioned": boolean
+}
 export interface DataMemo {
     id: string,
-    input_text:string,
-    output_text:string,
-    distance: number,
+    guide:string,
+    answer: string,
+    distance?: number,
+    criteria: CriteriaMemo,
     createdAt: string
 }
 
@@ -90,4 +100,10 @@ export type initClassOpenAI = {
     userId?: string,
     eventListId?: string
     isLinkGoogle?: boolean
+}
+
+export interface analyzeLTMemoCriteriaInter {
+    guide: string,
+    answer: string,
+    criteria: CriteriaMemo
 }

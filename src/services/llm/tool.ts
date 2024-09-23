@@ -1,5 +1,6 @@
 import { ChatCompletionTool } from "openai/resources/chat/completions"
 import { ReminderChatService } from "../chat/reminder"
+import { FileChatService } from "../chat/fileAsk"
 
 export type otherArgs = {
     userId?: string,
@@ -37,6 +38,14 @@ export const llmTools = {
         const func = new ReminderChatService()
 
         return func.runRoutine(q)
+    },
+    FileAskChatService: async (args: { q: string }) => {
+        const { q  } = args
+
+        const func = new FileChatService()
+
+        // get the function add the knowledge base
+        return func.askFile(q)
     }
 }
 
@@ -130,7 +139,24 @@ export const toolsDefined:ChatCompletionTool[] = [
                 required: ["q"],
             },
         },
-    }
+    },
+    {
+        type: "function",
+        function: {
+            name: "FileAskChatService",
+            // tool description for RAG file 
+            description: "This tool is used to ask a question about a uploaded file.",
+            parameters: {
+                type: "object",
+                properties: {
+                  "q": {
+                    "description": "The question that the user wants to know about the uploaded file"
+                  }
+                },
+                required: ["q"],
+            },
+        },
+    },
 ];
 
 export type ToolsDefinedType = {

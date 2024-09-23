@@ -8,6 +8,10 @@ import mime from 'mime-types';
 import { promisify } from 'util';
 import { FileService } from '~/database/file/file';
 import * as fs from 'fs';
+import { fileProps } from '~/database/file/file.interface';
+import { FileChatService } from '~/services/chat/fileAsk';
+import { ConversationService } from '~/database/conversation/conversation';
+import { formatDateTime } from '~/utils';
 
 const pipelineAsync = promisify(pipeline);
 
@@ -81,4 +85,83 @@ export const FileController = {
             next(error);
         }
     },
+    uploadFile: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            if (!req.file) {
+                throw new NotFoundException("File upload failed");
+            }
+
+            let conversationId = req.body.conversationId
+            if(!conversationId) {
+                const conversationService = ConversationService.getInstance();
+                const conversation = await conversationService.addNewConversation({
+                    userID: req.user.id,
+                    name: formatDateTime(),
+                });
+                conversationId = conversation.id;
+            }
+
+            const fileService = FileService.getInstance();
+            const newFileData:fileProps = {
+                originalname: req.file.originalname,
+                name: req.file.filename,
+                path: req.file.path,
+                extension: path.extname(req.file.filename),
+                size: req.file.size,
+                url: req.file.path,
+                userId: req.user.id,
+                conversationId: conversationId
+            }
+            const vectorDBPath = uploadFilePath.vectorDBPath
+            const filePath = path.join(vectorDBPath, req.file.filename);
+
+            const fileChatService = new FileChatService();
+            const { ids } = await fileChatService.storageFile(filePath);
+            newFileData.vectorDBIds = ids
+            const { id } = await fileService.addNewFile(newFileData);
+
+            return res.status(200).json({
+                fileID: id,
+                conversationID: conversationId
+            });
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
+    deleteFile: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const fileService = FileService.getInstance();
+            const { id } = req.params;
+
+            const file = await fileService.getFile(id)
+            if(!file) {
+                throw new NotFoundException("File not found");
+            }
+            const fileChatService = new FileChatService();
+            if(file.vectorDBIds) {
+                await fileChatService.deleteDocs(file.vectorDBIds as string[]);
+            }
+            await fileService.deleteFile(id);
+
+            await fileChatService.removeFile(file.path);
+            return res.status(200).json({ message: "File deleted successfully" });
+        } catch (error) {
+            console.log(error);
+            next(error);
+        }
+    },
+    getFiles: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+
+            const fileService = FileService.getInstance();
+            const files = await fileService.getAllFiles();
+
+            return res.status(200).json(files);
+        } catch (error) {
+            console.log(error);
+            next(error);
+        }
+    }
 }

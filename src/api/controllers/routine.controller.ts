@@ -89,7 +89,7 @@ export const routineController = {
             if(!routine) throw new NotFoundException("Routine Not Found")
 
             await routineService.updateRoutineDates(routineID, dates);
-
+        
             // if (eventListId && googleCredentials) { // If account linked with Google
             //     await reminderService.RoutineUpdateSyncGoogle(routine.googleEventId, eventListId, updatedRoutine)
             // }

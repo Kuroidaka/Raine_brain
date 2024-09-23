@@ -17,6 +17,7 @@ import { OpenaiService } from "~/services/llm/openai";
 import { MemoStore } from "~/services/LTMemo";
 import { outputInter } from '~/services/llm/llm.interface'
 import { chatClassInit } from "~/services/chat/chat.interface";
+import { FileChatService } from "~/services/chat/fileAsk";
 
 const conversationService = ConversationService.getInstance()
 export const BrainController = {
@@ -67,7 +68,8 @@ export const BrainController = {
       await chatService.handleProcessAfterChat(
         result.output,
         prompt,
-        result.memoryDetail
+        result.memoryDetail,
+        result.memoStorage
       )
 
     } catch (error) {
@@ -218,5 +220,26 @@ export const BrainController = {
       // Rethrow the error to be caught by the errorHandler middleware
       next(error);
     }
+  },
+  test: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { q } = req.body
+      const fileChatService = new FileChatService()
+      const result = await fileChatService.askFile(q)
+      return res.status(200).json(result)
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
+  },
+  resetDocsMemo: async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const fileChatService = new FileChatService()
+      await fileChatService.resetDocsMemo()
+      return res.status(200).json({ data: "done" }); 
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
   }
-};
+}

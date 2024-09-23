@@ -24,6 +24,7 @@ router.post('/calendar/event', validateToken, validateGoogleToken, validateDto(C
 // router.put('/calendar/event/:id', validateToken, validateGoogleToken, validateDto(UpdateCalendarDto), googleController.updateEvent);
 router.delete('/calendar/event/:id', validateToken, validateGoogleToken, googleController.deleteEvent);
 router.post('/auth/verify_token', validateToken, validateGoogleToken, googleController.validateUserToken);
+router.post('/calendar/event/sync', validateToken, validateGoogleToken, googleController.syncEvent);
 
 export default router;
 

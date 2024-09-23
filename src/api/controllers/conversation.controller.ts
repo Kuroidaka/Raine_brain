@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { NotFoundException } from '~/common/error';
 import { ConversationService } from '~/database/conversation/conversation';
 
 const conversationService = ConversationService.getInstance()
@@ -47,4 +48,20 @@ export const ConversationController = {
             next(error);
         }
     },
+    getConversationFile: async (req: Request, res: Response, next:NextFunction) => { 
+        const { id } = req.params
+        try {
+            // check conversation id
+            const conversation = await conversationService.getConversation(id)
+            if (!conversation) {
+                throw new NotFoundException('Conversation not found')
+            }
+
+            const data = await conversationService.getConversationFile(id)
+            return res.status(200).json(data);
+        } catch (error) {
+            console.log(error);
+            next(error);
+        }
+    }
 }

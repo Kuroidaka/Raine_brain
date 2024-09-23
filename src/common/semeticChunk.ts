@@ -1,8 +1,11 @@
 import "dotenv/config";
 import { ChatOpenAI, OpenAIEmbeddings } from "@langchain/openai";
 import { TextLoader } from "langchain/document_loaders/fs/text";
+import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Chroma } from "@langchain/community/vectorstores/chroma";
 import { Document } from "langchain/document";
+
+import { DirectoryLoader } from'langchain/document_loaders/fs/directory';
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import {
   RunnableSequence,
@@ -44,6 +47,14 @@ export const loadTextFile = async (relativePath: string): Promise<string> => {
   return textCorpus;
 };
 
+export const loadPDFFile = async (relativePath: string): Promise<string> => {
+  const loader = new PDFLoader(relativePath);
+  const docs = await loader.load();
+  console.log("docs", docs)
+  const textCorpus = docs[0].pageContent;
+  return textCorpus;
+};
+
 // const loadDocxFile = async (relativePath: string): Promise<string> => {
 //   const loader = new DocxLoader(relativePath);
 //   const docs = await loader.load();
@@ -71,8 +82,7 @@ export const loadTextFile = async (relativePath: string): Promise<string> => {
 export const splitToSentencesUsingNLP = (textCorpus: string): string[] => {
   const tokenizer = new natural.SentenceTokenizer();
   const sentences = tokenizer.tokenize(textCorpus);
-  console.log("sentences", sentences);
-  return sentences;
+  return sentences.filter(sentence => sentence.trim() !== "");
 };
 
 export const splitToSentences = async (textCorpus: string): Promise<string[]> => {
@@ -379,14 +389,29 @@ async function rag(documents: any[], collectionName: string = "agentic-chunks") 
 
   console.log(result);
 }
+
+export async function loadFile(filePath: string): Promise<string>{
+  if(filePath.endsWith(".pdf")){
+    const loader = new PDFLoader(filePath);
+    const docs = await loader.load();
+    console.log("docs", docs)
+    const textCorpus = docs.reduce((acc, doc) => acc + "\n" + doc.pageContent, "");
+    return textCorpus
+  }
+  else if(filePath.endsWith(".txt")){
+    const textCorpus = await loadTextFile(filePath)
+    return textCorpus
+  }
+  return ""
+}
 export async function semanticChunk(filePath: string) :Promise<string[]>{
   try {
     // Step 1: Load a text file.
-    // const textCorpus = await loadTextFile("src/assets/cv.txt");
-    const textCorpus = await loadTextFile(filePath);
 
+    const textCorpus = await loadFile(filePath)
     // Step 2: Split the loaded text into sentences.
     const sentences = splitToSentencesUsingNLP(textCorpus);
+    console.log("sentences", sentences);
 
     // Step 3: Structure these sentences into an array of SentenceObject.
     const structuredSentences = structureSentences(sentences, 1); // Assuming a bufferSize of 1 for simplicity
@@ -415,7 +440,6 @@ export async function semanticChunk(filePath: string) :Promise<string[]>{
       console.log("\n--------------------------------------------------\n");
     });
 
-    console.log("Process Rag");
 
     return semanticChunks 
     // rag(documents, "agentic-chunks");

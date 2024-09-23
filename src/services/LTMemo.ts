@@ -7,7 +7,7 @@ import { ChromaClient, OpenAIEmbeddingFunction } from 'chromadb';
 import { assert, deleteFilesInDirectory, deleteFolderRecursive, generateId } from '~/utils';
 import { NotImplementedException } from '~/common/error';
 import chalk from 'chalk';
-import { DataMemo } from './llm/llm.interface';
+import { CriteriaMemo, DataMemo } from './llm/llm.interface';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY
 
@@ -16,7 +16,12 @@ const embeddingFunction = new OpenAIEmbeddingFunction({
     openai_model: "text-embedding-3-small"
 })
 
-type Memo = [string, string, string];
+type Memo = {
+    criteria: any,
+    guide: string,
+    answer: string,
+    createdAt: string
+};
 
 const chromaClient = new ChromaClient({
     path: "http://localhost:8000"
@@ -35,7 +40,7 @@ export class MemoStore {
         debug:number,
         reset=false,
         memo_path: string = path.join('src', 'assets', 'tmp', 'memos'),
-        recall_threshold=.5,
+        recall_threshold=1.8,
     ) {
         this.debug = debug
         this.uidTextDict = {};
@@ -82,19 +87,26 @@ export class MemoStore {
     }
 
     // Add a new input-output pair
-    public async addInputOutputPair(inputText: string, outputText: string): Promise<void> {
+    public async saveVecDB({
+        guideText,
+        answerText,
+        criteria,
+        id = generateId()
+    }: {
+        guideText: string,
+        answerText: string,
+        criteria: CriteriaMemo,
+        id?: string
+    }): Promise<DataMemo> {
         try {
-
-            const id = generateId();
-            // console.log("id", id)
-
             const collection = await chromaClient.getOrCreateCollection({name: "memos"}) 
-            await collection.add({
+            await collection.upsert({
                 ids: [id],
                 metadatas: {
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    ...criteria
                 },
-                documents: [inputText]
+                documents: [guideText]
             })
     
             // const storage = await collection.query({
@@ -102,9 +114,21 @@ export class MemoStore {
             //     queryTexts: [inputText]
             // })
             // console.log("storage", storage)
-            this.uidTextDict[id] = [inputText, outputText, new Date().toISOString()];
-            // this.saveData(botRelate);
+            this.uidTextDict[id] = {
+                "criteria": criteria,
+                "guide": guideText, 
+                "answer": answerText,
+                "createdAt": new Date().toISOString()
+            };
+            this.saveData()
 
+            return {
+                id: id,
+                guide: guideText,
+                answer: answerText,
+                criteria: criteria,
+                createdAt: new Date().toISOString()
+            }
         } catch (error) {
             console.log(error)
             throw error
@@ -112,18 +136,18 @@ export class MemoStore {
        
     }
 
-    public async rememberMemo(inputText: string, outputText: string, relateMemo:DataMemo[]): Promise<void> {
-        try {
+    // public async rememberMemo(inputText: string, relateMemo:DataMemo[]): Promise<void> {
+    //     try {
             
-            return this.addInputOutputPair(inputText, outputText)
+    //         return this.saveVecDB(inputText)
 
 
-        } catch (error) {
-            console.log(error)
-            throw error
-        }
+    //     } catch (error) {
+    //         console.log(error)
+    //         throw error
+    //     }
        
-    }
+    // }
 
     public async repairInputOutputPair(ids: string[], inputTexts: string[], outputTexts: string[]): Promise<void> {
         try {
@@ -139,7 +163,6 @@ export class MemoStore {
             for(let i = 0; i < ids.length; i ++ ) {
                 // this.uidTextDict[ids[i]] = [inputTexts[i], outputTexts[i]];
             }
-            // this.saveData(botRelate);
 
         } catch (error) {
             console.log(error)
@@ -149,12 +172,12 @@ export class MemoStore {
     }
 
     // Retrieve data based on input
-    public async get_related_memos(inputText: string, n_results = 10, botRelate=false):Promise<DataMemo[]> {
+    public async get_related_memos(inputText: string, n_results = 10):Promise<DataMemo[]> {
         try {
-            const memo_path = botRelate ? this.path_to_bot_db_object : this.path_to_user_db_object
+            const memo_path = this.path_to_user_db_object
             // load memory
             if (fs.existsSync(memo_path)) {
-                console.log(chalk.green(`\nLOADING MEMORY FROM ${botRelate? "BOT": "USER"} DISK`));
+                console.log(chalk.green(`\nLOADING MEMORY FROM USER DISK`));
                 this.uidTextDict = await this.loadData(memo_path) || {};
             }
 
@@ -170,9 +193,9 @@ export class MemoStore {
                 queryTexts: [inputText],
                 nResults: n_results,
             })
+            console.log("results", results)
 
-
-            const memos = []
+            const memos:DataMemo[] = []
             const numResult = results.ids[0].length
             for(let i = 0; i < numResult; i++) {
                 const uid = results.ids[0][i]
@@ -180,13 +203,19 @@ export class MemoStore {
                 const distance = results.distances && results.distances.length > 0 ? results.distances[0][i] : 6;
 
 
-                if(distance < this.recall_threshold && this.uidTextDict[uid]?.length > 0) {
-                    const input_text2 = this.uidTextDict[uid][0]
-                    const output_text = this.uidTextDict[uid][1]
-                    const createdAt = this.uidTextDict[uid][2]
+                if(distance < this.recall_threshold && this.uidTextDict[uid]) {
+                    const input_text2 = this.uidTextDict[uid].guide
+                    const createdAt = this.uidTextDict[uid].createdAt
                     assert(input_text == input_text2) 
     
-                    memos.push({ id: uid,input_text, output_text, distance, createdAt })
+                    memos.push({ 
+                        id: uid,
+                        guide: input_text,
+                        distance: distance,
+                        answer: this.uidTextDict[uid].answer,
+                        criteria: this.uidTextDict[uid].criteria,
+                        createdAt: createdAt
+                    })
                 }
 
             }
@@ -208,8 +237,7 @@ export class MemoStore {
             await chromaClient.createCollection({name: "memos"});
             this.uidTextDict = {}
             if(id) {
-                this.saveData(true, id) //save empty data for bot memo
-                this.saveData(false, id)//save empty data for user memo
+                this.saveData(id) //save empty data for memo
             }
             else {
                 deleteFolderRecursive(this.memo_path)
@@ -222,8 +250,8 @@ export class MemoStore {
     }
 
     // Save data to JSON file
-    public saveData(botRelate:boolean, id?:string): void {
-        let path = botRelate ? this.path_to_bot_db_object : this.path_to_user_db_object
+    public saveData(id?:string): void {
+        let path = this.path_to_user_db_object
         if(id) {
             const pathParts = path.split('/');
             const fileName = pathParts.pop();

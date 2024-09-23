@@ -10,6 +10,6 @@ router.get('/get', validateToken, ConversationController.getConversation);
 router.get('/get/:id', validateToken, ConversationController.getConversationById);
 router.post('/create', validateToken, ConversationController.createConversation);
 router.delete('/delete/:id', validateToken, ConversationController.deleteConversation);
-
+router.get('/file/:id', validateToken, ConversationController.getConversationFile);
 
 export default router;

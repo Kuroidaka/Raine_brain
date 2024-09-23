@@ -2,7 +2,7 @@ import { NotImplementedException } from '../../common/error';
 import { NextFunction, Request, Response } from "express";
 import { traceable } from "langsmith/traceable";
 import { openAIClient } from '../../config/openai';
-import { MsgListParams, outputInter, outputInterData, ToolCallCus, initClassOpenAI, analyzeOutputInter } from './llm.interface';
+import { MsgListParams, outputInter, outputInterData, ToolCallCus, initClassOpenAI, analyzeOutputInter, analyzeLTMemoCriteriaInter } from './llm.interface';
 import { io } from '~/index';
 import * as fs from 'fs';
 import path from 'path';
@@ -12,7 +12,7 @@ import { llmTools, otherArgs, toolsDefined, ToolsDefinedType } from './tool';
 import { Stream } from 'openai/streaming';
 import chalk from 'chalk';
 import { tools } from '~/database/toolCall/toolCall.interface'
-import { filterTools } from '~/utils';
+import { filterTools, readTextFile } from '~/utils';
 import { uploadFilePath } from '~/constant';
 
 // const analyzeSystem = `You are an expert in text analysis.
@@ -27,10 +27,29 @@ const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
 The user will give you analysis INSTRUCTIONS copied twice, at both the beginning and the end.
 Your analysis should focus on identifying and categorizing the following types of information from the TEXT:
-1. Personal Details: Recognize and extract any mention of people, including names and relevant personal details (e.g., job titles, relationships, contact information).
-2. Task-Related Information: Detect if the TEXT involves tasks or problems. Extract and summarize tasks, advice, and solutions, keeping in mind future applicability and generalization.
-3. Question-Answer Pairs: Identify information that answers specific questions. Extract these pairs for memory storage, focusing on clear, concise answers to potential user queries.
-You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested.`
+1. Personal Details: Recognize and extract any mention of people, including names and relevant personal details, date of birth, etc.
+2. Question-Answer Pairs: Identify information that answers specific questions. Extract these pairs for memory storage, focusing on clear, concise answers to potential user queries.
+You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested
+Do not add any explanation to your analysis, just the analysis result.
+`
+
+const decontextualizeSystem = `
+The user will give you TEXT.
+You should focus on adding necessary modifier to nouns or entire sentence and replacing only for these pronouns ("it", "he", "she", "they", "this", "that", "them") with the full name of the entities that referred to.
+Do not add any explanation to your response, just the result.
+`
+
+const modifyMemoSystem = `
+The user will give you OLD_MEMO and NEW_TEXT.
+You should focus on modifying OLD_MEMO base on NEW_TEXT.
+Do not add any explanation to your response, just the result.
+`
+
+const isRelateMemoSystem = `
+The user will give you TEXT and OLD_MEMO_GUIDE.
+You should focus on identifying if TEXT contains information that can answer questions in OLD_MEMO_GUIDE.
+Answer with just one word, yes or no.
+`
 
 export class OpenaiService {
 
@@ -50,11 +69,10 @@ export class OpenaiService {
   public async chat(
     messages: MsgListParams[],
     isEnableStream = false,
-    tools: tools[],
+    enableTools: ChatCompletionTool[],
     res?: Response,
     debugChat = 0
   ): Promise<outputInter> {
-    const enableTools = filterTools(tools, toolsDefined);
 
     const dataMsg: MsgListParams[] = typeof messages === "string" 
       ? [{ role: "user", content: messages }]
@@ -107,7 +125,6 @@ export class OpenaiService {
         };
       }
 
-      console.log("messages before send", messages)
 
       const stream = await openAIClient.chat.completions.create({
         messages: messages,
@@ -139,6 +156,7 @@ export class OpenaiService {
         "RoutineChatService": llmTools.RoutineChatService,
         "ReminderCreateChatService": llmTools.ReminderCreateChatService,
         "RoutineCreateChatService": llmTools.RoutineCreateChatService,
+        "FileAskChatService":llmTools.FileAskChatService
       };
 
       messages.push(responseMessage);
@@ -383,7 +401,7 @@ export class OpenaiService {
   }
 
 
-  async analyzer(textToAnalyze:string, analysisInstructions:string, debug?:number): Promise<analyzeOutputInter> {
+  async analyze(textToAnalyze:string, analysisInstructions:string, debug?:number): Promise<analyzeOutputInter> {
     try {
 
       const text_to_analyze = "# TEXT\n" + textToAnalyze + "\n"
@@ -391,6 +409,7 @@ export class OpenaiService {
 
       const msgText = [analysis_instructions, text_to_analyze, analysis_instructions].join("\n");
       const data:MsgListParams[] = [
+        { role: "system", content: `Today is ${new Date().toLocaleDateString()}`},
         { role: "system", content: analyzeSystem},
         { role: "user", content: msgText }
       ]
@@ -413,6 +432,95 @@ export class OpenaiService {
       }
     } catch (error) {
       console.log(">>OpenAIService>>analyzer", error);
+      throw error;
+    }
+  }
+
+  async analyzeLTMemoCriteria(textToAnalyze:string): Promise<analyzeLTMemoCriteriaInter> {
+    try {
+
+      const analyzeLTMemoCriteriaSystem = await readTextFile('src/assets/instruction/criteriaAnalyze.txt')
+      const data:MsgListParams[] = [
+        { role: "system", content: `Today is ${new Date().toLocaleDateString()}`},
+        { role: "system", content: analyzeLTMemoCriteriaSystem},
+        { role: "user", content: textToAnalyze }
+      ]
+
+      const { choices } = await openAIClient.chat.completions.create({
+        messages: data,
+        model: ANALYZER_MODEL,
+        response_format: { type: "json_object" }
+      });
+
+      return  JSON.parse(choices[0].message.content || "{}")
+    }
+    catch (error) {
+      console.log(">>OpenAIService>>analyzeLTMemoCriteria", error);
+      throw error;
+    }
+  } 
+
+  // Decontextualize the proposition by adding necessary modifier to nouns or entire sentence and replacing pronouns (e.g., "it", "he", "she", "they", "this", "that") with the full name of the entities that referred to.
+
+  async decontextualize(textToDecontextualize:string, contextual:string): Promise<string> {
+    try {
+      const data:MsgListParams[] = [
+        { role: "system", content: decontextualizeSystem},
+        { role: "system", content: contextual},
+        { role: "user", content: textToDecontextualize }
+      ]
+
+      const { choices } = await openAIClient.chat.completions.create({
+        messages: data,
+        model: ANALYZER_MODEL,
+      });
+
+      return choices[0].message.content || ""
+    } catch (error) {
+      console.log(">>OpenAIService>>decontextualize", error);
+      throw error;
+    }
+  }
+
+  // modify old memo text with new text
+  async modifyMemo(oldMemo:string, newText:string): Promise<string> {
+    try {
+      const data:MsgListParams[] = [
+        { role: "system", content: modifyMemoSystem},
+        { role: "system", content: oldMemo},
+        { role: "user", content: newText }
+      ]
+
+      const { choices } = await openAIClient.chat.completions.create({
+        messages: data,
+        model: ANALYZER_MODEL,
+      });
+
+      return choices[0].message.content || ""
+    } catch (error) {
+      console.log(">>OpenAIService>>modifyMemo", error);
+      throw error;
+    }
+  }
+
+  async isRelateMemo(textToAnalyze:string, oldMemo:string): Promise<boolean> {
+    try {
+      const data:MsgListParams[] = [
+        { role: "system", content: `Today is ${new Date().toLocaleDateString()}`},
+        { role: "system", content: isRelateMemoSystem},
+        { role: "user", content: `TEXT: ${textToAnalyze}\nOLD_MEMO_GUIDE: ${oldMemo}`}
+      ]
+
+      const { choices } = await openAIClient.chat.completions.create({
+        messages: data,
+        model: ANALYZER_MODEL,
+      });
+
+
+      return choices[0].message.content?.toLowerCase().includes("yes") || false
+    }
+    catch (error) {
+      console.log(">>OpenAIService>>isRelateMemo", error);
       throw error;
     }
   }
