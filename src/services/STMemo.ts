@@ -143,7 +143,7 @@ export class STMemoStore {
         list.unshift(
             { role: "system", content: `Today is: ${new Date()}` },
             { role: "system", content: `Use the language ${this.lang} in your response` },
-            { role: "system", content: `${RainePersona}`},    
+            { role: "system", content: `${RainePersona}\n# Information about human your are talking:\n${userInformation}`},    
         )
 
         if(this.isEnableVision) {

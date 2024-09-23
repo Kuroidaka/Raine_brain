@@ -110,6 +110,7 @@ export class TeachableService {
         this.debug
       );
       if (analyze.content?.toLowerCase().includes("yes")) {
+        io.emit("chatResMemoStorage", { active: true })
         const result = await this.rememberMemoV2(prompt, relateMemo);
         if (result) {
           memoStorage = [...result];
@@ -188,63 +189,61 @@ export class TeachableService {
     try {
       const openaiService = new OpenaiService({});
       const result = await openaiService.analyzeLTMemoCriteria(prompt);
-
+  
       if (result.criteria.actionable) {
         return null;
       }
-
-      let memoFinal: DataMemo[] = [];
+  
+      const memoFinal: DataMemo[] = [];
+      let isMemoUpdated = false;
+  
       if (relateMemo.length > 0) { // update memo
-        let isMemoUpdated = false;
         await Promise.all(
           relateMemo.map(async (memo) => {
-            let isSameCriteria = true;
-            Object.keys(memo.criteria).forEach((criteria) => {
-              if (this.isCriteriaDifferent(memo, result, criteria)) {
-                isSameCriteria = false;
-              }
-            });
-
+            const isSameCriteria = !Object.keys(memo.criteria).some((criteria) =>
+              this.isCriteriaDifferent(memo, result, criteria)
+            );
             if (isSameCriteria) {
-              const isRelateWithOldMemo = await this.analyzer.isRelateMemo(prompt, memo.guide)
-              if(isRelateWithOldMemo) {
-                isMemoUpdated = true
-                memoFinal.push(
-                  await this.memo_store.saveVecDB({
-                    guideText: result.guide,
-                    answerText: result.answer,
-                    criteria: result.criteria,
-                    id: memo.id,
-                  })
-                );
+              const isRelateWithOldMemo = await this.analyzer.isRelateMemo(prompt, memo.guide);
+              if (isRelateWithOldMemo) {
+                isMemoUpdated = true;
+                const updatedMemo = await this.memo_store.saveVecDB({
+                  guideText: result.guide,
+                  answerText: result.answer,
+                  criteria: result.criteria,
+                  id: memo.id,
+                });
+                memoFinal.push(updatedMemo);
               }
             }
           })
         );
-
+  
         if (!isMemoUpdated) {
           const newMemo = await this.memo_store.saveVecDB({
             guideText: result.guide,
             answerText: result.answer,
             criteria: result.criteria,
           });
-          memoFinal.push(newMemo)
+          memoFinal.push(newMemo);
         }
-        return memoFinal
       } else { // create new memo
         const newMemo = await this.memo_store.saveVecDB({
           guideText: result.guide,
           answerText: result.answer,
           criteria: result.criteria,
         });
-        return [newMemo];
+        memoFinal.push(newMemo);
       }
+  
+      io.emit("chatResMemoStorage", { active: true, memoryDetail: memoFinal });
+      return memoFinal;
     } catch (error) {
-      console.error(">>TeachableService>>rememberMemoV2");
+      console.error(">>TeachableService>>rememberMemoV2", error);
       throw error;
     }
   }
-
+  
   private isCriteriaDifferent(memo: DataMemo, result: analyzeLTMemoCriteriaInter, criteria: string) {
     return memo.criteria[criteria as keyof CriteriaMemo] !== result.criteria[criteria as keyof CriteriaMemo]
   }
@@ -295,7 +294,7 @@ export class TeachableService {
       memoList = this.removeDuplicates(memoList);
       memoList = this.sortByCreatedAt(memoList);
       let memoOutputList: string[] = memoList.map(
-        (memo) => `${memo.createdAt}: ${memo.answer}`
+        (memo) => `${memo.createdAt}: Q: ${memo.guide} A: ${memo.answer}`
       );
 
       this.debug === 0 && console.log("Related memory list", memoOutputList);
