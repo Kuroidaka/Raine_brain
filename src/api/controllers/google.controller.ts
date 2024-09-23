@@ -272,4 +272,25 @@ export const googleController = {
             next(error);
         }
     },
+    syncEvent: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { id: userID } = req.user
+
+            const userService = UserService.getInstance();
+            const user = await userService.getUser({ id: userID})
+
+            if(!user?.eventListId) {
+                throw new NotImplementedException("Please link with your google account")
+            }
+
+            const eventListId = user.eventListId
+
+            const result = await GoogleService.getAllEvent(eventListId)
+
+            res.status(200).json(result);
+        } catch (error) {
+            console.error('Error creating event:', error);
+            next(error);
+        }
+    }
 }

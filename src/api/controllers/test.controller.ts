@@ -22,6 +22,8 @@ import { ToolCallService } from "~/database/toolCall/toolCall";
 import { createImageContent, filterTools, processImage, resizeImageToMaxSizeBase64 } from "~/utils";
 import { toolsDefined } from "~/services/llm/tool";
 import { ChromaClient } from "chromadb";
+import { GoogleService } from "~/services/google/calendar";
+import { OpenaiService } from "~/services/llm/openai";
 
 const conversationService = ConversationService.getInstance();
 export class TestController {
@@ -43,22 +45,7 @@ export class TestController {
       next(error);
     }
   }
-  static async testCreateMemo(req: Request, res: Response, next: NextFunction) {
-    try {
-      const inputText = req.body.prompt;
-      const outputText = req.body.outputText;
 
-      const memo = new MemoStore(0);
-
-      const result = await memo.addInputOutputPair(inputText, outputText);
-
-      return res.status(200).json({ data: result });
-    } catch (error) {
-      console.log(error);
-      // Rethrow the error to be caught by the errorHandler middleware
-      next(error);
-    }
-  }
   static async testGetListMemo(
     req: Request,
     res: Response,
@@ -158,7 +145,7 @@ export class TestController {
 
       // memo.repairInputOutputPair()
 
-      memo.saveData(false, "canh");
+      memo.saveData("canh");
 
       return res.status(200).json({ data: "Done!!" });
     } catch (error) {
@@ -222,6 +209,32 @@ export class TestController {
       const chromaClient = new ChromaClient()
       const collections = await chromaClient.listCollections()
       return res.status(200).json({ data: collections });
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
+  }
+  static async analyzeLTMemoCriteria(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.user
+      const { textToAnalyze, criteria } = req.body
+      const openaiService = new OpenaiService({})
+      const result = await openaiService.analyzeLTMemoCriteria(textToAnalyze)
+      return res.status(200).json(result );
+    } catch (error) {
+      console.log(error);
+      next(error);
+    }
+  }
+
+  static async testMemo(req: Request, res: Response, next: NextFunction) {
+    try {
+
+      const { prompt } = req.body
+      const techableAgent = new TeachableService(0);
+      const newprompt = await techableAgent.rememberMemoV2(prompt, []);
+
+      return res.status(200).json(newprompt);
     } catch (error) {
       console.log(error);
       next(error);

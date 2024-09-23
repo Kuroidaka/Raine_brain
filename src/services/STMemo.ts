@@ -86,7 +86,8 @@ export class STMemoStore {
         isBot: boolean, 
         conversationId: string, 
         listDataFunc?: outputInterData[],
-        memoryDetail?: DataMemo[]
+        memoryDetail?: DataMemo[],
+        memoStorage?: DataMemo[]
     ): Promise<void> {
         try {
             // Simultaneously add the message and modify the conversation
@@ -96,7 +97,8 @@ export class STMemoStore {
                     isBot: isBot,
                     userID: this.userID,
                     conversationId: conversationId,
-                    relatedMemo: memoryDetail
+                    relatedMemo: memoryDetail,
+                    memoStorage: memoStorage
                 }),
                 conversationService.modifyConversation(conversationId, {
                     lastMessage: message
@@ -141,7 +143,7 @@ export class STMemoStore {
         list.unshift(
             { role: "system", content: `Today is: ${new Date()}` },
             { role: "system", content: `Use the language ${this.lang} in your response` },
-            { role: "system", content: `${RainePersona}\n# Information about human your are talking:\n${userInformation}`},    
+            { role: "system", content: `${RainePersona}`},    
         )
 
         if(this.isEnableVision) {
@@ -165,23 +167,6 @@ export class STMemoStore {
         return list
     }
 
-    async describeImage(filesPath: string[], userMsgStr:string): Promise<string | null> {
-        // console.log("base64Data", base64Data)
-
-        const userMsg = await this.processImageBeforeDescribe(filesPath, userMsgStr)
-
-        const messages: MsgListParams[] = [
-            {
-                role: "system",
-                content: describeImgInstruction
-            },
-            ...userMsg as ChatCompletionUserMessageParams[],
-        ];
-        console.log("messages", messages)
-        const output = await OpenaiService.chat(messages);
-
-        return  `\t- Context:\n${output.content}`
-    } 
 
     async processImageBeforeDescribe( 
         filePathList: string[] = [],

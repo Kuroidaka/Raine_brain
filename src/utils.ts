@@ -80,7 +80,7 @@ export function deleteFolderRecursive(folderPath: string): void {
 
 
 export const generateId = (): string => {
-  return uuidv4();
+  return Math.random().toString(36).substring(2, 15);
 };
 
 
@@ -332,3 +332,44 @@ try {
     return null;
 }
 };
+
+
+/**
+ * Converts a Date object to EXDATE format.
+ * If allDay is true, the format will be YYYYMMDD (for all-day events).
+ * Otherwise, the format will be YYYYMMDDTHHMMSSZ (for specific times in UTC).
+ * 
+ * @param {Date} date - The date object to be converted.
+ * @param {boolean} [allDay=false] - Whether the event is an all-day event.
+ * @returns {string} - The date in EXDATE format.
+ */
+export function formatDateToExDate(date: Date, allDay: boolean = false): string {
+    const pad = (num: number): string => String(num).padStart(2, '0');
+    
+    const year: number = date.getUTCFullYear();
+    const month: string = pad(date.getUTCMonth() + 1); // Months are 0-indexed
+    const day: string = pad(date.getUTCDate());
+    
+    if (allDay) {
+      // For all-day events, return YYYYMMDD format
+      return `${year}${month}${day}`;
+    } else {
+      // For specific time, return YYYYMMDDTHHMMSSZ format
+      const hours: string = pad(date.getUTCHours());
+      const minutes: string = pad(date.getUTCMinutes());
+      const seconds: string = pad(date.getUTCSeconds());
+      
+      return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+    }
+  }
+  
+  // Example Usage:
+//   const specificTimeDate: Date = new Date('2024-09-22T09:00:00Z');
+//   const allDayDate: Date = new Date('2024-09-25');
+  
+//   // EXDATE with specific time
+//   console.log(formatDateToExDate(specificTimeDate)); // Outputs: 20240922T090000Z
+  
+//   // EXDATE for all-day event
+//   console.log(formatDateToExDate(allDayDate, true)); // Outputs: 20240925
+  

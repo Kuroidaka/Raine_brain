@@ -68,7 +68,8 @@ export const BrainController = {
       await chatService.handleProcessAfterChat(
         result.output,
         prompt,
-        result.memoryDetail
+        result.memoryDetail,
+        result.memoStorage
       )
 
     } catch (error) {

@@ -13,7 +13,8 @@ export interface msgProps {
   isBot: boolean;
   userID: string;
   conversationId: string;
-  relatedMemo?: DataMemo[]
+  relatedMemo?: DataMemo[],
+  memoStorage?: DataMemo[]
 }
 export interface msgFuncProps {
   name: string;
