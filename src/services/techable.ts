@@ -16,11 +16,13 @@ export class TeachableService {
   public memo_store: MemoStore;
   private debug: number;
   private analyzer: OpenaiService;
+  private decontextualizePrompt: string = "";
+
   constructor(
     debug: number,
     path_to_db_dir = path.join("src", "assets", "tmp", "memos"),
     reset_db = false,
-    recall_threshold = 1.8,
+    recall_threshold = 1.7,
     max_num_retrievals = 10
   ) {
     this.max_num_retrievals = max_num_retrievals;
@@ -51,12 +53,9 @@ export class TeachableService {
   public async considerMemoStorage(
     prompt: string,
     relateMemo: DataMemo[],
-    additionalPrompt?: string
   ): Promise<DataMemo[]> {
     try {
-      prompt = additionalPrompt
-        ? await this.analyzer.decontextualize(prompt, additionalPrompt)
-        : prompt;
+      prompt = this.decontextualizePrompt !== "" ? this.decontextualizePrompt : prompt
 
       let memoAdded = false;
       let memoStorage: DataMemo[] = [];
@@ -103,19 +102,43 @@ export class TeachableService {
       //   }
       // }
 
-      // Check for information to be learned.
-      let analyze = await this.analyzer.analyze(
-        prompt,
-        `Does the TEXT contain information that could be committed to memory? Answer with just one word, yes or no.`,
-        this.debug
-      );
-      if (analyze.content?.toLowerCase().includes("yes")) {
+      // Check for information to be learned use promise all
+
+      let shouldSolveProblem = false
+      let shouldMemoStorage = false
+      let usefulForFuture = false
+
+      const [analyzeSolveProblem, analyzeMemoStorage, analyzeUsefulForFuture] = await Promise.all([
+        this.analyzer.analyze(
+          prompt,
+          "Does any part of the TEXT ask to perform a task or solve a problem? Answer with just one word, yes or no.",
+          this.debug
+        ),
+        this.analyzer.analyze(
+          prompt,
+          "Does the TEXT contain information that could be committed to memory? Answer with just one word, yes or no.",
+          this.debug  
+        ),
+        this.analyzer.analyze(
+          prompt,
+          "Does the TEXT contain information that could be useful for a similar but different task in the future? Answer with just one word, yes or no.",
+          this.debug
+        )
+      ])
+      if(analyzeMemoStorage.content?.toLowerCase().includes("yes")) shouldMemoStorage = true
+      if(analyzeSolveProblem.content?.toLowerCase().includes("yes")) shouldSolveProblem = true
+      if(analyzeUsefulForFuture.content?.toLowerCase().includes("yes")) usefulForFuture = true
+      
+
+      if ((shouldMemoStorage) || (shouldSolveProblem && usefulForFuture)) {
         const result = await this.rememberMemoV2(prompt, relateMemo);
-        if (result) {
+        if (result && result.length > 0) {
+          memoAdded = true;
           memoStorage = [...result];
         }
       }
       if (this.debug === 0) {
+        console.log(chalk.green("memoStorage"), memoStorage);
         console.log(chalk.green("memoAdded"), memoAdded);
       }
 
@@ -188,63 +211,66 @@ export class TeachableService {
     try {
       const openaiService = new OpenaiService({});
       const result = await openaiService.analyzeLTMemoCriteria(prompt);
-
-      if (result.criteria.actionable) {
+  
+      if (result.criteria["ai-actionable"]) {
         return null;
       }
 
-      let memoFinal: DataMemo[] = [];
+      if(result.answer.toLowerCase().includes("none")) {
+        return null
+      }
+      io.emit("chatResMemoStorage", { active: true })
+
+      const memoFinal: DataMemo[] = [];
+      let isMemoUpdated = false;
+  
       if (relateMemo.length > 0) { // update memo
-        let isMemoUpdated = false;
         await Promise.all(
           relateMemo.map(async (memo) => {
-            let isSameCriteria = true;
-            Object.keys(memo.criteria).forEach((criteria) => {
-              if (this.isCriteriaDifferent(memo, result, criteria)) {
-                isSameCriteria = false;
-              }
-            });
-
+            const isSameCriteria = !Object.keys(memo.criteria).some((criteria) =>
+              this.isCriteriaDifferent(memo, result, criteria)
+            );
             if (isSameCriteria) {
-              const isRelateWithOldMemo = await this.analyzer.isRelateMemo(prompt, memo.guide)
-              if(isRelateWithOldMemo) {
-                isMemoUpdated = true
-                memoFinal.push(
-                  await this.memo_store.saveVecDB({
-                    guideText: result.guide,
-                    answerText: result.answer,
-                    criteria: result.criteria,
-                    id: memo.id,
-                  })
-                );
+              const isRelateWithOldMemo = await this.analyzer.isRelateMemo(prompt, memo.guide);
+              if (isRelateWithOldMemo) {
+                isMemoUpdated = true;
+                const updatedMemo = await this.memo_store.saveVecDB({
+                  guideText: result.guide,
+                  answerText: result.answer,
+                  criteria: result.criteria,
+                  id: memo.id,
+                });
+                memoFinal.push(updatedMemo);
               }
             }
           })
         );
-
+  
         if (!isMemoUpdated) {
           const newMemo = await this.memo_store.saveVecDB({
             guideText: result.guide,
             answerText: result.answer,
             criteria: result.criteria,
           });
-          memoFinal.push(newMemo)
+          memoFinal.push(newMemo);
         }
-        return memoFinal
       } else { // create new memo
         const newMemo = await this.memo_store.saveVecDB({
           guideText: result.guide,
           answerText: result.answer,
           criteria: result.criteria,
         });
-        return [newMemo];
+        memoFinal.push(newMemo);
       }
+  
+      io.emit("chatResMemoStorage", { active: true, memoryDetail: memoFinal });
+      return memoFinal;
     } catch (error) {
-      console.error(">>TeachableService>>rememberMemoV2");
+      console.error(">>TeachableService>>rememberMemoV2", error);
       throw error;
     }
   }
-
+  
   private isCriteriaDifferent(memo: DataMemo, result: analyzeLTMemoCriteriaInter, criteria: string) {
     return memo.criteria[criteria as keyof CriteriaMemo] !== result.criteria[criteria as keyof CriteriaMemo]
   }
@@ -258,10 +284,16 @@ export class TeachableService {
   }
 
   public async considerMemoRetrieval(
-    prompt: string
+    prompt: string,
+    summaryChat?: string
   ): Promise<{ relateMemory: string[]; memoryDetail: DataMemo[] }> {
     try {
       io.emit("chatResMemo", { active: true });
+
+      if(summaryChat) {
+        prompt = await this.analyzer.decontextualize(prompt, summaryChat)
+        this.decontextualizePrompt = prompt
+      }
       //  analyze task and relevance relationship
       const analyzeResult = await GroqService.analyzer(
         prompt,
@@ -293,14 +325,14 @@ export class TeachableService {
         }
       }
       memoList = this.removeDuplicates(memoList);
-      memoList = this.sortByCreatedAt(memoList);
+      memoList = this.sortByDistance(memoList);
       let memoOutputList: string[] = memoList.map(
-        (memo) => `${memo.createdAt}: ${memo.answer}`
+        (memo) => `${memo.createdAt}: Q: ${memo.guide} A: ${memo.answer}`
       );
 
       this.debug === 0 && console.log("Related memory list", memoOutputList);
 
-      io.emit("chatResMemo", { memoryDetail: memoList });
+      io.emit("chatResMemo", { active: true, memoryDetail: memoList });
       return {
         relateMemory: memoOutputList,
         memoryDetail: memoList,
@@ -316,6 +348,12 @@ export class TeachableService {
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
+  }
+
+  private sortByDistance(arr: DataMemo[]): DataMemo[] {
+    if (arr.length === 0) return arr;
+
+    return arr.sort((a, b) => (a?.distance ?? 0) - (b?.distance ?? 0));
   }
 
   private removeDuplicates(list: DataMemo[]): DataMemo[] {

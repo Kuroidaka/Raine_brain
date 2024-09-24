@@ -74,7 +74,7 @@ export interface CriteriaMemo {
     "favorite": boolean,
     "time-sensitive": boolean,
     "context-relevant": boolean,
-    "actionable": boolean,
+    "ai-actionable": boolean,
     "frequently-mentioned": boolean
 }
 export interface DataMemo {

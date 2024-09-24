@@ -49,8 +49,8 @@ export class ChatService  {
   public async processChat(debug: Debug, res: Response, prompt: string, imgFilePath?: string) :Promise<{
     output: outputInter,
     conversationID: string,
-    memoryDetail: DataMemo[] | [],
-    memoStorage: DataMemo[] | []
+    memoryDetail: DataMemo[] | null,
+    memoStorage: DataMemo[] | null
   }>{
     try {
       const { debugChat = 0, debugMemo = 0 } = debug
@@ -58,8 +58,6 @@ export class ChatService  {
       // Long term memory process
       const pathMemo = path.join("src", "assets", "tmp", "memos", this.userID);
       this.teachableAgent = new TeachableService(debugMemo, pathMemo);
-      const { relateMemory, memoryDetail } = await this.teachableAgent.considerMemoRetrieval(prompt);
-      let promptWithRelatedMemory = prompt + this.teachableAgent.concatenateMemoTexts(relateMemory)
 
 
       // get conversation file
@@ -79,6 +77,13 @@ export class ChatService  {
         enableTools,
         conversationFile,
       );
+
+      const { summaryChat } = await this.STMemo.preprocess(prompt)
+
+
+      const { relateMemory, memoryDetail } = await this.teachableAgent.considerMemoRetrieval(prompt, summaryChat);
+      let promptWithRelatedMemory = prompt + this.teachableAgent.concatenateMemoTexts(relateMemory)
+
       const messages = await this.STMemo.process(
         prompt, 
         promptWithRelatedMemory, 
@@ -97,14 +102,14 @@ export class ChatService  {
        // Consider storing into LTMemo and promise all with chat response
        const [output, memoStorage] = await Promise.all([
         openAiService.chat(messages, this.isEnableStream, enableTools, res, debugChat),
-        this.teachableAgent.considerMemoStorage(prompt, memoryDetail, this.STMemo.summaryChat)
+        this.teachableAgent.considerMemoStorage(prompt, memoryDetail)
        ])
 
       return {
         output: output,
         conversationID: this.STMemo.conversation_id as string,
         memoryDetail: memoryDetail,
-        memoStorage: memoStorage ? memoStorage : []
+        memoStorage: memoStorage ? memoStorage : null
       }
     } catch (error) {
       console.error("Error in processChat:", error);
@@ -125,7 +130,7 @@ export class ChatService  {
   //   }
   // }
 
-  public async handleProcessAfterChat(output: outputInter, prompt: string, memoryDetail: DataMemo[], memoStorage: DataMemo[]) {
+  public async handleProcessAfterChat(output: outputInter, prompt: string, memoryDetail: DataMemo[] | null, memoStorage: DataMemo[] | null) {
     // Add AI response into DB
     if (output.content && this.STMemo.conversation_id) {
       const listDataFunc = output.data

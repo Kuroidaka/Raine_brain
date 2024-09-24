@@ -18,7 +18,6 @@ router.post('/chat', validateToken, validateGgTokenOptional, validateDto(ChatDto
 router.post('/chat/video', validateToken, upload.single('file'), validateDto(ChatDto), BrainController.videoChat);
 router.post('/stt', validateToken, upload.single('file'), BrainController.stt);
 router.post('/tts', validateToken, BrainController.tts);
-router.post('/describe_img', validateToken, upload.single('file'), BrainController.describeImg);
 router.post('/rs_memo', validateToken, BrainController.resetLTMemo);
 router.post('/test', validateToken, BrainController.test);
 router.post('/rs_docs_memo', validateToken, BrainController.resetDocsMemo);

@@ -8,11 +8,15 @@ Your response should be a JSON object with the following structure:
       "favorite": boolean, // true if the text is about favorite
       "time-sensitive": boolean, // true if the text is about time-sensitive
       "context-relevant": boolean, // true if the text is about context-relevant
-      "actionable": boolean, // true if the text is about actionable or relate to action about uploaded file or search query something from internet or other source or require real-time information
+      "ai-actionable": boolean, // true if the text is about to request ai to do something relate to some action below:
+                                // 1. Ask about the uploaded file
+                                // 2. Search query something from internet or other source
+                                // 3. Require real-time information
+                                // 4. Require to setup a reminder, task, routine, or event (schedule)
       "frequently-mentioned": boolean, // true when the user consistently brings up the same detail across multiple interactions
     },
-    "guide": string, // guide to get the answer example: "What is user's name?"
-    "answer": string, // answer to the guide question example: "Canh"
+    "guide": string, // question to get the answer example: "What should use bring to the school",
+    "answer": string, // Use the information from the TEXT to answer the guide question example: "student card", But if no answer is present, just respond with 'none'
 }
 
 require: [guide, answer]

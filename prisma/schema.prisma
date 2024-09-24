@@ -194,7 +194,7 @@ model Message {
   imgList        ImageFile[]
   conversation   Conversation     @relation(fields: [conversationId], references: [id])
   functionData   MessageFuntion[]
-  relatedMemo    Json?
+  relatedMemo    Json? 
   memoStorage    Json?
 
   @@index([conversationId], map: "Message_conversationId_fkey")

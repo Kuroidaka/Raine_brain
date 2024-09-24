@@ -27,8 +27,6 @@ const analyzeSystem = `You are an expert in text analysis.
 The user will give you TEXT to analyze.
 The user will give you analysis INSTRUCTIONS copied twice, at both the beginning and the end.
 Your analysis should focus on identifying and categorizing the following types of information from the TEXT:
-1. Personal Details: Recognize and extract any mention of people, including names and relevant personal details, date of birth, etc.
-2. Question-Answer Pairs: Identify information that answers specific questions. Extract these pairs for memory storage, focusing on clear, concise answers to potential user queries.
 You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested
 Do not add any explanation to your analysis, just the analysis result.
 `
@@ -36,6 +34,7 @@ Do not add any explanation to your analysis, just the analysis result.
 const decontextualizeSystem = `
 The user will give you TEXT.
 You should focus on adding necessary modifier to nouns or entire sentence and replacing only for these pronouns ("it", "he", "she", "they", "this", "that", "them") with the full name of the entities that referred to.
+You should not replace any noun or sentence that is relate to (I, me, my, mine, myself).
 Do not add any explanation to your response, just the result.
 `
 
