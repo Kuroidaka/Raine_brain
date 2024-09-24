@@ -58,8 +58,6 @@ export class ChatService  {
       // Long term memory process
       const pathMemo = path.join("src", "assets", "tmp", "memos", this.userID);
       this.teachableAgent = new TeachableService(debugMemo, pathMemo);
-      const { relateMemory, memoryDetail } = await this.teachableAgent.considerMemoRetrieval(prompt);
-      let promptWithRelatedMemory = prompt + this.teachableAgent.concatenateMemoTexts(relateMemory)
 
 
       // get conversation file
@@ -79,6 +77,13 @@ export class ChatService  {
         enableTools,
         conversationFile,
       );
+
+      const { summaryChat } = await this.STMemo.preprocess(prompt)
+
+
+      const { relateMemory, memoryDetail } = await this.teachableAgent.considerMemoRetrieval(prompt, summaryChat);
+      let promptWithRelatedMemory = prompt + this.teachableAgent.concatenateMemoTexts(relateMemory)
+
       const messages = await this.STMemo.process(
         prompt, 
         promptWithRelatedMemory, 
@@ -97,7 +102,7 @@ export class ChatService  {
        // Consider storing into LTMemo and promise all with chat response
        const [output, memoStorage] = await Promise.all([
         openAiService.chat(messages, this.isEnableStream, enableTools, res, debugChat),
-        this.teachableAgent.considerMemoStorage(prompt, memoryDetail, this.STMemo.summaryChat)
+        this.teachableAgent.considerMemoStorage(prompt, memoryDetail)
        ])
 
       return {

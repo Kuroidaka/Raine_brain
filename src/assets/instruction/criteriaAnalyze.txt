@@ -16,7 +16,7 @@ Your response should be a JSON object with the following structure:
       "frequently-mentioned": boolean, // true when the user consistently brings up the same detail across multiple interactions
     },
     "guide": string, // question to get the answer example: "What should use bring to the school",
-    "answer": string, // answer to the guide question example: "student card"
+    "answer": string, // Use the information from the TEXT to answer the guide question example: "student card", But if no answer is present, just respond with 'none'
 }
 
 require: [guide, answer]

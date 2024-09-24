@@ -254,13 +254,7 @@ export class STMemoStore {
         return await this.summaryConversation(newHistory)
     }
 
-    public async process(
-        originalPrompt:string , 
-        promptWithRelatedMemory:string,
-        includeImage = false,
-        imgFilePath?: string,
-        memoryDetail?: string[]
-    ):Promise<MsgListParams[]> {
+    public async preprocess(originalPrompt:string):Promise<{conversation:Conversation, summaryChat:string}> {
         let conversation:Conversation | null = this.conversation_id
         ? await conversationService.getConversation(this.conversation_id)
         : null;
@@ -276,8 +270,21 @@ export class STMemoStore {
 
         this.summaryChat = conversation.summarize as string
 
-        const history:MsgListParams[] = await this.getMessages(this.conversation_id, conversation.summarize, 4)
-        await this.addMessage(originalPrompt, false, this.conversation_id)
+        return {
+            conversation,
+            summaryChat: this.summaryChat
+        }
+    }
+
+    public async process(
+        originalPrompt:string, 
+        promptWithRelatedMemory:string,
+        includeImage = false,
+        imgFilePath?: string,
+    ):Promise<MsgListParams[]> {
+       
+        const history:MsgListParams[] = await this.getMessages(this.conversation_id as string, this.summaryChat, 4)
+        await this.addMessage(originalPrompt, false, this.conversation_id as string)
 
 
         if(this.conversationFile) {

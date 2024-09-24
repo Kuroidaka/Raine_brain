@@ -16,6 +16,8 @@ export class TeachableService {
   public memo_store: MemoStore;
   private debug: number;
   private analyzer: OpenaiService;
+  private decontextualizePrompt: string = "";
+
   constructor(
     debug: number,
     path_to_db_dir = path.join("src", "assets", "tmp", "memos"),
@@ -51,12 +53,9 @@ export class TeachableService {
   public async considerMemoStorage(
     prompt: string,
     relateMemo: DataMemo[],
-    additionalPrompt?: string
   ): Promise<DataMemo[]> {
     try {
-      prompt = additionalPrompt
-        ? await this.analyzer.decontextualize(prompt, additionalPrompt)
-        : prompt;
+      prompt = this.decontextualizePrompt !== "" ? this.decontextualizePrompt : prompt
 
       let memoAdded = false;
       let memoStorage: DataMemo[] = [];
@@ -132,9 +131,9 @@ export class TeachableService {
       
 
       if ((shouldMemoStorage) || (shouldSolveProblem && usefulForFuture)) {
-        memoAdded = true;
         const result = await this.rememberMemoV2(prompt, relateMemo);
-        if (result) {
+        if (result && result.length > 0) {
+          memoAdded = true;
           memoStorage = [...result];
         }
       }
@@ -216,6 +215,10 @@ export class TeachableService {
       if (result.criteria["ai-actionable"]) {
         return null;
       }
+
+      if(result.answer.toLowerCase().includes("none")) {
+        return null
+      }
       io.emit("chatResMemoStorage", { active: true })
 
       const memoFinal: DataMemo[] = [];
@@ -281,10 +284,16 @@ export class TeachableService {
   }
 
   public async considerMemoRetrieval(
-    prompt: string
+    prompt: string,
+    summaryChat?: string
   ): Promise<{ relateMemory: string[]; memoryDetail: DataMemo[] }> {
     try {
       io.emit("chatResMemo", { active: true });
+
+      if(summaryChat) {
+        prompt = await this.analyzer.decontextualize(prompt, summaryChat)
+        this.decontextualizePrompt = prompt
+      }
       //  analyze task and relevance relationship
       const analyzeResult = await GroqService.analyzer(
         prompt,
