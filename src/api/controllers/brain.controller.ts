@@ -130,7 +130,8 @@ export const BrainController = {
       await chatService.handleProcessAfterChat(
         result.output,
         prompt,
-        result.memoryDetail
+        result.memoryDetail,
+        result.memoStorage
       )
 
     } catch (error) {
@@ -181,30 +182,6 @@ export const BrainController = {
     } catch (error) {
       console.error(error);
       return next(error);
-    }
-  },
-  describeImg: async (req: Request, res: Response, next: NextFunction) => {
-    try {
-
-      const { id: userID } = req.user;
-      if (!req.file) {
-        throw new NotFoundException("File upload failed")
-      }
-    
-      const { prompt } = req.body
-      const filePath = req.file.path;
-      console.log("filePath", filePath)
-
-      // Short term memory process
-      const STMemo = new STMemoStore(userID);
-      
-      // Describe Context for vision
-      const message = await STMemo.describeImage([filePath], prompt)
-
-      return res.status(200).json({ data: message });
-    } catch (error) {
-      console.log(error);
-      next(error);
     }
   },
   resetLTMemo: async (req: Request, res: Response, next:NextFunction) => {

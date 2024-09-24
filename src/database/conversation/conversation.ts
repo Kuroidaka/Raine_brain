@@ -135,7 +135,8 @@ export class ConversationService {
         try {
             const formattedData = {
                 ...data,
-                relatedMemo: data.relatedMemo ? JSON.stringify(data.relatedMemo) : undefined
+                relatedMemo: data.relatedMemo && data.relatedMemo.length > 0 ? JSON.stringify(data.relatedMemo) : undefined,
+                memoStorage: data.memoStorage && data.memoStorage.length > 0 ? data.memoStorage : null as any
             };
             return await dbClient.message.create({ data: formattedData });
         } catch (error) {

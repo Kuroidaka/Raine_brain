@@ -49,8 +49,8 @@ export class ChatService  {
   public async processChat(debug: Debug, res: Response, prompt: string, imgFilePath?: string) :Promise<{
     output: outputInter,
     conversationID: string,
-    memoryDetail: DataMemo[] | [],
-    memoStorage: DataMemo[] | []
+    memoryDetail: DataMemo[] | null,
+    memoStorage: DataMemo[] | null
   }>{
     try {
       const { debugChat = 0, debugMemo = 0 } = debug
@@ -104,7 +104,7 @@ export class ChatService  {
         output: output,
         conversationID: this.STMemo.conversation_id as string,
         memoryDetail: memoryDetail,
-        memoStorage: memoStorage ? memoStorage : []
+        memoStorage: memoStorage ? memoStorage : null
       }
     } catch (error) {
       console.error("Error in processChat:", error);
@@ -125,7 +125,7 @@ export class ChatService  {
   //   }
   // }
 
-  public async handleProcessAfterChat(output: outputInter, prompt: string, memoryDetail: DataMemo[], memoStorage: DataMemo[]) {
+  public async handleProcessAfterChat(output: outputInter, prompt: string, memoryDetail: DataMemo[] | null, memoStorage: DataMemo[] | null) {
     // Add AI response into DB
     if (output.content && this.STMemo.conversation_id) {
       const listDataFunc = output.data

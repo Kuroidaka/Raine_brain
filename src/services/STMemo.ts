@@ -86,8 +86,8 @@ export class STMemoStore {
         isBot: boolean, 
         conversationId: string, 
         listDataFunc?: outputInterData[],
-        memoryDetail?: DataMemo[],
-        memoStorage?: DataMemo[]
+        memoryDetail?: DataMemo[] | null,
+        memoStorage?: DataMemo[] | null
     ): Promise<void> {
         try {
             // Simultaneously add the message and modify the conversation
