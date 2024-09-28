@@ -3,7 +3,8 @@ export const uploadFilePath = {
   audioPath: "src/assets/file/audio",
   imagePath: "src/assets/file/image",
   token: "src/assets/google",
-  vectorDBPath: "src/assets/file/vectorDB"
+  vectorDBPath: "src/assets/file/vectorDB",
+  videoRecordPath: "src/assets/file/videoRecord"
 };
 
 

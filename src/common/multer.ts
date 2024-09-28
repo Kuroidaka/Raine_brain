@@ -7,6 +7,7 @@ import { uploadFilePath } from '~/constant';
 const audioPath = uploadFilePath.audioPath
 const imagePath = uploadFilePath.imagePath
 const vectorDBPath = uploadFilePath.vectorDBPath
+const videoRecordPath = uploadFilePath.videoRecordPath
 // Ensure directories exist
 if (!fs.existsSync(audioPath)) {
   fs.mkdirSync(audioPath, { recursive: true });
@@ -17,6 +18,11 @@ if (!fs.existsSync(imagePath)) {
 if (!fs.existsSync(vectorDBPath)) {
   fs.mkdirSync(vectorDBPath, { recursive: true });
 }
+
+if (!fs.existsSync(videoRecordPath)) {
+  fs.mkdirSync(videoRecordPath, { recursive: true });
+}
+
 
 
 const tempStorage: StorageEngine = multer.diskStorage({
@@ -54,10 +60,12 @@ export const tempUpload = multer({
 const storage: StorageEngine = multer.diskStorage({
   destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (['.mp3', '.wav', '.flac', '.webm'].includes(ext)) {
+    if (['.mp3'].includes(ext)) {
       cb(null, audioPath);
     } else if (['.jpg', '.jpeg', '.png'].includes(ext)) {
       cb(null, imagePath);
+    } else if (['.mp4', '.mov', '.avi', '.mkv', '.webm'].includes(ext)) {
+      cb(null, videoRecordPath);
     } else {
       cb(new Error('Invalid file type'), '');
     }
@@ -71,7 +79,7 @@ export const upload = multer({
   storage,
   fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    if (['.mp3', '.wav', '.webm', '.flac', '.jpg', '.jpeg', '.png'].includes(ext)) {
+    if (['.mp3', '.wav', '.webm', '.flac', '.jpg', '.jpeg', '.png', '.mp4', '.mov', '.avi', '.mkv', '.webm'].includes(ext)) {
       cb(null, true);
     } else {
       cb(new Error('Invalid file type'));
@@ -102,3 +110,27 @@ export const vectorDBUpload = multer({
     }
   },
 });
+
+
+// defind multer for video record
+const videoRecordStorage: StorageEngine = multer.diskStorage({
+  destination: (req: Request, file: Express.Multer.File, cb: (error: Error | null, destination: string) => void) => {
+    cb(null, videoRecordPath);
+  },
+  filename: (req: Request, file: Express.Multer.File, cb: (error: Error | null, filename: string) => void) => {
+    cb(null, Date.now() + path.extname(file.originalname));
+  },
+});
+
+export const videoRecordUpload = multer({
+  storage: videoRecordStorage,
+  fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (['.mp4', '.mov', '.avi', '.mkv', '.webm'].includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type'));
+    }
+  },
+});
+

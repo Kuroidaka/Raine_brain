@@ -23,3 +23,10 @@ export interface fileProps {
     vectorDBIds?: string[];
     conversationId: string;
 }
+
+// Video Record
+export interface videoRecordProps {
+    name: string;
+    url: string;
+    messageId: string;
+}

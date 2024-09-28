@@ -5,7 +5,7 @@ import { validateDto } from '~/api/middlewares';
 import validateToken from '../middlewares/validate_token';
 import { FileController } from '../controllers/file.controller';
 // import { uploadBGImgDto } from '~/dto/file.dto';
-import { tempUpload, vectorDBUpload } from '~/common/multer';
+import { tempUpload, vectorDBUpload, videoRecordUpload } from '~/common/multer';
 
 
 const router = Router();
@@ -19,4 +19,5 @@ router.post('/ask/upload', validateToken, vectorDBUpload.single('file'), FileCon
 router.delete('/ask/delete/:id', validateToken, FileController.deleteFile);
 router.get('/ask/files', validateToken, FileController.getFiles);
 
+router.post('/video/record/:id', validateToken, videoRecordUpload.single('file'), FileController.uploadVideoRecord);
 export default router;

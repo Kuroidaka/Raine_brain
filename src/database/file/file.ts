@@ -1,5 +1,5 @@
 import { dbClient } from "~/config";
-import { backgroundImageProps, backgroundImageModifyProps, fileProps } from "./file.interface";
+import { backgroundImageProps, backgroundImageModifyProps, fileProps, videoRecordProps } from "./file.interface";
 
 export class FileService {
     private static instance: FileService;
@@ -158,6 +158,16 @@ export class FileService {
             });
         } catch (error) {
             console.error('Error deleting File:', error);
+            throw error;
+        }
+    }
+
+    // Upload a Video Record
+    async uploadVideoRecord(data: videoRecordProps) {
+        try {
+            return await dbClient.videoRecord.create({ data });
+        } catch (error) {
+            console.error('Error uploading Video Record:', error);
             throw error;
         }
     }

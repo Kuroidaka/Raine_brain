@@ -4,7 +4,7 @@ import { TextLoader } from "langchain/document_loaders/fs/text";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Chroma } from "@langchain/community/vectorstores/chroma";
 import { Document } from "langchain/document";
-
+import { getDocument } from 'pdfjs-dist';
 import { DirectoryLoader } from'langchain/document_loaders/fs/directory';
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import {
@@ -392,10 +392,20 @@ async function rag(documents: any[], collectionName: string = "agentic-chunks") 
 
 export async function loadFile(filePath: string): Promise<string>{
   if(filePath.endsWith(".pdf")){
-    const loader = new PDFLoader(filePath);
-    const docs = await loader.load();
-    console.log("docs", docs)
-    const textCorpus = docs.reduce((acc, doc) => acc + "\n" + doc.pageContent, "");
+    const loadingTask = getDocument(filePath);
+    const pdfDocument = await loadingTask.promise;
+
+    let textCorpus = '';
+
+    // Loop through all pages in the PDF
+    for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
+        const page = await pdfDocument.getPage(pageNum);
+        const content = await page.getTextContent();
+
+        // Extract text from the page
+        const pageText = content.items.map((item: any) => item.str).join(' ');
+        textCorpus += pageText + '\n';
+    }
     return textCorpus
   }
   else if(filePath.endsWith(".txt")){
@@ -420,6 +430,9 @@ export async function semanticChunk(filePath: string) :Promise<string[]>{
     const sentencesWithEmbeddings =
       await generateAndAttachEmbeddings(structuredSentences);
 
+    if(sentencesWithEmbeddings.length < 2){
+      return [textCorpus]
+    }
     // Step 5: Calculate cosine distances and significant shifts to identify semantic chunks.
     const { updatedArray, significantShiftIndices } =
       calculateCosineDistancesAndSignificantShifts(sentencesWithEmbeddings, 90); // Assuming a threshold of 90%
