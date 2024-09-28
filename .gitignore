@@ -131,6 +131,7 @@ src/assets/file/vectorDB/*
 src/assets/tmp/*
 src/assets/file/audio/*
 src/assets/file/image/*
+src/assets/file/videoRecord/*   
 src/assets/google
 localhost+1-key.pem
 localhost+1.pem

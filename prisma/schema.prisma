@@ -182,7 +182,6 @@ model Conversation {
 
   @@index([userID], map: "Conversation_userID_fkey")
 }
-
 model Message {
   id             String           @id @default(uuid())
   createdAt      DateTime         @default(now())
@@ -194,11 +193,28 @@ model Message {
   imgList        ImageFile[]
   conversation   Conversation     @relation(fields: [conversationId], references: [id])
   functionData   MessageFuntion[]
-  relatedMemo    Json? 
+  videoRecord    VideoRecord?
+  videoRecordId  String?
+  relatedMemo    Json?
   memoStorage    Json?
 
   @@index([conversationId], map: "Message_conversationId_fkey")
+  @@index([videoRecordId], map: "Message_videoRecordId_fkey")
 }
+
+model VideoRecord {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  name      String
+  url       String   @db.LongText
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String   @unique
+
+  @@index([messageId], map: "VideoRecord_messageId_fkey")
+}
+
 
 model MessageFuntion {
   id        String   @id @default(uuid())

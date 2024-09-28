@@ -46,7 +46,7 @@ export class ChatService  {
     isLinkGoogle && (this.isLinkGoogle = isLinkGoogle)
   }
 
-  public async processChat(debug: Debug, res: Response, prompt: string, imgFilePath?: string) :Promise<{
+  public async processChat(debug: Debug, res: Response, prompt: string, imgFilePath?: string, fileVideoPath?: string) :Promise<{
     output: outputInter,
     conversationID: string,
     memoryDetail: DataMemo[] | null,
@@ -89,6 +89,7 @@ export class ChatService  {
         promptWithRelatedMemory, 
         Boolean(imgFilePath), 
         imgFilePath,
+        fileVideoPath
       );
       console.log("messages", messages);
 
@@ -116,6 +117,7 @@ export class ChatService  {
       throw new InternalServerErrorException("error occur while processing chat")
     }
   }
+
 
   // public async processVideoChat(res: Response, prompt: string, imgFilePath: string) :Promise<{
   //   output: outputInter,

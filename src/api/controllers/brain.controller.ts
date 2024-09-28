@@ -18,6 +18,8 @@ import { MemoStore } from "~/services/LTMemo";
 import { outputInter } from '~/services/llm/llm.interface'
 import { chatClassInit } from "~/services/chat/chat.interface";
 import { FileChatService } from "~/services/chat/fileAsk";
+import { FileService } from "~/database/file/file";
+import { videoRecordProps } from "~/database/file/file.interface";
 
 const conversationService = ConversationService.getInstance()
 export const BrainController = {
@@ -84,10 +86,20 @@ export const BrainController = {
     const { prompt, conversationID } = req.body;
     const { id: userID, eventListId, googleCredentials } = req.user;
 
-    let filePath
-    if (req.file) {
-      filePath = req.file.path;
-      console.log("filePath", filePath)
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    // Get the file from 'file' field
+    let filePath: string | undefined;
+    if (files && files['file'] && files['file'][0]) {
+        filePath = files['file'][0].path;
+        console.log("filePath", filePath);
+    }
+
+    // Get the file from 'fileVideo' field
+    let fileVideoPath: string | undefined;
+    if (files && files['fileVideo'] && files['fileVideo'][0]) {
+        fileVideoPath = files['fileVideo'][0].path;
+        console.log("fileVideoPath", fileVideoPath);
     }
   
     const { isStream = "false", isVision = "false" } = req.query;
@@ -124,11 +136,23 @@ export const BrainController = {
       }
 
       const result = await chatService.processChat(debugOptions, res, prompt, filePath)
+
+      // if (fileVideoPath) {
+      //   const fileService = FileService.getInstance();
+
+      //   const videoRecordData:videoRecordProps = {
+      //       name: files['fileVideo'][0].filename,
+      //       url: fileVideoPath,
+      //       messageId: id
+      //   }
+      //   const videoRecord = await fileService.uploadVideoRecord(videoRecordData);
+      // }
             
       console.log("result", result)
 
       res.status(200).json({
-        content: result.output.content, conversationID: result.conversationID
+        content: result.output.content, 
+        conversationID: result.conversationID
       })
       
       await chatService.handleProcessAfterChat(

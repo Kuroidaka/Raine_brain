@@ -8,7 +8,7 @@ import mime from 'mime-types';
 import { promisify } from 'util';
 import { FileService } from '~/database/file/file';
 import * as fs from 'fs';
-import { fileProps } from '~/database/file/file.interface';
+import { fileProps, videoRecordProps } from '~/database/file/file.interface';
 import { FileChatService } from '~/services/chat/fileAsk';
 import { ConversationService } from '~/database/conversation/conversation';
 import { formatDateTime } from '~/utils';
@@ -19,9 +19,18 @@ export const FileController = {
     stream: async (req: Request, res: Response, next: NextFunction) => {
         try {
             const { fileName } = req.params;
+            const { type = 'image' } = req.query;
             // Validate fileName here if necessary
+            
+            let filePath = '';
+            if(type === 'image') {
+                filePath = uploadFilePath.imagePath;
+            } else if(type === 'video') {
+                filePath = uploadFilePath.videoRecordPath;
+            } else {
+                throw new BadRequestException("Invalid file type");
+            }
 
-            const filePath = uploadFilePath.imagePath;
             const path = join(process.cwd(), filePath, fileName);
             const mimeType = mime.lookup(fileName) || 'application/octet-stream';
             const imageStream = createReadStream(path);
@@ -162,6 +171,45 @@ export const FileController = {
         } catch (error) {
             console.log(error);
             next(error);
+        }
+    },
+    uploadVideoRecord: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            if (!req.file) {
+                throw new NotFoundException("File upload failed");
+            }
+
+            const fileService = FileService.getInstance();
+            const { id } = req.params;
+            const videoRecordData:videoRecordProps = {
+                name: req.file.filename,
+                url: req.file.path,
+                messageId: id
+            }
+            const videoRecord = await fileService.uploadVideoRecord(videoRecordData);
+            return res.status(200).json(videoRecord);
+            
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
+    streamVideoRecord: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { fileName } = req.params;
+            const filePath = uploadFilePath.videoRecordPath;
+            const path = join(process.cwd(), filePath, fileName);
+            const mimeType = mime.lookup(fileName) || 'application/octet-stream';
+            const videoStream = createReadStream(path);
+            
+            res.setHeader('Content-Type', mimeType);
+            res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 year cache
+
+            await pipelineAsync(videoStream, res);
+        } catch (error) {
+            console.error('Error streaming the video file:', error);
+            next(new NotFoundException('Video not found'));
         }
     }
 }
