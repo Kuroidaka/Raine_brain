@@ -45,12 +45,14 @@ export class FileChatService {
     const retriever = vectorStore.asRetriever(
       {
         searchType: "similarity",
-        k: 5
+        k: 10
       }
     );
     
-    const context = await vectorStore.similaritySearch(q, 5);
+    const context = await vectorStore.similaritySearchWithScore(q, 10);
   
+    console.log(await retriever.invoke(q))
+
     // Define the prompt template for generating the response
     const promptTemplate = `Answer the question based only on the following context:
     {context}

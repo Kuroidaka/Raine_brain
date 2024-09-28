@@ -103,6 +103,10 @@ export const BrainController = {
       const isVision = true
       const isLinkGoogle = !!googleCredentials
 
+      io.emit('processing', {
+        message: "Thinking..."
+      })
+
       const initChatParams: chatClassInit = {
         userID,
         conversationID,
@@ -148,7 +152,21 @@ export const BrainController = {
     const filePath = req.file.path;
     console.log("filePath", filePath)
     try {
+      io.emit('processing', {
+        message: "Getting audio to text"
+      })
       const output = await GroqService.stt(filePath, 'en');
+
+      if(output.content) {
+        io.emit('processing', {
+          message: "Done getting audio to text"
+        })
+      }
+      else {
+        io.emit('processing', {
+          message: "Speak again"
+        })
+      }
 
       return res.status(200).json(output)
     } catch (error) {
@@ -164,8 +182,11 @@ export const BrainController = {
     }
   
     try {
-      const chunks = splitText(text, 2000);
 
+      const chunks = splitText(text, 2000);
+      io.emit('processing', {
+        message: "Processing text to audio"
+      })
       for (const chunk of chunks) {
         const file = await DeepGramService.tts(chunk);
         // const file = await OpenaiService.tts(chunk);
@@ -176,6 +197,10 @@ export const BrainController = {
         // Emit the file buffer
         io.emit('audioFile', fileBuffer);
       }
+
+      io.emit('processing', {
+        message: null
+      })
 
       return res.status(200).json({ message: 'Audio files are being processed and sent via WebSocket' });
         

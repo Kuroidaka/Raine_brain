@@ -127,7 +127,7 @@ $RECYCLE.BIN/
 src/assets/img
 
 chroma.log
-
+src/assets/file/vectorDB/*
 src/assets/tmp/*
 src/assets/file/audio/*
 src/assets/file/image/*

@@ -24,12 +24,19 @@ import { toolsDefined } from "~/services/llm/tool";
 import { ChromaClient } from "chromadb";
 import { GoogleService } from "~/services/google/calendar";
 import { OpenaiService } from "~/services/llm/openai";
+import { getDocument } from 'pdfjs-dist';
+import { semanticChunk } from "~/common/semeticChunk";
+
 
 const conversationService = ConversationService.getInstance();
 export class TestController {
   static async do(req: Request, res: Response, next: NextFunction) {
     try {
-      return res.status(200).json({});
+      const filePath = "src/assets/file/vectorDB/1727250505006.pdf";
+
+      const extractedText = await semanticChunk(filePath)
+
+      return res.status(200).json(extractedText);
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware
