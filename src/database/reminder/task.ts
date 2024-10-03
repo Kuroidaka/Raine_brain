@@ -1,5 +1,5 @@
 import { dbClient } from "~/config";
-import { SubTaskProps, TaskProps, TaskWithAreaProps, UpdateSubTaskProps, UpdateTaskProps, UpdateTaskWithCateProps } from "./task.type";
+import { SubTaskProps, TaskAttachmentProps, TaskProps, TaskWithAreaProps, UpdateSubTaskProps, UpdateTaskProps, UpdateTaskWithCateProps } from "./task.type";
 import { Areas, Prisma, Task } from "@prisma/client";
 
 export class TaskService {
@@ -48,7 +48,8 @@ export class TaskService {
                 where: { id },
                 include: {
                     area: true,
-                    subTask: true
+                    subTask: true,
+                    taskAttachment: true
                 }
              })
         } catch (error) {
@@ -65,7 +66,8 @@ export class TaskService {
                 },
                 include: {
                     area: true,
-                    subTask: true
+                    subTask: true,
+                    taskAttachment: true
                 }
              })
         } catch (error) {
@@ -147,6 +149,10 @@ export class TaskService {
                 where: { taskId }
             });
 
+            await tx.taskAttachment.deleteMany({
+                where: { taskId }
+            });
+
             // Finally, delete the Task itself
             return await tx.task.delete({
                 where: { id: taskId }
@@ -197,6 +203,18 @@ export class TaskService {
             })
         } catch (error) {
             console.log('Error deleting subtask:',error)
+            throw error
+        }
+    }
+
+    async addTaskAttachment(taskId: string, data: TaskAttachmentProps) {
+        try {
+            return await dbClient.taskAttachment.create({ data: {
+                ...data,
+                taskId
+            } })
+        } catch (error) {
+            console.log('Error adding task attachment:',error)
             throw error
         }
     }

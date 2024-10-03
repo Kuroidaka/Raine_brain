@@ -84,7 +84,10 @@ export class ChatService  {
       const { relateMemory, memoryDetail } = await this.teachableAgent.considerMemoRetrieval(prompt, summaryChat);
       let promptWithRelatedMemory = prompt + this.teachableAgent.concatenateMemoTexts(relateMemory)
 
-      const messages = await this.STMemo.process(
+      const {
+        history: messages,
+        videoRecord
+      } = await this.STMemo.process(
         prompt, 
         promptWithRelatedMemory, 
         Boolean(imgFilePath), 
@@ -98,6 +101,7 @@ export class ChatService  {
         userId: this.userID,
         ...(this.eventListId && { eventListId: this.eventListId }),
         ...(this.isLinkGoogle && { isLinkGoogle: this.isLinkGoogle }),
+        ...(videoRecord && { videoRecord }),
       });
       
        // Consider storing into LTMemo and promise all with chat response

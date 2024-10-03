@@ -33,7 +33,8 @@ export class ConversationService {
                             createdAt: 'asc'
                         },
                         include: {
-                            functionData: true
+                            functionData: true,
+                            videoRecord: true,
                         }
                     },
                 },
@@ -55,7 +56,8 @@ export class ConversationService {
                         createdAt: 'asc'
                     },
                     include: {
-                        functionData: true
+                        functionData: true,
+                        videoRecord: true,
                     }
                   },
                 },

@@ -8,7 +8,7 @@ import {
   outputInterData,
 } from "./llm/llm.interface";
 import { ConversationService } from "~/database/conversation/conversation";
-import { Message, Conversation } from "@prisma/client";
+import { Message, Conversation, VideoRecord } from "@prisma/client";
 import { UserService } from "~/database/user/user";
 import { OpenaiService } from "./llm/openai";
 
@@ -333,7 +333,7 @@ export class STMemoStore {
     includeImage = false,
     imgFilePath?: string,
     fileVideoPath?: string
-  ): Promise<MsgListParams[]> {
+  ): Promise<{ history: MsgListParams[]; videoRecord: VideoRecord | undefined }> {
     const history: MsgListParams[] = await this.getMessages(
       this.conversation_id as string,
       this.summaryChat,
@@ -345,15 +345,17 @@ export class STMemoStore {
       this.conversation_id as string
     );
 
+    let videoRecord: VideoRecord | undefined;
+
     if (fileVideoPath) {
       const fileService = FileService.getInstance();
 
       const videoRecordData: videoRecordProps = {
         name: path.basename(fileVideoPath),
-        url: fileVideoPath,
+        url: `file/stream/${path.basename(fileVideoPath)}`,
         messageId: message.id,
       };
-      await fileService.uploadVideoRecord(videoRecordData);
+      videoRecord = await fileService.uploadVideoRecord(videoRecordData);
     }
 
     if (this.conversationFile) {
@@ -404,6 +406,9 @@ export class STMemoStore {
 
     const system = await this.get_system_prompt();
 
-    return system.concat(history);
+    return {
+      history: system.concat(history),
+      videoRecord: videoRecord,
+    };
   }
 }

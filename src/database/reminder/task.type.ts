@@ -35,6 +35,12 @@ export type UpdateSubTaskProps = {
     status: boolean;
 }
   
+export type TaskAttachmentProps = {
+    name: string;
+    url: string;
+    type: string;
+}
+
 enum Area {
     HEALTH = "health",
     PLAY = "play",
