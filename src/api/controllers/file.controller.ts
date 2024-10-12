@@ -12,6 +12,7 @@ import { fileProps, videoRecordProps } from '~/database/file/file.interface';
 import { FileChatService } from '~/services/chat/fileAsk';
 import { ConversationService } from '~/database/conversation/conversation';
 import { formatDateTime } from '~/utils';
+import { UserService } from '~/database/user/user';
 
 const pipelineAsync = promisify(pipeline);
 
@@ -76,6 +77,26 @@ export const FileController = {
     
             // Return the response with the updated data
             return res.status(200).json(data);
+        } catch (error) {
+            console.error('Error uploading the image file:', error);
+            next(error);
+        }
+    },
+    deleteBGImg: async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { id } = req.params;
+            const userID = req.user.id
+
+            const fileService = FileService.getInstance();
+            
+            // check if the image is used as a background image from user account
+            const user = await UserService.getInstance().getUser({id: userID});
+            if(user?.backgroundImage?.id === id) {
+                throw new BadRequestException("Cannot delete the background image that is currently being used");
+            }
+            await fileService.deleteBackgroundImage(id);
+
+            return res.status(200).json({ message: "File deleted successfully" });
         } catch (error) {
             console.error('Error uploading the image file:', error);
             next(error);

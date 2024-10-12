@@ -75,7 +75,7 @@ export class FileService {
     }
 
     // Assign a Background Image to a User
-    async assignBackgroundImageToUser(userId: string, bgId: string) {
+    async assignBackgroundImageToUser(userId: string, bgId: string | null) {
         try {
             return await dbClient.user.update({
                 where: { id: userId },

@@ -236,8 +236,6 @@ export class ReminderChatService  {
     }
   }
 
-
-
   public async run(q: string) {
     try {
       const tasks = await this.getTaskDataBaseOnText(q)
@@ -301,7 +299,7 @@ export class ReminderChatService  {
       }
 
       return {
-        data: task,
+        data: [task],
         comment: "Task created successfully"
       }
     } catch (error) {
