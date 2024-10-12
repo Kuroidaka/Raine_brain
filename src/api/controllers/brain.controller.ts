@@ -135,7 +135,7 @@ export const BrainController = {
         debugMemo: 0
       }
 
-      const result = await chatService.processChat(debugOptions, res, prompt, filePath)
+      const result = await chatService.processChat(debugOptions, res, prompt, filePath, fileVideoPath)
 
       // if (fileVideoPath) {
       //   const fileService = FileService.getInstance();

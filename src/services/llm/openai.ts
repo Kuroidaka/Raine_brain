@@ -14,6 +14,7 @@ import chalk from 'chalk';
 import { tools } from '~/database/toolCall/toolCall.interface'
 import { filterTools, readTextFile } from '~/utils';
 import { uploadFilePath } from '~/constant';
+import { VideoRecord } from '@prisma/client';
 
 // const analyzeSystem = `You are an expert in text analysis.
 // The user will give you TEXT to analyze.
@@ -55,14 +56,17 @@ export class OpenaiService {
   private userId?: string
   private eventListId?: string
   private isLinkGoogle: boolean
+  private videoRecord?: VideoRecord
   constructor({
     userId,
     eventListId,
-    isLinkGoogle = false
+    isLinkGoogle = false,
+    videoRecord
   }:initClassOpenAI) {
     this.userId = userId;
     this.eventListId = eventListId;
     this.isLinkGoogle = isLinkGoogle;
+    videoRecord && (this.videoRecord = videoRecord);
   }
 
   public async chat(
@@ -70,7 +74,7 @@ export class OpenaiService {
     isEnableStream = false,
     enableTools: ChatCompletionTool[],
     res?: Response,
-    debugChat = 0
+    debugChat = 0,
   ): Promise<outputInter> {
 
     const dataMsg: MsgListParams[] = typeof messages === "string" 
@@ -176,6 +180,7 @@ export class OpenaiService {
           isLinkGoogle: this.isLinkGoogle,
           ...(this.userId && { userId: this.userId }),
           ...(this.eventListId && { eventListId: this.eventListId }),
+          ...(this.videoRecord && { videoRecord: this.videoRecord }),
         }
 
         debugChat && console.log("functionArgs", functionArgs);

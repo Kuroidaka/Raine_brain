@@ -47,14 +47,19 @@ export const tempUpload = multer({
   storage: tempStorage,
   fileFilter: (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
     const ext = path.extname(file.originalname).toLowerCase();
+    
+    // Validate file type
     if (['.mp3', '.wav', '.webm', '.flac', '.jpg', '.jpeg', '.png'].includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type'));
+      console.error(`Invalid file type: ${ext}`);
+      cb(new Error('Invalid file type for upload. Accepted types are: .mp3, .wav, .webm, .flac, .jpg, .jpeg, .png'));
     }
   },
+  limits: {
+    fileSize: 10 * 1024 * 1024, // Set a limit of 10MB per file, adjust if needed
+  },
 });
-
 
 // Define storage engine
 const storage: StorageEngine = multer.diskStorage({

@@ -9,7 +9,7 @@ import { RunnableSequence } from "@langchain/core/runnables";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import { RoutineFullIncluded, RoutineSQL, SubTaskSQL, TaskFullIncluded, TaskSQL, TaskSQLWithSub } from "./chat.interface";
 import { TaskService } from "~/database/reminder/task";
-import { SubTask, Task, TaskAreas } from "@prisma/client";
+import { SubTask, Task, TaskAreas, VideoRecord } from "@prisma/client";
 import { RoutineService } from "~/database/reminder/routine";
 import { ReminderService } from "~/database/reminder/reminder.service";
 import { formatTimeToHHMM } from "~/utils";
@@ -236,8 +236,6 @@ export class ReminderChatService  {
     }
   }
 
-
-
   public async run(q: string) {
     try {
       const tasks = await this.getTaskDataBaseOnText(q)
@@ -273,7 +271,7 @@ export class ReminderChatService  {
     }
   }
 
-  public async runCreateTask({title, deadline, note}: {title: string, deadline: string, note?: string}) {
+  public async runCreateTask({title, deadline, note, videoRecord}: {title: string, deadline: string, note?: string, videoRecord?: VideoRecord}) {
     try {
 
       if(!this.userID) throw new NotFoundException("userId not founded")
@@ -287,12 +285,21 @@ export class ReminderChatService  {
 
       const task = await this.taskService.addNewTask(data)
 
+      if(videoRecord) {
+        await this.taskService.addTaskAttachment(task.id, {
+          name: videoRecord.name,
+          url: videoRecord.url,
+          type: "video"
+        })
+      }
+
+
       if(this.isLinkGoogle && this.eventListId) {
         await this.reminderService.TaskAddSyncGoogle(task.id, data, this.eventListId)
       }
 
       return {
-        data: task,
+        data: [task],
         comment: "Task created successfully"
       }
     } catch (error) {

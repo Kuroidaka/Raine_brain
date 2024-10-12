@@ -21,11 +21,24 @@ model Task {
 
   subTask SubTask[]
   area    TaskAreas[]
-
+  taskAttachment TaskAttachment[]
   userId String
   user   User   @relation(fields: [userId], references: [id])
 
   @@index([userId], map: "Task_userId_fkey")
+}
+
+model TaskAttachment {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  name      String
+  url       String   @db.LongText
+  type      String
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+  
 }
 
 model SubTask {
@@ -194,12 +207,11 @@ model Message {
   conversation   Conversation     @relation(fields: [conversationId], references: [id])
   functionData   MessageFuntion[]
   videoRecord    VideoRecord?
-  videoRecordId  String?
   relatedMemo    Json?
   memoStorage    Json?
 
   @@index([conversationId], map: "Message_conversationId_fkey")
-  @@index([videoRecordId], map: "Message_videoRecordId_fkey")
+
 }
 
 model VideoRecord {

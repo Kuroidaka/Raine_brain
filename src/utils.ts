@@ -285,7 +285,7 @@ interface ResizeImageOptions {
   
 export const resizeImageToMaxSizeBase64 = async ({
     inputPath,
-    maxSizeInMB = 20 // Default max size is 20MB
+    maxSizeInMB = 19 // Default max size is 20MB
 }: ResizeImageOptions): Promise<string | null> => {
 try {
     // Maximum file size in bytes

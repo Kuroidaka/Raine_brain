@@ -1,21 +1,23 @@
 import { ChatCompletionTool } from "openai/resources/chat/completions"
 import { ReminderChatService } from "../chat/reminder"
 import { FileChatService } from "../chat/fileAsk"
+import { VideoRecord } from "@prisma/client"
 
 export type otherArgs = {
     userId?: string,
     eventListId?: string,
     isLinkGoogle: boolean,
+    videoRecord?: VideoRecord
 }
 
 export const llmTools = {
     ReminderCreateChatService: async (args: { title: string, deadline: string, note: string }, other: otherArgs) => {
         const { title, deadline, note } = args
-        const { userId, eventListId, isLinkGoogle } = other
+        const { userId, eventListId, isLinkGoogle, videoRecord } = other
 
         const func = new ReminderChatService(userId, isLinkGoogle, eventListId)
 
-        return func.runCreateTask({title, deadline, note})
+        return func.runCreateTask({title, deadline, note, videoRecord })
     },
     RoutineCreateChatService: async (args: { title: string, routineTime: string, note: string }, other: otherArgs) => {
         const { title, routineTime, note } = args

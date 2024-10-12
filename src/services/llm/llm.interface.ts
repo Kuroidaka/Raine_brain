@@ -20,6 +20,7 @@ import {
     ChatCompletionContentPartText as GroqChatCompletionContentPartText
     
  } from "groq-sdk/resources/chat/completions";
+import { VideoRecord } from "@prisma/client";
 
 
 export interface messagesInter {
@@ -98,7 +99,8 @@ export interface ToolCallCus {
 
 export type initClassOpenAI = {
     userId?: string,
-    eventListId?: string
+    eventListId?: string,
+    videoRecord?: VideoRecord,
     isLinkGoogle?: boolean
 }
 

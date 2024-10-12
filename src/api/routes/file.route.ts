@@ -14,6 +14,7 @@ router.get('/stream/:fileName', FileController.stream);
 
 router.get('/background/image', validateToken, FileController.getBackgroundImage);
 router.post('/background/image', validateToken, tempUpload.single('file'), FileController.uploadNewBGImg);
+router.delete('/background/image/:id', validateToken, FileController.deleteBGImg);
 
 router.post('/ask/upload', validateToken, vectorDBUpload.single('file'), FileController.uploadFile);
 router.delete('/ask/delete/:id', validateToken, FileController.deleteFile);
