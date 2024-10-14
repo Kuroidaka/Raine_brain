@@ -10,6 +10,7 @@ import { tools } from './database/toolCall/toolCall.interface';
 import { toolsDefined, ToolsDefinedType } from './services/llm/tool';
 import { ChatCompletionTool } from "openai/resources/chat/completions"
 import { conversationFileProps } from './database/conversation/conversation.interface'
+import { redisClient } from './config/redis';
 
 
 export function isObject(value: any): boolean {
@@ -372,4 +373,49 @@ export function formatDateToExDate(date: Date, allDay: boolean = false): string 
   
 //   // EXDATE for all-day event
 //   console.log(formatDateToExDate(allDayDate, true)); // Outputs: 20240925
-  
+
+export const setUserIDWithSocket = async (userId: string, socketId: string) => {
+    try {
+        // Check if the user already exists in Redis
+        const existingSocketId = await redisClient.get(userId);
+
+        if (existingSocketId) {
+            // Remove the old socket ID if the user is already connected elsewhere
+            await redisClient.del(userId);
+            console.log(`Old socket ID for user ${userId} removed: ${existingSocketId}`);
+        }
+
+        // Store the new socket.id with the userId in Redis
+        await redisClient.set(userId, socketId);
+        console.log(`User ${userId} registered with new socket ID ${socketId}`);
+    } catch (error) {
+        console.error(`Error during user registration for user ${userId}:`, error);
+    }
+}
+
+export async function findUserBySocketId(socketId: string): Promise<string | null> {
+    try {
+        const keys = await redisClient.keys('*'); // Get all user IDs
+        for (const key of keys) {
+            const value = await redisClient.get(key); // Check socket ID for each user
+            if (value === socketId) {
+                return key; // Return userId if matching socket ID is found
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('Error finding user by socket ID:', error);
+        return null;
+    }
+}
+
+export const removeUserBySocketId = async (socketId: string) => {
+    const userId = await findUserBySocketId(socketId);
+    if (userId) {
+        await redisClient.del(userId);
+        console.log(`Removed Redis entry for user ${userId} with socket ID ${socketId}`);
+    }
+}
+
+
+

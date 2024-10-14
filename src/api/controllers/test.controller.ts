@@ -91,7 +91,7 @@ export class TestController {
     try {
       const prompt = req.body.prompt;
 
-      const techableAgent = new TeachableService(1);
+      const techableAgent = new TeachableService(1, req.user.id);
 
       const customPrompt = `
       Summary of previous conversation: 
@@ -117,7 +117,7 @@ export class TestController {
     try {
       const prompt = req.body.prompt;
 
-      const techableAgent = new TeachableService(0);
+      const techableAgent = new TeachableService(0, req.user.id);
       const newprompt = await techableAgent.considerMemoRetrieval(prompt);
 
       return res.status(200).json({ data: newprompt });
@@ -238,7 +238,7 @@ export class TestController {
     try {
 
       const { prompt } = req.body
-      const techableAgent = new TeachableService(0);
+      const techableAgent = new TeachableService(0, req.user.id);
       const newprompt = await techableAgent.rememberMemoV2(prompt, []);
 
       return res.status(200).json(newprompt);

@@ -20,6 +20,7 @@ import { chatClassInit } from "~/services/chat/chat.interface";
 import { FileChatService } from "~/services/chat/fileAsk";
 import { FileService } from "~/database/file/file";
 import { videoRecordProps } from "~/database/file/file.interface";
+import { redisClient } from "~/config/redis";
 
 const conversationService = ConversationService.getInstance()
 export const BrainController = {
@@ -115,9 +116,12 @@ export const BrainController = {
       const isVision = true
       const isLinkGoogle = !!googleCredentials
 
-      io.emit('processing', {
-        message: "Thinking..."
-      })
+      const targetSocketId = await redisClient.get(userID as string);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("processing", {
+          message: "Thinking..."
+        })
+      }
 
       const initChatParams: chatClassInit = {
         userID,
@@ -174,20 +178,22 @@ export const BrainController = {
     }
 
     const filePath = req.file.path;
+    const { id: userID } = req.user;
     console.log("filePath", filePath)
     try {
-      io.emit('processing', {
+      const targetSocketId = await redisClient.get(userID as string);
+      targetSocketId && io.to(targetSocketId).emit('processing', {
         message: "Getting audio to text"
       })
       const output = await GroqService.stt(filePath, 'en');
 
       if(output.content) {
-        io.emit('processing', {
+        targetSocketId && io.to(targetSocketId).emit('processing', {
           message: "Done getting audio to text"
         })
       }
       else {
-        io.emit('processing', {
+        targetSocketId && io.to(targetSocketId).emit('processing', {
           message: "Speak again"
         })
       }
@@ -200,7 +206,7 @@ export const BrainController = {
   },
   tts: async (req: Request, res: Response, next: NextFunction) => {
     const { text } = req.body;
-
+    const { id: userID } = req.user;
     if (!text) {
       return res.status(400).json({ error: 'Text is required' });
     }
@@ -208,7 +214,8 @@ export const BrainController = {
     try {
 
       const chunks = splitText(text, 2000);
-      io.emit('processing', {
+      const targetSocketId = await redisClient.get(userID as string);
+      targetSocketId && io.to(targetSocketId).emit('processing', {
         message: "Processing text to audio"
       })
       for (const chunk of chunks) {
@@ -219,10 +226,10 @@ export const BrainController = {
         const fileBuffer = await fs.readFile(absolutePath);
 
         // Emit the file buffer
-        io.emit('audioFile', fileBuffer);
+        targetSocketId && io.to(targetSocketId).emit('audioFile', fileBuffer);
       }
 
-      io.emit('processing', {
+      targetSocketId && io.to(targetSocketId).emit('processing', {
         message: null
       })
 

@@ -10,6 +10,7 @@ import { MemoStore } from "./LTMemo";
 import chalk from "chalk";
 import { io } from "~/index";
 import { OpenaiService } from "./llm/openai";
+import { redisClient } from "~/config/redis";
 
 export class TeachableService {
   private max_num_retrievals: number;
@@ -17,13 +18,15 @@ export class TeachableService {
   private debug: number;
   private analyzer: OpenaiService;
   private decontextualizePrompt: string = "";
+  private userID: string;
 
   constructor(
     debug: number,
+    userID: string,
     path_to_db_dir = path.join("src", "assets", "tmp", "memos"),
     reset_db = false,
     recall_threshold = 1.7,
-    max_num_retrievals = 10
+    max_num_retrievals = 10,
   ) {
     this.max_num_retrievals = max_num_retrievals;
     this.debug = debug;
@@ -34,6 +37,7 @@ export class TeachableService {
       recall_threshold
     );
     this.analyzer = new OpenaiService({});
+    this.userID = userID;
   }
 
   // public async preprocess(prompt: string) {
@@ -212,6 +216,7 @@ export class TeachableService {
       const openaiService = new OpenaiService({});
       const result = await openaiService.analyzeLTMemoCriteria(prompt);
   
+      const targetSocketId = await redisClient.get(this.userID as string);
       if (result.criteria["ai-actionable"]) {
         return null;
       }
@@ -219,7 +224,7 @@ export class TeachableService {
       if(result.answer.toLowerCase().includes("none")) {
         return null
       }
-      io.emit("chatResMemoStorage", { active: true })
+      targetSocketId && io.to(targetSocketId).emit("chatResMemoStorage", { active: true })
 
       const memoFinal: DataMemo[] = [];
       let isMemoUpdated = false;
@@ -263,7 +268,7 @@ export class TeachableService {
         memoFinal.push(newMemo);
       }
   
-      io.emit("chatResMemoStorage", { active: true, memoryDetail: memoFinal });
+      targetSocketId && io.to(targetSocketId).emit("chatResMemoStorage", { active: true, memoryDetail: memoFinal });
       return memoFinal;
     } catch (error) {
       console.error(">>TeachableService>>rememberMemoV2", error);
@@ -288,7 +293,8 @@ export class TeachableService {
     summaryChat?: string
   ): Promise<{ relateMemory: string[]; memoryDetail: DataMemo[] }> {
     try {
-      io.emit("chatResMemo", { active: true });
+      const targetSocketId = await redisClient.get(this.userID as string);
+      targetSocketId && io.to(targetSocketId).emit("chatResMemo", { active: true });
 
       if(summaryChat) {
         prompt = await this.analyzer.decontextualize(prompt, summaryChat)
@@ -332,7 +338,7 @@ export class TeachableService {
 
       this.debug === 0 && console.log("Related memory list", memoOutputList);
 
-      io.emit("chatResMemo", { active: true, memoryDetail: memoList });
+      targetSocketId && io.to(targetSocketId).emit("chatResMemo", { active: true, memoryDetail: memoList });
       return {
         relateMemory: memoOutputList,
         memoryDetail: memoList,

@@ -57,7 +57,7 @@ export class ChatService  {
 
       // Long term memory process
       const pathMemo = path.join("src", "assets", "tmp", "memos", this.userID);
-      this.teachableAgent = new TeachableService(debugMemo, pathMemo);
+      this.teachableAgent = new TeachableService(debugMemo, this.userID, pathMemo);
 
 
       // get conversation file

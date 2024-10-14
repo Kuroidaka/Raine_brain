@@ -15,6 +15,7 @@ import { tools } from '~/database/toolCall/toolCall.interface'
 import { filterTools, readTextFile } from '~/utils';
 import { uploadFilePath } from '~/constant';
 import { VideoRecord } from '@prisma/client';
+import { redisClient } from '~/config/redis';
 
 // const analyzeSystem = `You are an expert in text analysis.
 // The user will give you TEXT to analyze.
@@ -140,7 +141,11 @@ export class OpenaiService {
     } catch (error) {
       console.log(error);
       content += "\n" + errorMsg;
-      io.emit("chatResChunk", { content });
+
+      const targetSocketId = await redisClient.get(this.userId as string);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("chatResChunk", { content });
+      }
 
       return { content };
     }
@@ -154,6 +159,7 @@ export class OpenaiService {
     isEnableStream: boolean
   ): Promise<outputInter> {
     try {
+      const targetSocketId = await redisClient.get(this.userId as string);
       const availableFunctions = {
         "ReminderChatService": llmTools.ReminderChatService,
         "RoutineChatService": llmTools.RoutineChatService,
@@ -174,7 +180,10 @@ export class OpenaiService {
           name: functionName,
         };
 
-        isEnableStream && io.emit("chatResChunkFunc", { functionData: functionData, id: mark });
+        
+        if (targetSocketId) {
+          io.to(targetSocketId).emit("chatResChunkFunc", { functionData: functionData, id: mark });
+        }
         const functionArgs = JSON.parse(toolCall.function.arguments);
         const otherArgs:otherArgs = {
           isLinkGoogle: this.isLinkGoogle,
@@ -193,7 +202,9 @@ export class OpenaiService {
           functionData.data = functionResponse.data;
         }
 
-        isEnableStream && io.emit("chatResChunkFunc", { functionData: functionData, id: mark });
+        if (targetSocketId && isEnableStream) {
+          io.to(targetSocketId).emit("chatResChunkFunc", { functionData: functionData, id: mark });
+        }
 
         messages.push({
           tool_call_id: toolCall.id,
@@ -201,7 +212,9 @@ export class OpenaiService {
           content: functionResponse.comment,
         });
 
-        isEnableStream && io.emit("chatResChunkFunc", { functionData: functionData, id: mark });
+        if (targetSocketId && isEnableStream) {
+          io.to(targetSocketId).emit("chatResChunkFunc", { functionData: functionData, id: mark });
+        }
 
         listData.push(functionData);
       }
@@ -302,7 +315,11 @@ export class OpenaiService {
 
       if (delta && delta.content) {
         content += delta.content;
-        io.emit("chatResChunk", { content: delta.content });
+
+        const targetSocketId = await redisClient.get(this.userId as string);
+        if (targetSocketId) {
+          io.to(targetSocketId).emit("chatResChunk", { content: delta.content });
+        }
       } else if (delta && delta.tool_calls) {
         const tcChunkList = delta.tool_calls;
         for (const tcChunk of tcChunkList) {
@@ -398,7 +415,11 @@ export class OpenaiService {
       const text = chunk.choices[0]?.delta?.content || "";
       console.log(text);
       content += text;
-      io.emit("chatResChunk", { content: text });
+      
+      const targetSocketId = await redisClient.get(this.userId as string);
+      if (targetSocketId) {
+        io.to(targetSocketId).emit("chatResChunk", { content: text });
+      }
     }
 
     return { content };

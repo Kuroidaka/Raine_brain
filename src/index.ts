@@ -15,6 +15,9 @@ dotenv.config();
 
 import { errorHandler, routeNotFoundHandler, validateDto } from '~/api/middlewares';
 import apiRoutes from '~/api/routes';
+import jwt, { JwtPayload } from 'jsonwebtoken';
+import { connectRedis, redisClient } from './config/redis';
+import { setUserIDWithSocket, removeUserBySocketId } from './utils';
 
 
 const app = express();
@@ -36,11 +39,24 @@ export const io = new Server(server, {
 });
 
 export const start = async (): Promise<void> => {
+    await connectRedis();
+    io.use((socket, next) => {
+        const token = socket.handshake.auth.token;
+        const user = jwt.verify(token, process.env.JWT_SECRET || '');
+        socket.user = user;
+        next();
+    });
 
     io.on('connection', (socket) => {
         console.log('a user connected');
-        socket.on('disconnect', () => {
-            console.log('user disconnected');
+        if (socket.user) {
+            setUserIDWithSocket(socket.user.id, socket.id);
+        }
+
+        socket.on('disconnect', async () => {
+            console.log(`User disconnected: ${socket.id}`);
+
+            removeUserBySocketId(socket.id);
         });
     });
 
