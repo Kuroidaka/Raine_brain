@@ -358,22 +358,18 @@ export class STMemoStore {
       videoRecord = await fileService.uploadVideoRecord(videoRecordData);
     }
 
-    if (this.conversationFile) {
+    if (this.conversationFile && this.conversationFile.length > 0) {
       history.push({
         role: "user",
         content: `The uploaded file:
-                ${
-                  this.conversationFile.length > 0
-                    ? this.conversationFile
-                        .map((file) => {
-                          return `
+                ${this.conversationFile.map((file) => {
+                  return `
                     name: ${file.originalname}
                     type: ${file.extension}
                     uploaded_at: ${file.createdAt}
                     `;
-                        })
-                        .join("\n")
-                    : "No file uploaded"
+                })
+                .join("\n")
                 }
 
             `,

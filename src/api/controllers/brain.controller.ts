@@ -152,7 +152,6 @@ export const BrainController = {
       //   const videoRecord = await fileService.uploadVideoRecord(videoRecordData);
       // }
             
-      console.log("result", result)
 
       res.status(200).json({
         content: result.output.content, 
