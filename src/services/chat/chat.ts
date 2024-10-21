@@ -5,7 +5,11 @@ import { TeachableService } from "~/services/techable";
 import { STMemoStore } from "~/services/STMemo";
 import { DataMemo, MsgListParams, outputInter } from "../llm/llm.interface";
 import { GroqService } from "../llm/groq";
-import { chatClassInit, Debug, historyChatProcessingParams } from './chat.interface';
+import {
+  chatClassInit,
+  Debug,
+  historyChatProcessingParams,
+} from "./chat.interface";
 import chalk from "chalk";
 import { ConversationService } from "~/database/conversation/conversation";
 import { InternalServerErrorException } from "~/common/error";
@@ -14,59 +18,69 @@ import { ToolCallService } from "~/database/toolCall/toolCall";
 import { filterTools } from "~/utils";
 import { toolsDefined } from "../llm/tool";
 
-const conversationService = ConversationService.getInstance()
-export class ChatService  {
-
+const conversationService = ConversationService.getInstance();
+export class ChatService {
   private userID: string;
   private conversationID: string;
   private isEnableVision: boolean;
   private isEnableStream: boolean;
   private base64Data: string | null;
   private STMemo: STMemoStore;
-  private teachableAgent: TeachableService
-  private lang: string
-  private eventListId?: string
-  private isLinkGoogle?: boolean
+  private teachableAgent: TeachableService;
+  private lang: string;
+  private eventListId?: string;
+  private isLinkGoogle?: boolean;
 
   constructor({
     userID,
     conversationID,
     isEnableVision,
     isEnableStream,
-    lang = 'en',
+    lang = "en",
     eventListId,
-    isLinkGoogle
-  }:chatClassInit) {
+    isLinkGoogle,
+  }: chatClassInit) {
     this.userID = userID;
     this.conversationID = conversationID;
     this.isEnableVision = isEnableVision;
     this.isEnableStream = isEnableStream;
     this.lang = lang;
     eventListId && (this.eventListId = eventListId);
-    isLinkGoogle && (this.isLinkGoogle = isLinkGoogle)
+    isLinkGoogle && (this.isLinkGoogle = isLinkGoogle);
   }
 
-  public async processChat(debug: Debug, res: Response, prompt: string, imgFilePath?: string, fileVideoPath?: string) :Promise<{
-    output: outputInter,
-    conversationID: string,
-    memoryDetail: DataMemo[] | null,
-    memoStorage: DataMemo[] | null
-  }>{
+  public async processChat(
+    debug: Debug,
+    res: Response,
+    prompt: string,
+    imgFilePath?: string,
+    fileVideoPath?: string
+  ): Promise<{
+    output: outputInter;
+    conversationID: string;
+    memoryDetail: DataMemo[] | null;
+    memoStorage: DataMemo[] | null;
+  }> {
     try {
-      const { debugChat = 0, debugMemo = 0 } = debug
+      const { debugChat = 0, debugMemo = 0 } = debug;
 
       // Long term memory process
       const pathMemo = path.join("src", "assets", "tmp", "memos", this.userID);
-      this.teachableAgent = new TeachableService(debugMemo, this.userID, pathMemo);
-
+      this.teachableAgent = new TeachableService(
+        debugMemo,
+        this.userID,
+        pathMemo
+      );
 
       // get conversation file
-      const conversationFile = await conversationService.getConversationFile(this.conversationID)
+      const conversationFile = await conversationService.getConversationFile(
+        this.conversationID
+      );
 
       // Get tools
-       const toolCallService = ToolCallService.getInstance();
-       const tools = await toolCallService.getToolsByUser(this.userID)
-       const enableTools = filterTools(tools, toolsDefined, conversationFile);
+      const toolCallService = ToolCallService.getInstance();
+      const tools = await toolCallService.getToolsByUser(this.userID);
+      const enableTools = filterTools(tools, toolsDefined, conversationFile);
 
       // Short term memory process,
       this.STMemo = new STMemoStore(
@@ -75,22 +89,20 @@ export class ChatService  {
         this.isEnableVision,
         this.lang,
         enableTools,
-        conversationFile,
+        conversationFile
       );
 
-      const { summaryChat } = await this.STMemo.preprocess(prompt)
+      const { summaryChat } = await this.STMemo.preprocess(prompt);
 
+      const { relateMemory, memoryDetail } =
+        await this.teachableAgent.considerMemoRetrieval(prompt, summaryChat);
+      let promptWithRelatedMemory =
+        prompt + this.teachableAgent.concatenateMemoTexts(relateMemory);
 
-      const { relateMemory, memoryDetail } = await this.teachableAgent.considerMemoRetrieval(prompt, summaryChat);
-      let promptWithRelatedMemory = prompt + this.teachableAgent.concatenateMemoTexts(relateMemory)
-
-      const {
-        history: messages,
-        videoRecord
-      } = await this.STMemo.process(
-        prompt, 
-        promptWithRelatedMemory, 
-        Boolean(imgFilePath), 
+      const { history: messages, videoRecord } = await this.STMemo.process(
+        prompt,
+        promptWithRelatedMemory,
+        Boolean(imgFilePath),
         imgFilePath,
         fileVideoPath
       );
@@ -103,25 +115,46 @@ export class ChatService  {
         ...(this.isLinkGoogle && { isLinkGoogle: this.isLinkGoogle }),
         ...(videoRecord && { videoRecord }),
       });
-      
-       // Consider storing into LTMemo and promise all with chat response
-       const [output, memoStorage] = await Promise.all([
-        openAiService.chat(messages, this.isEnableStream, enableTools, res, debugChat),
-        this.teachableAgent.considerMemoStorage(prompt, memoryDetail)
-       ])
+
+      // Consider storing into LTMemo and promise all with chat response
+      const [output, memoStorage] = await Promise.all([
+        openAiService.chat(
+          messages,
+          this.isEnableStream,
+          enableTools,
+          res,
+          debugChat
+        ),
+        this.teachableAgent.considerMemoStorage(prompt, memoryDetail),
+      ]);
+
+      if (output.content && this.STMemo.conversation_id) {
+        const listDataFunc = output.data;
+
+        // Wait for the addMessage function to complete
+        await this.STMemo.addMessage(
+          output.content,
+          true,
+          this.STMemo.conversation_id,
+          listDataFunc,
+          memoryDetail,
+          memoStorage
+        );
+      }
 
       return {
         output: output,
         conversationID: this.STMemo.conversation_id as string,
         memoryDetail: memoryDetail,
-        memoStorage: memoStorage ? memoStorage : null
-      }
+        memoStorage: memoStorage ? memoStorage : null,
+      };
     } catch (error) {
       console.error("Error in processChat:", error);
-      throw new InternalServerErrorException("error occur while processing chat")
+      throw new InternalServerErrorException(
+        "error occur while processing chat"
+      );
     }
   }
-
 
   // public async processVideoChat(res: Response, prompt: string, imgFilePath: string) :Promise<{
   //   output: outputInter,
@@ -136,20 +169,26 @@ export class ChatService  {
   //   }
   // }
 
-  public async handleProcessAfterChat(output: outputInter, prompt: string, memoryDetail: DataMemo[] | null, memoStorage: DataMemo[] | null) {
+  public async handleProcessAfterChat(
+    output: outputInter,
+    prompt: string,
+    memoryDetail: DataMemo[] | null,
+    memoStorage: DataMemo[] | null
+  ) {
     // Add AI response into DB
     if (output.content && this.STMemo.conversation_id) {
-      const listDataFunc = output.data
-
-      await this.STMemo.addMessage(output.content, true, this.STMemo.conversation_id, listDataFunc, memoryDetail, memoStorage);
-
       // Summarize the conversation
-      const historySummarized = await this.STMemo.processSummaryConversation(this.STMemo.conversation_id as string);
+      const historySummarized = await this.STMemo.processSummaryConversation(
+        this.STMemo.conversation_id as string
+      );
       console.log(chalk.green("HistorySummarized: "), historySummarized);
 
-      await conversationService.modifyConversation(this.STMemo.conversation_id as string, {
-        summarize: historySummarized,
-      });
+      await conversationService.modifyConversation(
+        this.STMemo.conversation_id as string,
+        {
+          summarize: historySummarized,
+        }
+      );
     }
   }
 }

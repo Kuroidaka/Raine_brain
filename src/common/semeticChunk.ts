@@ -6,6 +6,7 @@ import { Chroma } from "@langchain/community/vectorstores/chroma";
 import { Document } from "langchain/document";
 import { getDocument } from 'pdfjs-dist';
 import { DirectoryLoader } from'langchain/document_loaders/fs/directory';
+import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import {
   RunnableSequence,
@@ -19,6 +20,9 @@ import * as math from "mathjs";
 import { quantile } from "d3-array";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { NotImplementedException } from "./error";
+import * as fs from 'fs';
+import * as mammoth from 'mammoth';
+
 
 interface SentenceObject {
   sentence: string;
@@ -390,6 +394,29 @@ async function rag(documents: any[], collectionName: string = "agentic-chunks") 
   console.log(result);
 }
 
+async function convertDocxToText(filePath: string): Promise<string> {
+  try {
+      // Read the .docx file as a buffer
+      const buffer = fs.readFileSync(filePath);
+
+      // Convert the .docx file to plain text using Mammoth
+      const result = await mammoth.extractRawText({ buffer: buffer });
+
+      // Get the plain text output and warnings (if any)
+      const text = result.value;
+      const warnings = result.messages;
+
+      // Output the plain text to console
+      console.log("warnings when get text from docx", warnings)
+      return text
+
+  } catch (error) {
+      console.error('Error converting .docx to text:', error);
+      throw new NotImplementedException("Error converting .docx to text")
+  }
+}
+
+
 export async function loadFile(filePath: string): Promise<string>{
   if(filePath.endsWith(".pdf")){
     const loadingTask = getDocument(filePath);
@@ -412,7 +439,13 @@ export async function loadFile(filePath: string): Promise<string>{
     const textCorpus = await loadTextFile(filePath)
     return textCorpus
   }
-  return ""
+  else if(filePath.endsWith(".docx")){
+    const textCorpus = await convertDocxToText(filePath)
+    return textCorpus
+  }
+  else{
+    throw new NotImplementedException("File type not supported")
+  }
 }
 export async function semanticChunk(filePath: string) :Promise<string[]>{
   try {
@@ -420,7 +453,11 @@ export async function semanticChunk(filePath: string) :Promise<string[]>{
 
     const textCorpus = await loadFile(filePath)
     // Step 2: Split the loaded text into sentences.
+
     const sentences = splitToSentencesUsingNLP(textCorpus);
+    if(sentences.length === 0){
+      return [textCorpus]
+    }
     console.log("sentences", sentences);
 
     // Step 3: Structure these sentences into an array of SentenceObject.

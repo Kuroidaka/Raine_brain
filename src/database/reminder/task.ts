@@ -1,6 +1,7 @@
 import { dbClient } from "~/config";
 import { SubTaskProps, TaskAttachmentProps, TaskProps, TaskWithAreaProps, UpdateSubTaskProps, UpdateTaskProps, UpdateTaskWithCateProps } from "./task.type";
 import { Areas, Prisma, Task } from "@prisma/client";
+import { TaskFullIncluded } from "~/services/chat/chat.interface";
 
 export class TaskService {
     private static instance: TaskService;
@@ -42,7 +43,7 @@ export class TaskService {
         }
     }
 
-    async getTasksById(id:string){
+    async getTasksById(id:string): Promise<TaskFullIncluded | null> {
         try {
             return await dbClient.task.findUnique({ 
                 where: { id },

@@ -45,11 +45,11 @@ export class FileChatService {
     const retriever = vectorStore.asRetriever(
       {
         searchType: "similarity",
-        k: 10
+        k: 20
       }
     );
     
-    const context = await vectorStore.similaritySearchWithScore(q, 10);
+    const context = await vectorStore.similaritySearchWithScore(q, 20);
   
     console.log(await retriever.invoke(q))
 

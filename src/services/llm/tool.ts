@@ -118,7 +118,7 @@ export const toolsDefined:ChatCompletionTool[] = [
                 type: "object",
                 properties: {
                   "q": {
-                    "description": "The query string provided by the user. This string defines the criteria for searching tasks (e.g., 'search task with area in work')."
+                    "description": `The query string provided by the user. This string defines the criteria for searching tasks`
                   }
                 },
                 required: ["q"],
@@ -134,7 +134,7 @@ export const toolsDefined:ChatCompletionTool[] = [
                 type: "object",
                 properties: {
                   "q": {
-                    "description": "The query string provided by the user. This string defines the criteria for searching routines(e.g., 'search routine with area in work')."
+                    "description": "The query string provided by the user. This string defines the criteria for searching routines"
                   }
                   
                 },
@@ -152,7 +152,7 @@ export const toolsDefined:ChatCompletionTool[] = [
                 type: "object",
                 properties: {
                   "q": {
-                    "description": "The question that the user wants to know about the uploaded file"
+                    "description": "The question that the user wants to know about the uploaded file (don't include any file name)"
                   }
                 },
                 required: ["q"],

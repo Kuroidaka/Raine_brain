@@ -11,5 +11,6 @@ router.get('/get/:id', validateToken, ConversationController.getConversationById
 router.post('/create', validateToken, ConversationController.createConversation);
 router.delete('/delete/:id', validateToken, ConversationController.deleteConversation);
 router.get('/file/:id', validateToken, ConversationController.getConversationFile);
+router.get('/messages/:id', validateToken, ConversationController.getMessagesByConversationId);
 
 export default router;

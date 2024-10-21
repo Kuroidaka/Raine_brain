@@ -61,12 +61,14 @@ export const BrainController = {
 
       const result = await chatService.processChat(debugOptions, res, prompt)
 
-      const response: outputInter & { conversationID: string } = {
-        content: result.output.content,
-        conversationID: result.conversationID,
-        ...(result.output.data && { data: result.output.data }),
-      };
-      res.status(200).json(response)
+      // const response: outputInter & { conversationID: string } = {
+      //   content: result.output.content,
+      //   conversationID: result.conversationID,
+      // };
+
+      const newConversation = await conversationService.getConversation(result.conversationID)
+
+      res.status(200).json(newConversation)
       
       await chatService.handleProcessAfterChat(
         result.output,

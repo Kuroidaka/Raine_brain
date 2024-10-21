@@ -34,8 +34,8 @@ Do not add any explanation to your analysis, just the analysis result.
 `
 
 const decontextualizeSystem = `
-The user will give you TEXT.
-You should focus on adding necessary modifier to nouns or entire sentence and replacing only for these pronouns ("it", "he", "she", "they", "this", "that", "them") with the full name of the entities that referred to.
+The user will give you TEXT and CONTEXTUAL.
+You should just focus on only replacing for these pronouns ("it", "he", "she", "they", "this", "that", "them") with the full name of the objects or entities that referred to base on the CONTEXTUAL while keeping the original TEXT structure, if there is no pronoun to replace or it is not necessary, just return the original TEXT. (sometime the pronouns like "it" is not necessary to replace like when user say "say it again" while it is refer to the long sentence before not for any object)
 You should not replace any noun or sentence that is relate to (I, me, my, mine, myself).
 Do not add any explanation to your response, just the result.
 `
@@ -491,8 +491,8 @@ export class OpenaiService {
     try {
       const data:MsgListParams[] = [
         { role: "system", content: decontextualizeSystem},
-        { role: "system", content: contextual},
-        { role: "user", content: textToDecontextualize }
+
+        { role: "user", content: `TEXT: ${textToDecontextualize}\nCONTEXTUAL: ${contextual}` }
       ]
 
       const { choices } = await openAIClient.chat.completions.create({
