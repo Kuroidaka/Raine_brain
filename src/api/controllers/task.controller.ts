@@ -26,9 +26,7 @@ export const reminderController = {
                 await reminderService.TaskAddSyncGoogle(task.id, data, eventListId)
             }
 
-            return res.status(200).json({
-                message: "Task created successfully"
-            })
+            return res.status(200).json(task)
         } catch (error) {
             console.log(error);
             // Rethrow the error to be caught by the errorHandler middleware
@@ -36,11 +34,21 @@ export const reminderController = {
         }
     },
     getTask: async (req: Request, res: Response, next:NextFunction) => {       
-        const {} = req.body;
+        const startDateValue = req.query.startDate ? new Date(req.query.startDate as string) : null
+        // endDate is the end of the day
+        let endDateValue = req.query.endDate ? new Date(req.query.endDate as string) : null
+        if(endDateValue) {
+            endDateValue.setHours(23, 59, 59, 999)
+        }
 
          const { id: userId } = req.user
         
         try {
+            if(startDateValue && endDateValue) {
+                const data = await taskService.getTasksByDateRange(userId, startDateValue, endDateValue)
+                return res.status(200).json(data)
+            }
+
             const data = await taskService.getTasksByUser(userId)
             return res.status(200).json(data)
         } catch (error) {

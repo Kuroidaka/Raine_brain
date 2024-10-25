@@ -190,16 +190,7 @@ export const googleController = {
             next(error);
         }
     },
-    getEvent: async (req: Request, res: Response, next: NextFunction) => {
-        const { id } = req.params
-        try {
-            const result = await GoogleService.getEvent(id)
-            res.status(200).json(result);
-        } catch (error) {
-            console.error('Error getting event:', error);
-            next(error);
-        }
-    },
+
     deleteEvent: async (req: Request, res: Response, next: NextFunction) => {
         const { id } = req.params
         const { id: userId, eventListId, googleCredentials } = req.user

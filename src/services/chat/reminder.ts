@@ -384,13 +384,12 @@ export class ReminderChatService {
       if (!this.userID) throw new NotFoundException("userId not founded");
       const data = {
         title: title,
-        color: "1",
         deadline: deadline,
         note: note || "",
         userId: this.userID,
       };
 
-      const task = await this.taskService.addNewTask(data);
+      const task = await this.taskService.addNewTask({...data, color: ""});
 
       if (videoRecord) {
         await this.taskService.addTaskAttachment(task.id, {
@@ -403,7 +402,7 @@ export class ReminderChatService {
       if (this.isLinkGoogle && this.eventListId) {
         await this.reminderService.TaskAddSyncGoogle(
           task.id,
-          data,
+          {...data, color: "1"},
           this.eventListId
         );
       }
@@ -432,19 +431,18 @@ export class ReminderChatService {
       if (!this.userID) throw new NotFoundException("userId not founded");
       const data = {
         title: title,
-        color: "1",
         note: note || "",
         userId: this.userID,
         routineTime: formatTimeToHHMM(new Date(routineTime)),
         isActive: true,
       };
 
-      const routine = await this.routineService.addNewRoutine(data);
+      const routine = await this.routineService.addNewRoutine({...data, color: ""});
 
       if (this.isLinkGoogle && this.eventListId) {
         await this.reminderService.RoutineAddSyncGoogle(
           routine.id,
-          data,
+          {...data, color: "1"},
           this.eventListId
         );
       }
