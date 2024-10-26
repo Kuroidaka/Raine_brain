@@ -60,24 +60,25 @@ export const GroqService = {
     if (isEnableStream && res) return GroqService.stream(res, data);
   
     try {
-      let queryObject = {}
+      // let queryObject = {}
 
-      if(toolEnable) {
-        queryObject = {
-          tool_choice: 'auto',
-          tools
-        }
-      }
+      // if(toolEnable) {
+      //   queryObject = {
+      //     tool_choice: 'auto',
+      //     tools
+      //   }
+      // }
       
-      const { choices } = await groqClient.chat.completions.create({
-        messages: data as MsgListParams[],
-        model: "llama3-70b-8192",
-        ...queryObject
-      });
+      // const { choices } = await groqClient.chat.completions.create({
+      //   messages: data as MsgListParams[],
+      //   model: "llama3-70b-8192",
+      //   ...queryObject
+      // });
 
-      console.log(choices)
+      // console.log(choices)
       return {
-        content: choices[0].message.content
+        // content: choices[0].message.content
+        content: "Hello"
       }
     } catch (error) {
       console.error(error);
@@ -90,21 +91,21 @@ export const GroqService = {
     let content = ""
     const errorMsg = "Someone call Canh, there are some Bug with my program"
     try {
-      const stream = await groqClient.chat.completions.create({
-        messages: messages as MsgListParams[],
-        model: "llama3-8b-8192",
-        stream: true,
-      });
+      // const stream = await groqClient.chat.completions.create({
+      //   messages: messages as MsgListParams[],
+      //   model: "llama3-8b-8192",
+      //   stream: true,
+      // });
 
-      for await (const chunk of stream) {
-        // Print the completion returned by the LLM.
-        const text = chunk.choices[0]?.delta?.content || "";
-        console.log(text)
-        content += text 
-        io.emit('chatResChunk', { content });
-      }
+      // for await (const chunk of stream) {
+      //   // Print the completion returned by the LLM.
+      //   const text = chunk.choices[0]?.delta?.content || "";
+      //   console.log(text)
+      //   content += text 
+      //   io.emit('chatResChunk', { content });
+      // }
       
-      return { content };
+      return { content: "Hello" };
     } catch (error) {
       console.log(error);
       // res.write(JSON.stringify({ text: " " + errorMsg }) + '\n');
@@ -127,21 +128,22 @@ export const GroqService = {
         { role: "user", content: msgText }
       ]
 
-      const { choices } = await groqClient.chat.completions.create({
-        messages: data,
-        model: "llama3-70b-8192",
-      });
+      // const { choices } = await groqClient.chat.completions.create({
+      //   messages: data,
+      //   model: "llama3-70b-8192",
+      // });
 
-      const content = "# RESULT\n" + choices[0].message.content + "\n"
+      // const content = "# RESULT\n" + choices[0].message.content + "\n"
 
-      if(debug && debug === 1) {
-        console.log(analysis_instructions)
-        console.log(text_to_analyze)
-        console.log(content)
-      }
+      // if(debug && debug === 1) {
+      //   console.log(analysis_instructions)
+      //   console.log(text_to_analyze)
+      //   console.log(content)
+      // }
 
       return {
-        content: choices[0].message.content
+        // content: choices[0].message.content
+        content: "Hello"
       }
     } catch (error) {
       console.log(">>GroqService>>analyzer", error);

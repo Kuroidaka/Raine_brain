@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "npx tsx src/index.ts",
     "debug": "npx tsx watch --inspect src/index.ts",
-    "build": "rimraf ./dist && tsc && tsc-alias",
-    "start": "npx tsx src/index.ts"
+    "build": "tsc && tsc-alias -w",
+    "start": "npx tsx dist/index.js"
   },
   "dependencies": {
     "@deepgram/sdk": "^3.5.1",
@@ -69,7 +69,6 @@
     "forwarded": "^0.2.0",
     "fresh": "^0.5.2",
     "fs": "^0.0.1-security",
-    "fsevents": "^2.3.3",
     "function-bind": "^1.1.2",
     "get-intrinsic": "^1.2.4",
     "glob-parent": "^5.1.2",
@@ -120,7 +119,7 @@
     "path": "^0.12.7",
     "path-to-regexp": "^0.1.7",
     "pdf-parse": "^1.1.1",
-    "pdfjs-dist": "^4.6.82",
+    "pdfjs-dist": "^3.5.141",
     "pickleparser": "^0.2.1",
     "picomatch": "^2.3.1",
     "proxy-addr": "^2.0.7",

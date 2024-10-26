@@ -12,7 +12,6 @@ import { ChatCompletionTool } from "openai/resources/chat/completions"
 import { conversationFileProps } from './database/conversation/conversation.interface'
 import { redisClient } from './config/redis';
 
-
 export function isObject(value: any): boolean {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }

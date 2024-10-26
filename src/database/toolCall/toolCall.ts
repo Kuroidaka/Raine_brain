@@ -1,7 +1,6 @@
 import { dbClient } from "~/config";
-import { aiToolProps, aiToolParamProps, aiToolModifyProps, tools } from "./toolCall.interface";
-import { Prisma } from "@prisma/client";
-
+import { tools } from "./toolCall.interface";
+  
 export class ToolCallService {
     private static instance: ToolCallService;
 

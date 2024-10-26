@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import testRoutes from './test.route';
-import brainRoutes from './brain.route';
 import authRoutes from './auth.route';
 import userRoutes from './user.route';
+import fileRoutes from './file.route';
+import brainRoutes from './brain.route';
 import conversationRoutes from './conversation.route';
 import reminderRoutes from './reminder.route';
 import routineRoutes from './routine.route';
 import goalRoutes from './goal.route';
-import fileRoutes from './file.route';
 import googleRoutes from './google.route';
 
 const router = Router();

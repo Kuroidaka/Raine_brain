@@ -4,8 +4,9 @@ import { TextLoader } from "langchain/document_loaders/fs/text";
 import { PDFLoader } from "@langchain/community/document_loaders/fs/pdf";
 import { Chroma } from "@langchain/community/vectorstores/chroma";
 import { Document } from "langchain/document";
-import { getDocument } from 'pdfjs-dist';
-import { DirectoryLoader } from'langchain/document_loaders/fs/directory';
+// import { getDocument } from "pdfjs-dist/legacy/build/pdf.js";
+
+import { DirectoryLoader } from "langchain/document_loaders/fs/directory";
 import { DocxLoader } from "@langchain/community/document_loaders/fs/docx";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import {
@@ -20,9 +21,8 @@ import * as math from "mathjs";
 import { quantile } from "d3-array";
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
 import { NotImplementedException } from "./error";
-import * as fs from 'fs';
-import * as mammoth from 'mammoth';
-
+import * as fs from "fs";
+import * as mammoth from "mammoth";
 
 interface SentenceObject {
   sentence: string;
@@ -54,7 +54,7 @@ export const loadTextFile = async (relativePath: string): Promise<string> => {
 export const loadPDFFile = async (relativePath: string): Promise<string> => {
   const loader = new PDFLoader(relativePath);
   const docs = await loader.load();
-  console.log("docs", docs)
+  console.log("docs", docs);
   const textCorpus = docs[0].pageContent;
   return textCorpus;
 };
@@ -86,10 +86,12 @@ export const loadPDFFile = async (relativePath: string): Promise<string> => {
 export const splitToSentencesUsingNLP = (textCorpus: string): string[] => {
   const tokenizer = new natural.SentenceTokenizer();
   const sentences = tokenizer.tokenize(textCorpus);
-  return sentences.filter(sentence => sentence.trim() !== "");
+  return sentences.filter((sentence) => sentence.trim() !== "");
 };
 
-export const splitToSentences = async (textCorpus: string): Promise<string[]> => {
+export const splitToSentences = async (
+  textCorpus: string
+): Promise<string[]> => {
   const splitter = new RecursiveCharacterTextSplitter({
     chunkSize: 200,
     chunkOverlap: 20,
@@ -352,7 +354,10 @@ export const groupSentencesIntoChunks = (
   return chunks;
 };
 
-async function rag(documents: any[], collectionName: string = "agentic-chunks") {
+async function rag(
+  documents: any[],
+  collectionName: string = "agentic-chunks"
+) {
   // Initialize vector store using Chroma with OpenAI embeddings
 
   const vectorStore = await Chroma.fromDocuments(
@@ -396,67 +401,65 @@ async function rag(documents: any[], collectionName: string = "agentic-chunks") 
 
 async function convertDocxToText(filePath: string): Promise<string> {
   try {
-      // Read the .docx file as a buffer
-      const buffer = fs.readFileSync(filePath);
+    // Read the .docx file as a buffer
+    const buffer = fs.readFileSync(filePath);
 
-      // Convert the .docx file to plain text using Mammoth
-      const result = await mammoth.extractRawText({ buffer: buffer });
+    // Convert the .docx file to plain text using Mammoth
+    const result = await mammoth.extractRawText({ buffer: buffer });
 
-      // Get the plain text output and warnings (if any)
-      const text = result.value;
-      const warnings = result.messages;
+    // Get the plain text output and warnings (if any)
+    const text = result.value;
+    const warnings = result.messages;
 
-      // Output the plain text to console
-      console.log("warnings when get text from docx", warnings)
-      return text
-
+    // Output the plain text to console
+    console.log("warnings when get text from docx", warnings);
+    return text;
   } catch (error) {
-      console.error('Error converting .docx to text:', error);
-      throw new NotImplementedException("Error converting .docx to text")
+    console.error("Error converting .docx to text:", error);
+    throw new NotImplementedException("Error converting .docx to text");
   }
 }
 
+export async function loadFile(filePath: string): Promise<string> {
+  if (filePath.endsWith(".pdf")) {
+    const pdfjsLib = await import("pdfjs-dist/legacy/build/pdf.js");
+    const { getDocument } = pdfjsLib;
 
-export async function loadFile(filePath: string): Promise<string>{
-  if(filePath.endsWith(".pdf")){
     const loadingTask = getDocument(filePath);
     const pdfDocument = await loadingTask.promise;
 
-    let textCorpus = '';
+    let textCorpus = "";
 
     // Loop through all pages in the PDF
     for (let pageNum = 1; pageNum <= pdfDocument.numPages; pageNum++) {
-        const page = await pdfDocument.getPage(pageNum);
-        const content = await page.getTextContent();
+      const page = await pdfDocument.getPage(pageNum);
+      const content = await page.getTextContent();
 
-        // Extract text from the page
-        const pageText = content.items.map((item: any) => item.str).join(' ');
-        textCorpus += pageText + '\n';
+      // Extract text from the page
+      const pageText = content.items.map((item: any) => item.str).join(" ");
+      textCorpus += pageText + "\n";
     }
-    return textCorpus
-  }
-  else if(filePath.endsWith(".txt")){
-    const textCorpus = await loadTextFile(filePath)
-    return textCorpus
-  }
-  else if(filePath.endsWith(".docx")){
-    const textCorpus = await convertDocxToText(filePath)
-    return textCorpus
-  }
-  else{
-    throw new NotImplementedException("File type not supported")
+    return textCorpus;
+  } else if (filePath.endsWith(".txt")) {
+    const textCorpus = await loadTextFile(filePath);
+    return textCorpus;
+  } else if (filePath.endsWith(".docx")) {
+    const textCorpus = await convertDocxToText(filePath);
+    return textCorpus;
+  } else {
+    throw new NotImplementedException("File type not supported");
   }
 }
-export async function semanticChunk(filePath: string) :Promise<string[]>{
+export async function semanticChunk(filePath: string): Promise<string[]> {
   try {
     // Step 1: Load a text file.
 
-    const textCorpus = await loadFile(filePath)
+    const textCorpus = await loadFile(filePath);
     // Step 2: Split the loaded text into sentences.
 
     const sentences = splitToSentencesUsingNLP(textCorpus);
-    if(sentences.length === 0){
-      return [textCorpus]
+    if (sentences.length === 0) {
+      return [textCorpus];
     }
     console.log("sentences", sentences);
 
@@ -467,8 +470,8 @@ export async function semanticChunk(filePath: string) :Promise<string[]>{
     const sentencesWithEmbeddings =
       await generateAndAttachEmbeddings(structuredSentences);
 
-    if(sentencesWithEmbeddings.length < 2){
-      return [textCorpus]
+    if (sentencesWithEmbeddings.length < 2) {
+      return [textCorpus];
     }
     // Step 5: Calculate cosine distances and significant shifts to identify semantic chunks.
     const { updatedArray, significantShiftIndices } =
@@ -490,11 +493,10 @@ export async function semanticChunk(filePath: string) :Promise<string[]>{
       console.log("\n--------------------------------------------------\n");
     });
 
-
-    return semanticChunks 
+    return semanticChunks;
     // rag(documents, "agentic-chunks");
   } catch (error) {
     console.error("An error occurred while the chunking text function:", error);
-    throw new NotImplementedException("Error while chunking text")
+    throw new NotImplementedException("Error while chunking text");
   }
 }

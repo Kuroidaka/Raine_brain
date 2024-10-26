@@ -197,14 +197,14 @@ export class TestController {
 
       const messages = await STMemo.process(prompt, prompt, Boolean(imgFilePath), imgFilePath);
 
-      const response = await openAIClient.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: messages,
-        tool_choice: "auto",
-        tools: toolDf
-      });
+      // const response = await openAIClient.chat.completions.create({
+      //   model: "gpt-4o-mini",
+      //   messages: messages,
+      //   tool_choice: "auto",
+      //   tools: toolDf
+      // });
 
-      return res.status(200).json({ data: response.choices[0] });
+      return res.status(200).json({ data: [] });
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware

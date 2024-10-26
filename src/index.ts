@@ -7,7 +7,6 @@ import morgan from "morgan";
 import chalk from "chalk";
 import https from "https";
 import http from "http";
-import fs from "fs";
 import { Server } from "socket.io";
 import * as dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
@@ -15,15 +14,37 @@ import winston from "winston";
 
 dotenv.config();
 
+// import * as fs from 'fs';
+// import * as path from 'path';
+
+// // function logAllFiles(dirPath: string, indent: string = ''): void {
+// //   const items = fs.readdirSync(dirPath);
+
+// //   items.forEach((item) => {
+// //     const fullPath = path.join(dirPath, item);
+// //     const isDirectory = fs.lstatSync(fullPath).isDirectory();
+
+// //     console.log(`${indent}${isDirectory ? '📁' : '📄'} ${item}`);
+
+// //     if (isDirectory) {
+// //       logAllFiles(fullPath, indent + '  ');
+// //     }
+// //   });
+// // }
+
+// // console.log('Listing all files and directories from "./":');
+// // logAllFiles('./');
+
+
 import {
   errorHandler,
-  routeNotFoundHandler,
-  validateDto,
-} from "~/api/middlewares";
-import apiRoutes from "~/api/routes";
+  routeNotFoundHandler
+} from "./api/middlewares";
+import apiRoutes from "./api/routes";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { connectRedis, redisClient } from "./config/redis";
 import { setUserIDWithSocket, removeUserBySocketId } from "./utils";
+import { User } from "@prisma/client";
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 8001;
@@ -57,8 +78,8 @@ const logger = winston.createLogger({
 });
 
 // Tạo stream.write cho morgan để ghi log vào Winston
-logger.stream = {
-  write: function (message: string) {
+const morganStream = {
+  write: (message: string) => {
     logger.info(message.trim());
   },
 };
@@ -79,7 +100,7 @@ export const start = async (): Promise<void> => {
           token,
           process.env.JWT_SECRET || ""
         )) as JwtPayload;
-        socket.user = user;
+        socket.user = user as User;
         next();
       } catch (err) {
         console.error("JWT verification failed:", err);
@@ -120,7 +141,8 @@ export const start = async (): Promise<void> => {
     app.use(cookieParser());
     
     // Sử dụng logger stream cho morgan
-    app.use(morgan("combined", { stream: logger.stream }));
+    app.use(morgan("combined", { stream: morganStream }));
+
   
     app.use(API_PREFIX, apiRoutes);
   

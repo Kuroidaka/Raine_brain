@@ -18,7 +18,6 @@ router.post('/calendar/task', validateToken, validateGoogleToken, googleControll
 router.post('/calendar/task-list/init', validateToken, validateGoogleToken, googleController.initTaskList);
 
 router.post('/calendar/event/init', validateToken, validateGoogleToken, googleController.initEventList);
-router.get('/calendar/event/:id', validateToken, validateGoogleToken, googleController.getEvent);
 router.get('/calendar/event', validateToken, validateGoogleToken, googleController.getEventList);
 router.post('/calendar/event', validateToken, validateGoogleToken, validateDto(CreateCalendarDto), googleController.createEvent);
 // router.put('/calendar/event/:id', validateToken, validateGoogleToken, validateDto(UpdateCalendarDto), googleController.updateEvent);

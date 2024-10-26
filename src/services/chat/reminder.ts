@@ -64,7 +64,7 @@ export class ReminderChatService {
 
   datasource = new DataSource({
     type: "mysql",
-    database: process.env.DATABASE_NAME,
+    database: process.env.MYSQL_DATABASE,
     url: process.env.DATABASE_URL,
   });
 
@@ -220,7 +220,7 @@ export class ReminderChatService {
       // Filter out null values from the result
       const filteredData = data.filter((task) => task !== null);
 
-      return filteredData;
+      return filteredData as (TaskSQL | TaskFullIncluded)[];
     } catch (error) {
       console.error("Error in process reminder chat:", error);
       throw new InternalServerErrorException(

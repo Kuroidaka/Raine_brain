@@ -3,7 +3,6 @@ dist
 *.log
 .git
 .gitignore
-tsconfig.json
 nodemon.json
 Dockerfile
 docker-compose.yml

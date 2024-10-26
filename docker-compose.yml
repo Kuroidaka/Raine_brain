@@ -1,0 +1,54 @@
+services:
+  # Node.js Application
+  app:
+    build: .
+    ports:
+      - "9000:9000"
+    env_file:
+      - .env.production
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL}
+    depends_on:
+      - mysql
+      - redis
+      - migrate
+
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    env_file:
+      - .env.production
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - '3307:3306'
+    volumes:
+      - db_data:/var/lib/mysql
+
+  # Redis Cache
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  # Prisma Migration Service
+  migrate:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - .:/app
+    env_file:
+      - .env.production
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - mysql
+    entrypoint: ["npx", "prisma", "migrate", "deploy"]
+
+volumes:
+  db_data:

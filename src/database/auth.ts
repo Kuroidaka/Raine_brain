@@ -8,9 +8,9 @@ export class authService {
         }
         
         try {
-            const user = await dbClient.user.create({ data })
+            // const user = await dbClient.user.create({ data })
         
-            return user;
+            return data;
         } catch (error) {
             console.log(error)
             throw error
