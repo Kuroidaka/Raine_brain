@@ -55,5 +55,6 @@ export type chatClassInit = {
     isEnableStream: boolean,
     lang: string,
     eventListId?: string,
-    isLinkGoogle?: boolean
+    isLinkGoogle?: boolean,
+    isEnableScreen?: boolean
 }

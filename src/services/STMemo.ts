@@ -65,17 +65,18 @@ export class STMemoStore {
   // Simulate a real database layer. Stores serialized objects.
   summaryChat: string;
   isEnableVision: boolean;
+  isEnableScreen: boolean;
   lang: string;
   tools?: ChatCompletionTool[];
   conversationFile?: conversationFileProps[];
-
   constructor(
     userID: string,
     conversation_id?: string,
     isEnableVision = false,
     lang = "en",
     tools?: ChatCompletionTool[],
-    conversationFile?: conversationFileProps[]
+    conversationFile?: conversationFileProps[],
+    isEnableScreen = false
   ) {
     this.userID = userID;
     (this.conversation_id = conversation_id || undefined),
@@ -83,6 +84,7 @@ export class STMemoStore {
       (this.lang = lang);
     this.tools = tools;
     this.conversationFile = conversationFile;
+    this.isEnableScreen = isEnableScreen;
   }
 
   async convertMessagesFormat(messages: Message[]): Promise<MsgListParams[]> {
@@ -187,11 +189,17 @@ export class STMemoStore {
       }
     );
 
-    if (this.isEnableVision) {
+    
+    if (this.isEnableScreen) {
+      const screenGuidePersona = await readTextFile(
+        "src/assets/persona/screenGuide.txt"
+        );
+      list.unshift({ role: "system", content: screenGuidePersona });
+    } else if (this.isEnableVision) {
       const frameGuidePersona = await readTextFile(
         "src/assets/persona/frameGuide.txt"
-      );
-      list.push({ role: "system", content: frameGuidePersona });
+        );
+      list.unshift({ role: "system", content: frameGuidePersona });
     }
 
     // add ability of the AI
@@ -333,7 +341,10 @@ export class STMemoStore {
     includeImage = false,
     imgFilePath?: string,
     fileVideoPath?: string
-  ): Promise<{ history: MsgListParams[]; videoRecord: VideoRecord | undefined }> {
+  ): Promise<{
+    history: MsgListParams[];
+    videoRecord: VideoRecord | undefined;
+  }> {
     const history: MsgListParams[] = await this.getMessages(
       this.conversation_id as string,
       this.summaryChat,
@@ -362,15 +373,15 @@ export class STMemoStore {
       history.push({
         role: "user",
         content: `The uploaded file:
-                ${this.conversationFile.map((file) => {
-                  return `
+                ${this.conversationFile
+                  .map((file) => {
+                    return `
                     name: ${file.originalname}
                     type: ${file.extension}
                     uploaded_at: ${file.createdAt}
                     `;
-                })
-                .join("\n")
-                }
+                  })
+                  .join("\n")}
 
             `,
       });

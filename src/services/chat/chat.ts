@@ -30,7 +30,7 @@ export class ChatService {
   private lang: string;
   private eventListId?: string;
   private isLinkGoogle?: boolean;
-
+  private isEnableScreen?: boolean;
   constructor({
     userID,
     conversationID,
@@ -39,6 +39,7 @@ export class ChatService {
     lang = "en",
     eventListId,
     isLinkGoogle,
+    isEnableScreen
   }: chatClassInit) {
     this.userID = userID;
     this.conversationID = conversationID;
@@ -47,6 +48,7 @@ export class ChatService {
     this.lang = lang;
     eventListId && (this.eventListId = eventListId);
     isLinkGoogle && (this.isLinkGoogle = isLinkGoogle);
+    isEnableScreen && (this.isEnableScreen = isEnableScreen);
   }
 
   public async processChat(
@@ -89,7 +91,8 @@ export class ChatService {
         this.isEnableVision,
         this.lang,
         enableTools,
-        conversationFile
+        conversationFile,
+        this.isEnableScreen
       );
 
       const { summaryChat } = await this.STMemo.preprocess(prompt);

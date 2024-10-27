@@ -22,6 +22,7 @@ import { redisClient } from '~/config/redis';
 // The user will give you analysis INSTRUCTIONS copied twice, at both the beginning and the end.
 // You will follow these INSTRUCTIONS in analyzing the TEXT, then give the results of your expert analysis in the format requested.`
 const MODEL = "gpt-4o-mini-2024-07-18";
+// const MODEL = "gpt-4o";
 const ANALYZER_MODEL = "gpt-4o-mini";
 
 

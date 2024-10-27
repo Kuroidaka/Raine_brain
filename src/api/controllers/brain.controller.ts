@@ -87,6 +87,7 @@ export const BrainController = {
     // preprocess data params
     // console.clear();
     const { prompt, conversationID } = req.body;
+
     const { id: userID, eventListId, googleCredentials } = req.user;
 
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -105,7 +106,8 @@ export const BrainController = {
         console.log("fileVideoPath", fileVideoPath);
     }
   
-    const { isStream = "false", isVision = "false" } = req.query;
+    const { isStream = "false", isScreen = "false" } = req.query;
+    const isEnableScreen = isScreen === "true";
     const isEnableStream = isStream === "true";
 
     if (isEnableStream) {
@@ -132,6 +134,7 @@ export const BrainController = {
         isEnableStream,
         lang: 'en',
         ...(eventListId && isLinkGoogle && { eventListId, isLinkGoogle }),
+        isEnableScreen
       };
 
       const chatService = new ChatService(initChatParams)
@@ -153,7 +156,6 @@ export const BrainController = {
       //   }
       //   const videoRecord = await fileService.uploadVideoRecord(videoRecordData);
       // }
-            
 
       res.status(200).json({
         content: result.output.content, 
