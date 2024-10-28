@@ -11,7 +11,6 @@ import { Server } from "socket.io";
 import * as dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
 import winston from "winston";
-import { agenticChunk } from "./common/agenticChunk";
 dotenv.config();
 
 // import * as fs from 'fs';
@@ -150,12 +149,6 @@ export const start = async (): Promise<void> => {
   app.use(errorHandler);
   app.use(routeNotFoundHandler);
 
-  // Call the function with your file path
-  const filePath = path.join(
-    uploadFilePath.vectorDBPath,
-    "CLC_DECUONGKLTN_21520642.pdf"
-  ); // Replace with the path to your PDF file
-  agenticChunk(filePath);
 
   server.listen(PORT, () => {
     console.log("Server:", chalk.blue(PORT), chalk.green("connected"));
