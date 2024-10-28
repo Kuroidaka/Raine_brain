@@ -21,6 +21,7 @@ import { formatDocumentsAsString } from "langchain/util/document";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 import * as fs from 'fs';
 import { uploadFilePath } from "~/constant";
+import { agenticChunk } from "~/common/agenticChunk";
 
 export class FileChatService {
   private collectionName: string = "agentic-chunks";
@@ -85,15 +86,20 @@ export class FileChatService {
     };
   }
 
-  public async storageFile(path: string) {
+  public async storageFile(path: string, chunkType: 'semantic' | 'agentic' = 'agentic') {
     try {
-      const semanticChunks = await semanticChunk(path);
+      let chunks:string[];
+      if (chunkType === 'semantic') {
+        chunks = await semanticChunk(path);
+      } else {
+        chunks = await agenticChunk(path);
+      }
 
       const vectorStore = new Chroma(this.embeddings, {
         collectionName: this.collectionName,
       });
 
-      const documents = semanticChunks.map(
+      const documents = chunks.map(
         (chunk) =>
           new Document({
             pageContent: chunk || " ",

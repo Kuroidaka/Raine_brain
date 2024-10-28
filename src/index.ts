@@ -11,7 +11,7 @@ import { Server } from "socket.io";
 import * as dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
 import winston from "winston";
-
+import { agenticChunk } from "./common/agenticChunk";
 dotenv.config();
 
 // import * as fs from 'fs';
@@ -35,16 +35,14 @@ dotenv.config();
 // // console.log('Listing all files and directories from "./":');
 // // logAllFiles('./');
 
-
-import {
-  errorHandler,
-  routeNotFoundHandler
-} from "./api/middlewares";
+import { errorHandler, routeNotFoundHandler } from "./api/middlewares";
 import apiRoutes from "./api/routes";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { connectRedis, redisClient } from "./config/redis";
 import { setUserIDWithSocket, removeUserBySocketId } from "./utils";
 import { User } from "@prisma/client";
+import { uploadFilePath } from "./constant";
+import path from "path";
 
 const app = express();
 const PORT = process.env.SERVER_PORT || 8001;
@@ -85,73 +83,83 @@ const morganStream = {
 };
 
 export const start = async (): Promise<void> => {
+  try {
+    await connectRedis();
+    console.log("Connected to Redis");
+  } catch (err) {
+    console.error("Error connecting to Redis:", err);
+    process.exit(1); // Kết thúc chương trình nếu không thể kết nối Redis
+  }
+
+  io.use(async (socket, next) => {
     try {
-      await connectRedis();
-      console.log("Connected to Redis");
+      const token = socket.handshake.auth.token;
+      const user = (await jwt.verify(
+        token,
+        process.env.JWT_SECRET || ""
+      )) as JwtPayload;
+      socket.user = user as User;
+      next();
     } catch (err) {
-      console.error("Error connecting to Redis:", err);
-      process.exit(1); // Kết thúc chương trình nếu không thể kết nối Redis
+      console.error("JWT verification failed:", err);
+      return next(new Error("Authentication error"));
     }
-  
-    io.use(async (socket, next) => {
-      try {
-        const token = socket.handshake.auth.token;
-        const user = (await jwt.verify(
-          token,
-          process.env.JWT_SECRET || ""
-        )) as JwtPayload;
-        socket.user = user as User;
-        next();
-      } catch (err) {
-        console.error("JWT verification failed:", err);
-        return next(new Error("Authentication error"));
-      }
+  });
+
+  io.on("connection", (socket) => {
+    console.log("a user connected");
+    if (socket.user) {
+      setUserIDWithSocket(socket.user.id, socket.id);
+    }
+
+    socket.on("disconnect", async () => {
+      console.log(`User disconnected: ${socket.id}`);
+      removeUserBySocketId(socket.id);
     });
-  
-    io.on("connection", (socket) => {
-      console.log("a user connected");
-      if (socket.user) {
-        setUserIDWithSocket(socket.user.id, socket.id);
-      }
-  
-      socket.on("disconnect", async () => {
-        console.log(`User disconnected: ${socket.id}`);
-        removeUserBySocketId(socket.id);
-      });
-    });
-  
-    const apiLimiter = rateLimit({
-      windowMs: 60 * 1000, // 1 phút
-      max: 1000, // Tối đa 1000 request mỗi IP trong mỗi phút
-      message: "Too many requests from this IP, please try again after a minute",
-    });
-  
-    app.use(apiLimiter);
-    app.use(express.json());
-    app.use(bodyParser.json({
+  });
+
+  const apiLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 phút
+    max: 1000, // Tối đa 1000 request mỗi IP trong mỗi phút
+    message: "Too many requests from this IP, please try again after a minute",
+  });
+
+  app.use(apiLimiter);
+  app.use(express.json());
+  app.use(
+    bodyParser.json({
       limit: "10mb",
       type: "application/json",
-    }));
-    app.use(bodyParser.urlencoded({
+    })
+  );
+  app.use(
+    bodyParser.urlencoded({
       parameterLimit: 1000,
       limit: "10mb",
       extended: true,
-    }));
-    app.use(cors());
-    app.use(cookieParser());
-    
-    // Sử dụng logger stream cho morgan
-    app.use(morgan("combined", { stream: morganStream }));
+    })
+  );
+  app.use(cors());
+  app.use(cookieParser());
 
-  
-    app.use(API_PREFIX, apiRoutes);
-  
-    app.use(errorHandler);
-    app.use(routeNotFoundHandler);
-  
-    server.listen(PORT, () => {
-      console.log("Server:", chalk.blue(PORT), chalk.green("connected"));
-    });
-  };
-  
-  start();
+  // Sử dụng logger stream cho morgan
+  app.use(morgan("combined", { stream: morganStream }));
+
+  app.use(API_PREFIX, apiRoutes);
+
+  app.use(errorHandler);
+  app.use(routeNotFoundHandler);
+
+  // Call the function with your file path
+  const filePath = path.join(
+    uploadFilePath.vectorDBPath,
+    "CLC_DECUONGKLTN_21520642.pdf"
+  ); // Replace with the path to your PDF file
+  agenticChunk(filePath);
+
+  server.listen(PORT, () => {
+    console.log("Server:", chalk.blue(PORT), chalk.green("connected"));
+  });
+};
+
+start();
