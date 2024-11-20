@@ -14,3 +14,8 @@ export interface userUpdateProps {
     googleCredentials?: string | null,
     eventListId?: string | null
 }
+
+export type userSettingUpdateProps = {
+    language?: string;
+    chunkingService?: string;
+}

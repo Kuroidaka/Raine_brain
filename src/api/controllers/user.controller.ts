@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
+import { NotFoundException } from '~/common/error';
 import { FileService } from '~/database/file/file';
 import { ToolCallService } from '~/database/toolCall/toolCall';
+import { UserSettingService } from '~/database/user/setting';
 import { UserService } from '~/database/user/user';
 
 const userService = UserService.getInstance();
@@ -130,4 +132,34 @@ export const UserController = {
             next(error);
         }
     },
+    getSetting: async (req: Request, res: Response, next:NextFunction) => {
+        const { id: userID } = req.user
+        
+        try {
+            if(!userID) {
+                throw new NotFoundException("User not found")
+            }
+
+            const userSettingService = UserSettingService.getInstance();
+            let result = await userSettingService.getSetting(userID)
+            if(!result) result = await userSettingService.updateSetting(userID, req.body)
+
+            return res.status(200).json(result);
+        } catch (error) {
+            console.log(error);
+            // Rethrow the error to be caught by the errorHandler middleware
+            next(error);
+        }
+    },
+    updateSetting: async (req: Request, res: Response, next:NextFunction) => {
+        const { id: userID } = req.user
+        try {
+            const userSettingService = UserSettingService.getInstance();
+            const result = await userSettingService.updateSetting(userID, req.body)
+            return res.status(200).json(result);
+        } catch (error) {
+            console.log(error);
+            next(error);
+        }
+    }
 }

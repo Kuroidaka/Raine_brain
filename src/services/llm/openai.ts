@@ -166,7 +166,8 @@ export class OpenaiService {
         "RoutineChatService": llmTools.RoutineChatService,
         "ReminderCreateChatService": llmTools.ReminderCreateChatService,
         "RoutineCreateChatService": llmTools.RoutineCreateChatService,
-        "FileAskChatService":llmTools.FileAskChatService
+        "FileAskChatService":llmTools.FileAskChatService,
+        "BrowseChatService": llmTools.BrowseChatService
       };
 
       messages.push(responseMessage);

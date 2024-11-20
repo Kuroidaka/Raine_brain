@@ -450,12 +450,9 @@ export async function loadFile(filePath: string): Promise<string> {
     throw new NotImplementedException("File type not supported");
   }
 }
-export async function semanticChunk(filePath: string): Promise<string[]> {
-  try {
-    // Step 1: Load a text file.
 
-    const textCorpus = await loadFile(filePath);
-    // Step 2: Split the loaded text into sentences.
+export async function processTextToSemanticChunks(textCorpus: string): Promise<string[]> {
+  try {
 
     const sentences = splitToSentencesUsingNLP(textCorpus);
     if (sentences.length === 0) {
@@ -495,6 +492,19 @@ export async function semanticChunk(filePath: string): Promise<string[]> {
 
     return semanticChunks;
     // rag(documents, "agentic-chunks");
+  } catch (error) {
+    console.error("An error occurred while the chunking text function:", error);
+    throw new NotImplementedException("Error while chunking text");
+  }
+}
+
+export async function semanticChunk(filePath: string): Promise<string[]> {
+  try {
+    // Step 1: Load a text file.
+    const textCorpus = await loadFile(filePath);
+       
+    // Step 2: Split the loaded text into sentences.
+    return processTextToSemanticChunks(textCorpus)
   } catch (error) {
     console.error("An error occurred while the chunking text function:", error);
     throw new NotImplementedException("Error while chunking text");

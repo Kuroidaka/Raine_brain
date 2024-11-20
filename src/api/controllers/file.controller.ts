@@ -13,6 +13,7 @@ import { FileChatService } from '~/services/chat/fileAsk';
 import { ConversationService } from '~/database/conversation/conversation';
 import { formatDateTime } from '~/utils';
 import { UserService } from '~/database/user/user';
+import { UserSettingService } from '~/database/user/setting';
 
 const pipelineAsync = promisify(pipeline);
 
@@ -146,7 +147,11 @@ export const FileController = {
             const filePath = path.join(vectorDBPath, req.file.filename);
 
             const fileChatService = new FileChatService();
-            const { ids } = await fileChatService.storageFile(filePath);
+
+            const userSettingService = UserSettingService.getInstance();
+            let result = await userSettingService.getSetting(req.user.id)
+            console.log("result.chunkingService", result.chunkingService)
+            const { ids } = await fileChatService.storageFile(filePath, result.chunkingService as "semantic" | "agentic");
             newFileData.vectorDBIds = ids
             const { id } = await fileService.addNewFile(newFileData);
 

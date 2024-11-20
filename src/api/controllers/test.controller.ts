@@ -26,17 +26,19 @@ import { GoogleService } from "~/services/google/calendar";
 import { OpenaiService } from "~/services/llm/openai";
 import { getDocument } from 'pdfjs-dist';
 import { semanticChunk } from "~/common/semeticChunk";
+import { UserSettingService } from "~/database/user/setting";
+import { BrowseService } from "~/services/chat/browse";
 
 
 const conversationService = ConversationService.getInstance();
 export class TestController {
   static async do(req: Request, res: Response, next: NextFunction) {
     try {
-      const filePath = "src/assets/file/vectorDB/1727250505006.pdf";
+      const browseService = new BrowseService()
 
-      const extractedText = await semanticChunk(filePath)
+      const text = await browseService.browse(req.body.q)
 
-      return res.status(200).json(extractedText);
+      return res.status(200).json(text);
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware
@@ -45,7 +47,7 @@ export class TestController {
   }
   static async ping(req: Request, res: Response, next: NextFunction) {
     try {
-      return res.status(200).json({ data: `` });
+      return res.status(200).json({ data: `đawa` });
     } catch (error) {
       console.log(error);
       // Rethrow the error to be caught by the errorHandler middleware

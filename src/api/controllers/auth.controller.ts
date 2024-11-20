@@ -3,6 +3,7 @@ import { BadRequestException, ConflictException, NotFoundException, Unauthorized
 import { UserService } from '~/database/user/user';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { UserSettingService } from '~/database/user/setting';
 
 const SALT_ROUNDS = 10;
 const SECRET_KEY = process.env.JWT_SECRET || ""

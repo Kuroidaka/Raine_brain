@@ -36,7 +36,7 @@ export class FileChatService {
   public async askFile(q: string) {
     const vectorStore = await Chroma.fromExistingCollection(
       new OpenAIEmbeddings({
-        modelName: "text-embedding-ada-002", // Change this to your specific model version
+        modelName: "text-embedding-ada-002",
       }),
       {
         collectionName: this.collectionName

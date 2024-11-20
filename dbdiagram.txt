@@ -1,0 +1,241 @@
+Table Task {
+  id          uuid       [pk]
+  createdAt   datetime   
+  updatedAt   datetime   
+  title       longtext
+  color       string
+  deadline    datetime
+  note        longtext
+  status      boolean    [default: false]
+  googleEventId longtext
+  userId      string     [ref: > User.id]
+
+  indexes {
+    userId
+  }
+}
+
+Table TaskAttachment {
+  id        uuid     [pk]
+  createdAt datetime 
+  updatedAt datetime 
+  name      string
+  url       longtext
+  type      string
+  taskId    string   [ref: > Task.id]
+}
+
+Table SubTask {
+  id        uuid      [pk]
+  title     longtext
+  status    boolean   [default: false]
+  taskId    string    [ref: > Task.id]
+  createdAt datetime  
+  updatedAt datetime  
+
+  indexes {
+    taskId
+  }
+}
+
+Table TaskAreas {
+  taskId  string  [ref: > Task.id]
+  area    Areas   [note: 'enum reference']
+
+  indexes {
+    (taskId, area) [unique]
+  }
+}
+
+Table RoutineAreas {
+  routineId string [ref: > Routine.id]
+  area      Areas  [note: 'enum reference']
+
+  indexes {
+    (routineId, area) [unique]
+  }
+}
+
+Table Routine {
+  id          uuid      [pk]
+  createdAt   datetime  
+  updatedAt   datetime  
+  title       longtext
+  color       string
+  note        longtext
+  isActive    boolean   [default: true]
+  routineTime string
+  googleEventId longtext
+  userId      string    [ref: > User.id]
+
+  indexes {
+    userId
+  }
+}
+
+
+Table RoutineDate {
+  id              uuid      [pk]
+  routineID       string    [ref: > Routine.id]
+  completion_date datetime
+  createdAt       datetime  
+  updatedAt       datetime  
+
+  indexes {
+    routineID
+  }
+}
+
+Table File {
+  id             uuid      [pk]
+  name           string    [unique]
+  originalname   string
+  path           string
+  extension      string
+  size           int
+  url            longtext
+  userId         string    [ref: > User.id]
+  conversationId string    [ref: > Conversation.id]
+
+  indexes {
+    userId
+  }
+}
+
+
+Table User {
+  id                uuid      [pk]
+  display_name      string
+  username          string    [unique]
+  password          string
+  gmail             string
+  googleCredentials longtext
+  created_at        datetime  
+  updated_at        datetime  
+  eventListId       string
+  bg_id             string    [ref: > backgroundImage.id]
+
+  indexes {
+    bg_id
+  }
+}
+
+Table UserSetting {
+  id              uuid      [pk]
+  user_id         string    [unique, ref: > User.id]
+  language        string    [default: "en"]
+  chunkingService string    [default: "semantic"]
+  created_at      datetime  
+  updated_at      datetime  
+
+  indexes {
+    user_id
+  }
+}
+
+Table Conversation {
+  id            uuid      [pk]
+  name          string    [default: "New Chat"]
+  from          string
+  summarize     longtext
+  lastMessage   longtext
+  lastMessageAt datetime  
+  createdAt     datetime  
+  updatedAt     datetime  
+  userID        string    [ref: > User.id]
+
+  indexes {
+    userID
+  }
+}
+
+Table Message {
+  id             uuid      [pk]
+  createdAt      datetime  
+  updatedAt      datetime  
+  text           longtext
+  isBot          boolean
+  userID         string    [ref: > User.id]
+  conversationId string    [ref: > Conversation.id]
+
+  indexes {
+    conversationId
+  }
+}
+
+Table VideoRecord {
+  id        uuid      [pk]
+  createdAt datetime  
+  updatedAt datetime  
+  name      string
+  url       longtext
+  messageId string    [unique, ref: > Message.id]
+
+  indexes {
+    messageId
+  }
+}
+
+Table MessageFuntion {
+  id        uuid      [pk]
+  createdAt datetime  
+  updatedAt datetime  
+  name      string
+  data      longtext
+  comment   longtext
+  messageId string    [ref: > Message.id]
+
+  indexes {
+    messageId
+  }
+}
+
+Table AiTool {
+  id          uuid      [pk]
+  createdAt   datetime  
+  updatedAt   datetime  
+  name        string    [unique]
+  description longtext
+}
+
+Table UserOnAiTools {
+  userId     string   [ref: > User.id]
+  aiToolId   string   [ref: > AiTool.id]
+  assignedAt datetime 
+
+  indexes {
+    (userId, aiToolId) [unique]
+  }
+}
+
+Table backgroundImage {
+  id        uuid      [pk]
+  createdAt datetime  
+  updatedAt datetime  
+  name      string
+  urlPath   longtext
+  extname   string
+}
+
+Table ImageFile {
+  id        uuid      [pk]
+  url       longtext
+  createdAt datetime  
+  updatedAt datetime  
+  messageId string    [ref: > Message.id]
+
+  indexes {
+    messageId
+  }
+}
+
+Enum Areas {
+  health
+  play
+  spirituality
+  environment
+  work
+  finance
+  development
+  relationships
+}

@@ -13,7 +13,6 @@ export class UserService {
         }
         return UserService.instance;
     }
-    
     public async getUser({ id, username }: { id?: string; username?: string }):Promise<User & { backgroundImage: backgroundImage | null } | null> {
         try {
             let query = id ? { id } : username ? { username } : null;
@@ -54,7 +53,6 @@ export class UserService {
             throw error;
         }
     }
-
     public async getUsers():Promise<User[]>{
         try {
             return await dbClient.user.findMany({});
@@ -63,7 +61,6 @@ export class UserService {
             throw error;
         }
     }
-
     public async addUser(data: userServiceProps) {
         try {
             const user = await dbClient.user.create({ data });
@@ -73,8 +70,6 @@ export class UserService {
             throw error;
         }
     }
-
-
     public async updateUser(userID: string, data: userUpdateProps) {
         try {
             console.log("userID", userID)

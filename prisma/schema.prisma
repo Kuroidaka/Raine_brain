@@ -12,18 +12,18 @@ model Task {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  title         String    @db.LongText
+  title         String   @db.LongText
   color         String?
   deadline      DateTime
-  note          String?   @db.LongText
-  status        Boolean   @default(false)
-  googleEventId String?    @db.LongText
+  note          String?  @db.LongText
+  status        Boolean  @default(false)
+  googleEventId String?  @db.LongText
 
-  subTask SubTask[]
-  area    TaskAreas[]
+  subTask        SubTask[]
+  area           TaskAreas[]
   taskAttachment TaskAttachment[]
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+  userId         String
+  user           User             @relation(fields: [userId], references: [id])
 
   @@index([userId], map: "Task_userId_fkey")
 }
@@ -32,13 +32,12 @@ model TaskAttachment {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  name      String
-  url       String   @db.LongText
-  type      String
-  taskId    String
-  task      Task     @relation(fields: [taskId], references: [id])
-  
+
+  name   String
+  url    String @db.LongText
+  type   String
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id])
 }
 
 model SubTask {
@@ -78,22 +77,22 @@ model RoutineAreas {
 }
 
 model Routine {
-  id          String         @id @default(uuid())
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  title       String         @db.LongText
-  color       String?
-  note        String?        @db.LongText
-  isActive    Boolean        @default(true)
-  routineTime String
-  googleEventId String?      @db.LongText
+  title         String  @db.LongText
+  color         String?
+  note          String? @db.LongText
+  isActive      Boolean @default(true)
+  routineTime   String
+  googleEventId String? @db.LongText
 
   area        RoutineAreas[]
   routineDate RoutineDate[]
 
-  userId      String
-  user        User           @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   @@index([userId], map: "Routine_userId_fkey")
 }
@@ -125,16 +124,16 @@ model RoutineDate {
 }
 
 model File {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  originalname String
-  path      String
-  extension String
-  size      Int
-  url       String   @db.LongText
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  vectorDBIds Json?
+  id             String        @id @default(uuid())
+  name           String        @unique
+  originalname   String
+  path           String
+  extension      String
+  size           Int
+  url            String        @db.LongText
+  userId         String
+  user           User          @relation(fields: [userId], references: [id])
+  vectorDBIds    Json?
   conversationId String?
   conversation   Conversation? @relation(fields: [conversationId], references: [id])
 
@@ -157,26 +156,42 @@ model User {
   display_name      String?
   username          String   @unique
   password          String
-  created_at        DateTime @default(now())
-  updated_at        DateTime @default(now())
-  role_id           String?
-  bg_id             String?
   gmail             String?
   googleCredentials String?  @db.LongText
-  eventListId       String?
-  
-  files             File[]
-  conversations Conversation[]
-  Goal          Goal[]
-  Routine       Routine[]
-  Task          Task[]
-  aiTools       UserOnAiTools[]
 
+  created_at        DateTime @default(now())
+  updated_at        DateTime @default(now())
+  eventListId       String?
+
+  role_id           String?
+  bg_id             String?
+
+  files           File[]
+  conversations   Conversation[]
+  Goal            Goal[]
+  Routine         Routine[]
+  Task            Task[]
+  aiTools         UserOnAiTools[]
+  userSetting     UserSetting?
   backgroundImage backgroundImage? @relation(fields: [bg_id], references: [id])
   Role            Role?            @relation(fields: [role_id], references: [id])
 
   @@index([role_id], map: "Role_role_id_fkey")
   @@index([bg_id], map: "User_bg_id_fkey")
+}
+
+model UserSetting {
+  id              String  @id @default(uuid())
+  user_id         String  @unique
+  language        String? @default("en")
+  chunkingService String? @default("semantic")
+  
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id], map: "UserSetting_user_id_fkey")
 }
 
 model Conversation {
@@ -195,6 +210,7 @@ model Conversation {
 
   @@index([userID], map: "Conversation_userID_fkey")
 }
+
 model Message {
   id             String           @id @default(uuid())
   createdAt      DateTime         @default(now())
@@ -211,7 +227,6 @@ model Message {
   memoStorage    Json?
 
   @@index([conversationId], map: "Message_conversationId_fkey")
-
 }
 
 model VideoRecord {
@@ -221,12 +236,11 @@ model VideoRecord {
   name      String
   url       String   @db.LongText
 
-  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  messageId String   @unique
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String  @unique
 
   @@index([messageId], map: "VideoRecord_messageId_fkey")
 }
-
 
 model MessageFuntion {
   id        String   @id @default(uuid())
@@ -245,7 +259,7 @@ model AiTool {
   id          String          @id @default(uuid())
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
-  name        String
+  name        String          @unique
   description String          @db.LongText
   users       UserOnAiTools[]
 }
