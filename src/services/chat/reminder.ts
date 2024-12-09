@@ -27,7 +27,7 @@ export class ReminderChatService  {
 
   datasource = new DataSource({
     type: "mysql",
-    database: process.env.DATABASE_NAME,
+    database: process.env.MYSQL_DATABASE,
     url: process.env.DATABASE_URL
   });
 

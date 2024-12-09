@@ -17,7 +17,8 @@ if (process.env.NODE_ENV === "production") {
 
 export const redisClient: RedisClientType = createClient(redisConfig);
 
-const connectRedis = async () => {
+
+export const connectRedis = async () => {
     try {
         await redisClient.connect();
         console.log(chalk.red("Redis"), chalk.green("connected"));

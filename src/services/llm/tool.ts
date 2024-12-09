@@ -2,6 +2,7 @@ import { ChatCompletionTool } from "openai/resources/chat/completions"
 import { ReminderChatService } from "../chat/reminder"
 import { FileChatService } from "../chat/fileAsk"
 import { VideoRecord } from "@prisma/client"
+import { BrowseService } from "../chat/browse"
 
 export type otherArgs = {
     userId?: string,
@@ -48,7 +49,15 @@ export const llmTools = {
 
         // get the function add the knowledge base
         return func.askFile(q)
-    }
+    },
+    BrowseChatService: async (args: { q: string, links: string[] | undefined }) => {
+        const { q, links } = args
+
+        const func = new BrowseService()
+
+        return func.browse(q, links)
+    },
+
 }
 
 
@@ -118,7 +127,7 @@ export const toolsDefined:ChatCompletionTool[] = [
                 type: "object",
                 properties: {
                   "q": {
-                    "description": "The query string provided by the user. This string defines the criteria for searching tasks (e.g., 'search task with area in work')."
+                    "description": `The query string provided by the user. This string defines the criteria for searching tasks`
                   }
                 },
                 required: ["q"],
@@ -134,7 +143,7 @@ export const toolsDefined:ChatCompletionTool[] = [
                 type: "object",
                 properties: {
                   "q": {
-                    "description": "The query string provided by the user. This string defines the criteria for searching routines(e.g., 'search routine with area in work')."
+                    "description": "The query string provided by the user. This string defines the criteria for searching routines"
                   }
                   
                 },
@@ -152,13 +161,38 @@ export const toolsDefined:ChatCompletionTool[] = [
                 type: "object",
                 properties: {
                   "q": {
-                    "description": "The question that the user wants to know about the uploaded file"
+                    "description": "The question that the user wants to know about the uploaded file (don't include any file name)"
                   }
                 },
                 required: ["q"],
             },
         },
     },
+    {
+        type: "function",
+        function: {
+            name: "BrowseChatService",
+            description: "This tool is used to get the realtime events, data, news, ... from the internet or from the link that contained from user query.",
+            parameters: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                    q: {
+                        type: "string",
+                        description: "The query from user or the question that user want to know about the current events, data, news, ...",
+                    },
+                    links: {
+                        description: "Links provided in the user query, if any.",
+                        type: "array",
+                        items: {
+                            type: "string",
+                        }
+                    }
+                },
+                required: ["q"],
+            }
+        }
+    }
 ];
 
 export type ToolsDefinedType = {

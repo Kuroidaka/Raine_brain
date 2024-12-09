@@ -18,7 +18,7 @@ import apiRoutes from '~/api/routes';
 
 
 const app = express();
-const PORT = process.env.SERVER_PORT || 8001;
+const PORT = process.env.SERVER_PORT || 9000;
 const API_PREFIX = '/api/v2'; // Adjust as necessary
 
 // Load SSL certificates
