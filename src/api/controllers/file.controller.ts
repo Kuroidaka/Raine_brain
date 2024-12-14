@@ -2,7 +2,7 @@ import { pipeline } from 'stream';
 import { NextFunction, Request, Response } from 'express';
 import { createReadStream } from 'fs';
 import path, { join } from 'path';
-import { BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '~/common/error';
+import { BadGatewayException, BadRequestException, ConflictException, NotFoundException, UnauthorizedException } from '~/common/error';
 import { uploadFilePath } from '~/constant';
 import mime from 'mime-types';
 import { promisify } from 'util';
@@ -121,6 +121,10 @@ export const FileController = {
             if (!req.file) {
                 throw new NotFoundException("File upload failed");
             }
+            if(!req.query.method) {
+                throw new BadGatewayException("Please select Chunking method");
+            }
+            const chunkingMethod = req.query.method
 
             let conversationId = req.body.conversationId
             if(!conversationId) {
@@ -149,9 +153,10 @@ export const FileController = {
             const fileChatService = new FileChatService();
 
             const userSettingService = UserSettingService.getInstance();
-            let result = await userSettingService.getSetting(req.user.id)
-            console.log("result.chunkingService", result.chunkingService)
-            const { ids } = await fileChatService.storageFile(filePath, result.chunkingService as "semantic" | "agentic");
+            // let result = await userSettingService.getSetting(req.user.id)
+            // console.log("result.chunkingService", result.chunkingService)
+            
+            const { ids } = await fileChatService.storageFile(filePath, chunkingMethod as "semantic" | "agentic");
             newFileData.vectorDBIds = ids
             const { id } = await fileService.addNewFile(newFileData);
 

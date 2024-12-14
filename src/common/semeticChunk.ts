@@ -302,10 +302,11 @@ export const calculateCosineDistancesAndSignificantShifts = (
 
   // Identify indices of significant shifts
   const significantShiftIndices = distances
-    .map((distance, index) =>
-      distance > breakpointDistanceThreshold ? index : -1
-    )
-    .filter((index) => index !== -1);
+  .map((distance, index) =>
+    distance > breakpointDistanceThreshold && distance > 0.005 ? index : -1
+  )
+  .filter((index) => index !== -1);
+
 
   return {
     updatedArray: updatedSentenceObjectArray,
@@ -472,7 +473,7 @@ export async function processTextToSemanticChunks(textCorpus: string): Promise<s
     }
     // Step 5: Calculate cosine distances and significant shifts to identify semantic chunks.
     const { updatedArray, significantShiftIndices } =
-      calculateCosineDistancesAndSignificantShifts(sentencesWithEmbeddings, 90); // Assuming a threshold of 90%
+      calculateCosineDistancesAndSignificantShifts(sentencesWithEmbeddings, 80); // Assuming a threshold of 30%
 
     // Step 6: Group sentences into semantic chunks based on the significant shifts identified.
     const semanticChunks = groupSentencesIntoChunks(
