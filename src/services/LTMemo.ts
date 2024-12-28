@@ -24,7 +24,7 @@ type Memo = {
 };
 
 const chromaClient = new ChromaClient({
-    path: "http://localhost:8000"
+    path: "http://0.0.0.0:8000"
   });
 
 

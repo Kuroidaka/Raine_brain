@@ -21,3 +21,4 @@ export const colorList =  [
   "#51B749",
   "#DC2127"
 ]
+

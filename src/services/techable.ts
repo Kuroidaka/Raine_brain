@@ -226,7 +226,7 @@ export class TeachableService {
       }
       targetSocketId && io.to(targetSocketId).emit("chatResMemoStorage", { active: true })
 
-      const memoFinal: DataMemo[] = [];
+      const memoFinal: DataMemo[] = []; 
       let isMemoUpdated = false;
   
       if (relateMemo.length > 0) { // update memo

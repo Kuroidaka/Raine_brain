@@ -7,11 +7,12 @@ import { googleController } from '../controllers/google.controller';
 
 import { CreateCalendarDto, UpdateCalendarDto } from '~/dto/google.dto';
 import { validateGoogleToken } from '../middlewares/validateGoogleToken';
+import { validateGgTokenOptional } from '../middlewares/validateGoogleTokenOp';
 
 const router = Router();
 
 router.get('/link-gmail', googleController.linkGmail);
-router.post('/unlink-gmail', validateToken, validateGoogleToken, googleController.unlinkGmail);
+router.post('/unlink-gmail', validateToken, googleController.unlinkGmail);
 router.get('/oauth2callback', googleController.oauth2callback);
 
 router.post('/calendar/task', validateToken, validateGoogleToken, googleController.createTask);

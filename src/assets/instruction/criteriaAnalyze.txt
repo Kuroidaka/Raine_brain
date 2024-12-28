@@ -15,9 +15,20 @@ Your response should be a JSON object with the following structure:
                                 // 4. Require to setup a reminder, task, routine, or event (schedule)
       "frequently-mentioned": boolean, // true when the user consistently brings up the same detail across multiple interactions
     },
-    "guide": string, // question to get the answer example: "What should use bring to the school",
+    "guide": string, // question to get the answer,
     "answer": string, // Use the information from the TEXT to answer the guide question example: "student card", But if no answer is present, just respond with 'none'
 }
+
+example of guide and answer
+---------------------------------
+"guide": "What happened with the user and his girlfriend?"
+"answer": "They have broken up."
+---------------------------------
+"guide": "What should user bring to the school?"
+"answer": "student card"
+---------------------------------
+"guide": "What sport they don't love anymore"
+"answer": "basketball"
 
 require: [guide, answer]
 Do not add any explanation to your analysis, just the analysis result.
